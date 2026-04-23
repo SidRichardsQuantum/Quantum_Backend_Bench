@@ -25,7 +25,7 @@ def analyze_with_tket(benchmark: BenchmarkSpec) -> dict[str, Any]:
         }
 
     try:
-        from pytket import Circuit
+        tk_circuit = build_tket_circuit(benchmark)
     except ImportError:
         gate_histogram = Counter(operation.gate for operation in circuit.operations)
         return {
@@ -36,12 +36,6 @@ def analyze_with_tket(benchmark: BenchmarkSpec) -> dict[str, Any]:
             "compiled": False,
             "compiler_summary": "pytket not installed; using internal structural estimates.",
         }
-
-    tk_circuit = Circuit(circuit.n_qubits, circuit.n_qubits)
-    for operation in circuit.operations:
-        _apply_tket_op(tk_circuit, operation)
-    for qubit in circuit.measurements:
-        tk_circuit.Measure(qubit, qubit)
 
     commands = tk_circuit.get_commands()
     gate_histogram = Counter(
@@ -55,6 +49,39 @@ def analyze_with_tket(benchmark: BenchmarkSpec) -> dict[str, Any]:
         "compiled": False,
         "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
     }
+
+
+def build_tket_circuit(benchmark: BenchmarkSpec) -> Any:
+    """Build a pytket circuit for analysis or drawing."""
+
+    try:
+        from pytket import Circuit
+    except ImportError as exc:
+        raise ImportError("pytket is not installed.") from exc
+
+    circuit = benchmark.circuit_data
+    if not isinstance(circuit, InternalCircuit):
+        raise TypeError("pytket analysis requires InternalCircuit benchmark data.")
+
+    tk_circuit = Circuit(circuit.n_qubits, circuit.n_qubits)
+    for operation in circuit.operations:
+        _apply_tket_op(tk_circuit, operation)
+    for qubit in circuit.measurements:
+        tk_circuit.Measure(qubit, qubit)
+    return tk_circuit
+
+
+def draw_tket(benchmark: BenchmarkSpec, save_path: str | None = None) -> str:
+    """Render a textual pytket circuit diagram."""
+
+    from pathlib import Path
+
+    diagram = str(build_tket_circuit(benchmark))
+    if save_path is not None:
+        destination = Path(save_path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(diagram + "\n", encoding="utf-8")
+    return diagram
 
 
 def _apply_tket_op(circuit: Any, operation: CircuitOperation) -> None:

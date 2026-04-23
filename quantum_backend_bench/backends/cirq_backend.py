@@ -19,7 +19,7 @@ class CirqBackend(BaseBackend):
 
     name = "cirq"
 
-    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+    def build_native_circuit(self, benchmark: BenchmarkSpec) -> Any:
         try:
             import cirq
         except ImportError as exc:
@@ -35,19 +35,29 @@ class CirqBackend(BaseBackend):
             circuit.append(_to_cirq_operation(cirq, operation, qubits))
 
         noise_metadata = benchmark.metadata or {}
-        noise_applied = False
         if noise_metadata.get("noise_type") == "depolarizing":
             probability = float(noise_metadata.get("noise_level", 0.0))
             if probability > 0:
                 circuit = circuit.with_noise(cirq.depolarize(probability))
-                noise_applied = True
 
         if circuit_data.measurements:
             circuit.append(
                 cirq.measure(*[qubits[index] for index in circuit_data.measurements], key="m")
             )
 
+        return circuit
+
+    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+        circuit = self.build_native_circuit(benchmark)
+        noise_metadata = benchmark.metadata or {}
+        noise_applied = (
+            noise_metadata.get("noise_type") == "depolarizing"
+            and float(noise_metadata.get("noise_level", 0.0)) > 0
+        )
+
         start = time.perf_counter()
+        import cirq
+
         result = cirq.Simulator().run(circuit, repetitions=shots)
         runtime = time.perf_counter() - start
 

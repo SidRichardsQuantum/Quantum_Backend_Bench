@@ -19,7 +19,7 @@ class PennyLaneBackend(BaseBackend):
 
     name = "pennylane"
 
-    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+    def build_native_circuit(self, benchmark: BenchmarkSpec) -> Any:
         try:
             import pennylane as qml
         except ImportError as exc:
@@ -40,6 +40,26 @@ class PennyLaneBackend(BaseBackend):
             for operation in circuit_data.operations:
                 _apply_pennylane_op(qml, operation, noise_level=noise_level if use_mixed else 0.0)
             return qml.sample(wires=circuit_data.measurements or list(range(circuit_data.n_qubits)))
+
+        return circuit
+
+    def draw(self, benchmark: BenchmarkSpec, save_path: str | None = None) -> str:
+        import pennylane as qml
+
+        circuit = self.build_native_circuit(benchmark)
+        diagram = qml.draw(circuit)()
+        if save_path is not None:
+            figure, _ = qml.draw_mpl(circuit)()
+            figure.savefig(save_path, dpi=150, bbox_inches="tight")
+        return diagram
+
+    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+        import pennylane as qml
+
+        circuit = self.build_native_circuit(benchmark)
+        metadata = benchmark.metadata or {}
+        noise_level = float(metadata.get("noise_level", 0.0))
+        use_mixed = metadata.get("noise_type") == "depolarizing" and noise_level > 0
 
         start = time.perf_counter()
         sampled_circuit = qml.set_shots(circuit, shots=shots)

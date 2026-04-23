@@ -20,11 +20,10 @@ class BraketLocalBackend(BaseBackend):
 
     name = "braket_local"
 
-    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+    def build_native_circuit(self, benchmark: BenchmarkSpec) -> Any:
         os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/numba")
         try:
             from braket.circuits import Circuit
-            from braket.devices import LocalSimulator
         except ImportError as exc:
             raise RuntimeError("Amazon Braket SDK is not installed.") from exc
 
@@ -36,6 +35,16 @@ class BraketLocalBackend(BaseBackend):
         for operation in circuit_data.operations:
             _apply_braket_op(circuit, operation)
         circuit.probability(target=circuit_data.measurements or list(range(circuit_data.n_qubits)))
+        return circuit
+
+    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
+        os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/numba")
+        try:
+            from braket.devices import LocalSimulator
+        except ImportError as exc:
+            raise RuntimeError("Amazon Braket SDK is not installed.") from exc
+
+        circuit = self.build_native_circuit(benchmark)
 
         start = time.perf_counter()
         task = LocalSimulator().run(circuit, shots=shots)

@@ -1,6 +1,14 @@
-# quantum-backend-bench
+# Quantum Backend Bench
+
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/badge/version-0.1.1-green.svg)](./CHANGELOG.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
+[![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20Local-purple.svg)](./USAGE.md)
+[![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
 
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across Cirq, PennyLane, and Amazon Braket `LocalSimulator`, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
+
+See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
 ## Features
 
@@ -9,6 +17,7 @@ Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The 
 - Built-in benchmarks for GHZ, QFT, random circuits, Grover search, Hamiltonian simulation, and noise sweeps
 - Standardized metrics including depth, gate counts, runtime, success probability, and total variation distance
 - CLI commands for single runs, backend comparison, and noise sweeps
+- Native circuit drawing through Cirq, PennyLane, Braket, and pytket renderers
 - JSON export and matplotlib plot generation
 - Installable in GitHub Codespaces with Python 3.11+
 
@@ -22,6 +31,14 @@ Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The 
 | pytket | Analysis only | Used for depth and gate metrics, not execution |
 
 ## Installation
+
+Install from PyPI:
+
+```bash
+python -m pip install quantum-backend-bench
+```
+
+Install from a local checkout:
 
 ```bash
 python -m pip install --upgrade pip
@@ -76,11 +93,21 @@ Run a noise sweep:
 quantum-bench noise-sweep ghz --backend cirq --n-qubits 5
 ```
 
+Draw a circuit with a native SDK renderer:
+
+```bash
+quantum-bench draw ghz --backend cirq --n-qubits 5
+quantum-bench draw qft --backend pennylane --n-qubits 5 --save-path artifacts/qft_pennylane.png
+quantum-bench draw ghz --backend tket --n-qubits 5 --save-path artifacts/ghz_tket.txt
+```
+
 Save JSON and plots:
 
 ```bash
 quantum-bench compare ghz --backends cirq pennylane braket_local --n-qubits 5 --save-json artifacts/ghz.json --save-plot artifacts/ghz.png
 ```
+
+For more complete workflows, result interpretation, and Python examples, see [USAGE.md](./USAGE.md).
 
 ## Benchmark Suite
 
@@ -149,6 +176,15 @@ Run tests:
 ```bash
 pytest
 ```
+
+Build and inspect release artifacts:
+
+```bash
+python -m build
+python -m twine check dist/*
+```
+
+Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.1.1` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## Notes
 

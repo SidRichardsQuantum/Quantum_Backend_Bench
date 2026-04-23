@@ -14,6 +14,7 @@ from quantum_backend_bench.benchmarks import (
     random_circuit,
 )
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
+from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.utils.formatting import format_results_table
 from quantum_backend_bench.utils.io import save_json
@@ -65,6 +66,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--noise-levels", nargs="+", type=float, default=[0.0, 0.001, 0.005, 0.01, 0.02]
     )
     noise_parser.set_defaults(func=_noise_command)
+
+    draw_parser = subparsers.add_parser("draw", help="Render a circuit diagram using a native SDK.")
+    _add_benchmark_arguments(draw_parser)
+    draw_parser.add_argument(
+        "--backend", required=True, choices=["cirq", "pennylane", "braket_local", "tket"]
+    )
+    draw_parser.add_argument("--save-path")
+    draw_parser.set_defaults(func=_draw_command)
 
     for command_parser in (run_parser, compare_parser, noise_parser):
         command_parser.add_argument("--shots", type=int, default=1024)
@@ -121,6 +130,15 @@ def _noise_command(args: argparse.Namespace) -> int:
     for spec in noisy_specs:
         results.extend(run_benchmark(spec, [args.backend], shots=args.shots))
     return _render_and_save(results, args)
+
+
+def _draw_command(args: argparse.Namespace) -> int:
+    benchmark = _build_benchmark_from_args(args)
+    diagram = draw_benchmark(benchmark, args.backend, save_path=args.save_path)
+    print(diagram)
+    if args.save_path:
+        print(f"\nSaved diagram to {args.save_path}")
+    return 0
 
 
 def _render_and_save(results: list[dict], args: argparse.Namespace) -> int:

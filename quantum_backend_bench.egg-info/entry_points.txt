@@ -1,2 +1,0 @@
-[console_scripts]
-quantum-bench = quantum_backend_bench.cli:main
