@@ -1,0 +1,11 @@
+amazon-braket-sdk
+cirq
+matplotlib
+numpy
+pennylane
+pytket
+
+[dev]
+black
+pytest
+ruff

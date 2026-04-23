@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-backend-bench"
+version = "0.1.0"
+description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Sid Richards" },
+]
+dependencies = [
+  "amazon-braket-sdk",
+  "cirq",
+  "matplotlib",
+  "numpy",
+  "pennylane",
+  "pytket",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "pytest",
+  "ruff",
+]
+
+[project.scripts]
+quantum-bench = "quantum_backend_bench.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["quantum_backend_bench*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]
