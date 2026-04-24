@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.1.2] - 2026-04-24
+
+### Added
+
+- CI workflow for formatting, linting, tests, build, and distribution checks.
+- Optional backend extras for Cirq, PennyLane, Braket, pytket, plotting, and all integrations.
+- `--summary` result ranking output for CLI benchmark result commands.
+- `--save-csv` export support for benchmark results.
+- `quantum-bench suite` command with `smoke`, `standard`, and `scaling` presets.
+- Public exports for suite and summary helpers.
+- Additional tests for backend bitstring consistency, Grover success metrics, QFT structure, noise metadata, suites, CSV export, summary output, and result ranking.
+
+### Changed
+
+- Split backend SDKs and plotting dependencies into optional extras.
+- Removed tracked local Codex metadata from the repository.
+
+### Fixed
+
+- Missing backend and plotting dependencies now report the matching optional extra install command.
+
 ## [0.1.1] - 2026-04-23
 
 ### Added

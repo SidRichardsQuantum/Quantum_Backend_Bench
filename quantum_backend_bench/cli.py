@@ -16,8 +16,10 @@ from quantum_backend_bench.benchmarks import (
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench.core.suites import SUITES, build_suite
+from quantum_backend_bench.core.summary import format_summary, summarize_results
 from quantum_backend_bench.utils.formatting import format_results_table
-from quantum_backend_bench.utils.io import save_json
+from quantum_backend_bench.utils.io import save_csv, save_json
 from quantum_backend_bench.utils.plotting import save_runtime_depth_plot
 
 BENCHMARK_BUILDERS: dict[str, Callable[..., BenchmarkSpec]] = {
@@ -67,6 +69,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     noise_parser.set_defaults(func=_noise_command)
 
+    suite_parser = subparsers.add_parser("suite", help="Run a named benchmark suite.")
+    suite_parser.add_argument("suite", choices=sorted(SUITES))
+    suite_parser.add_argument(
+        "--backends",
+        nargs="+",
+        default=["cirq"],
+        choices=["cirq", "pennylane", "braket_local"],
+    )
+    suite_parser.set_defaults(func=_suite_command)
+
     draw_parser = subparsers.add_parser("draw", help="Render a circuit diagram using a native SDK.")
     _add_benchmark_arguments(draw_parser)
     draw_parser.add_argument(
@@ -75,10 +87,12 @@ def _build_parser() -> argparse.ArgumentParser:
     draw_parser.add_argument("--save-path")
     draw_parser.set_defaults(func=_draw_command)
 
-    for command_parser in (run_parser, compare_parser, noise_parser):
+    for command_parser in (run_parser, compare_parser, noise_parser, suite_parser):
         command_parser.add_argument("--shots", type=int, default=1024)
         command_parser.add_argument("--save-json")
+        command_parser.add_argument("--save-csv")
         command_parser.add_argument("--save-plot")
+        command_parser.add_argument("--summary", action="store_true")
 
     return parser
 
@@ -132,6 +146,13 @@ def _noise_command(args: argparse.Namespace) -> int:
     return _render_and_save(results, args)
 
 
+def _suite_command(args: argparse.Namespace) -> int:
+    results = []
+    for benchmark in build_suite(args.suite):
+        results.extend(run_benchmark(benchmark, list(args.backends), shots=args.shots))
+    return _render_and_save(results, args)
+
+
 def _draw_command(args: argparse.Namespace) -> int:
     benchmark = _build_benchmark_from_args(args)
     diagram = draw_benchmark(benchmark, args.backend, save_path=args.save_path)
@@ -143,9 +164,15 @@ def _draw_command(args: argparse.Namespace) -> int:
 
 def _render_and_save(results: list[dict], args: argparse.Namespace) -> int:
     print(format_results_table(results))
+    if args.summary:
+        print()
+        print(format_summary(summarize_results(results)))
     if args.save_json:
         save_json(results, args.save_json)
         print(f"\nSaved JSON to {args.save_json}")
+    if args.save_csv:
+        save_csv(results, args.save_csv)
+        print(f"Saved CSV to {args.save_csv}")
     if args.save_plot:
         save_runtime_depth_plot(results, args.save_plot)
         print(f"Saved plot to {args.save_plot}")

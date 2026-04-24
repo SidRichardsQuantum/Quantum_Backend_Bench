@@ -9,7 +9,12 @@ from typing import Any
 def save_runtime_depth_plot(results: list[dict[str, Any]], path: str | Path) -> Path:
     """Save a side-by-side runtime and depth comparison chart."""
 
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise RuntimeError(
+            'matplotlib is not installed. Install with: pip install "quantum-backend-bench[plot]"'
+        ) from exc
 
     labels = [result["backend"] for result in results]
     runtimes = [result["metrics"].get("runtime_seconds") or 0.0 for result in results]

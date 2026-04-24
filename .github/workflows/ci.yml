@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and dev tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[all,dev]"
+
+      - name: Check formatting
+        run: black --check quantum_backend_bench tests examples
+
+      - name: Lint
+        run: ruff check quantum_backend_bench tests examples
+
+      - name: Run tests
+        run: pytest
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Check distributions
+        run: python -m twine check dist/*

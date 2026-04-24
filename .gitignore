@@ -48,4 +48,5 @@ artifacts/
 .idea/
 
 # Local Codex metadata
+.codex/
 .codex

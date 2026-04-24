@@ -57,7 +57,9 @@ def build_tket_circuit(benchmark: BenchmarkSpec) -> Any:
     try:
         from pytket import Circuit
     except ImportError as exc:
-        raise ImportError("pytket is not installed.") from exc
+        raise ImportError(
+            'pytket is not installed. Install with: pip install "quantum-backend-bench[tket]"'
+        ) from exc
 
     circuit = benchmark.circuit_data
     if not isinstance(circuit, InternalCircuit):

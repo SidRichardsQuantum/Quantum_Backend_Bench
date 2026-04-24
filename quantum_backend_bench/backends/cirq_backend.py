@@ -23,7 +23,9 @@ class CirqBackend(BaseBackend):
         try:
             import cirq
         except ImportError as exc:
-            raise RuntimeError("Cirq is not installed.") from exc
+            raise RuntimeError(
+                'Cirq is not installed. Install with: pip install "quantum-backend-bench[cirq]"'
+            ) from exc
 
         circuit_data = _unwrap_noise_benchmark(benchmark)
         if not isinstance(circuit_data, InternalCircuit):

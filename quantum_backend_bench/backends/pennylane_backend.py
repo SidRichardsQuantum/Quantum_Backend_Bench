@@ -23,7 +23,9 @@ class PennyLaneBackend(BaseBackend):
         try:
             import pennylane as qml
         except ImportError as exc:
-            raise RuntimeError("PennyLane is not installed.") from exc
+            raise RuntimeError(
+                'PennyLane is not installed. Install with: pip install "quantum-backend-bench[pennylane]"'
+            ) from exc
 
         circuit_data = _unwrap_noise_benchmark(benchmark)
         if not isinstance(circuit_data, InternalCircuit):

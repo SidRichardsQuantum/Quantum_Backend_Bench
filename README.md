@@ -1,7 +1,7 @@
 # Quantum Backend Bench
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.1-green.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.2-green.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20Local-purple.svg)](./USAGE.md)
 [![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
@@ -17,8 +17,9 @@ See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, 
 - Built-in benchmarks for GHZ, QFT, random circuits, Grover search, Hamiltonian simulation, and noise sweeps
 - Standardized metrics including depth, gate counts, runtime, success probability, and total variation distance
 - CLI commands for single runs, backend comparison, and noise sweeps
+- Named benchmark suites for smoke, standard, and scaling runs
 - Native circuit drawing through Cirq, PennyLane, Braket, and pytket renderers
-- JSON export and matplotlib plot generation
+- JSON/CSV export, summary rankings, and matplotlib plot generation
 - Installable in GitHub Codespaces with Python 3.11+
 
 ## Backend Support
@@ -38,6 +39,15 @@ Install from PyPI:
 python -m pip install quantum-backend-bench
 ```
 
+Install execution backends as needed:
+
+```bash
+python -m pip install "quantum-backend-bench[cirq]"
+python -m pip install "quantum-backend-bench[pennylane]"
+python -m pip install "quantum-backend-bench[braket]"
+python -m pip install "quantum-backend-bench[all]"
+```
+
 Install from a local checkout:
 
 ```bash
@@ -49,6 +59,12 @@ For development tools:
 
 ```bash
 python -m pip install -e .[dev]
+```
+
+For the full local test matrix:
+
+```bash
+python -m pip install -e ".[all,dev]"
 ```
 
 ## GitHub Codespaces
@@ -63,10 +79,10 @@ Run a single benchmark:
 quantum-bench run ghz --backend cirq --n-qubits 5
 ```
 
-Compare a benchmark across all execution backends:
+Compare a benchmark across all execution backends and print summary rankings:
 
 ```bash
-quantum-bench compare qft --backends cirq pennylane braket_local --n-qubits 5
+quantum-bench compare qft --backends cirq pennylane braket_local --n-qubits 5 --summary
 ```
 
 Run a random circuit:
@@ -107,6 +123,19 @@ Save JSON and plots:
 quantum-bench compare ghz --backends cirq pennylane braket_local --n-qubits 5 --save-json artifacts/ghz.json --save-plot artifacts/ghz.png
 ```
 
+Save CSV:
+
+```bash
+quantum-bench compare ghz --backends cirq pennylane --n-qubits 5 --save-csv artifacts/ghz.csv
+```
+
+Run a named suite:
+
+```bash
+quantum-bench suite smoke --backends cirq --summary
+quantum-bench suite standard --backends cirq pennylane braket_local --save-csv artifacts/standard.csv
+```
+
 For more complete workflows, result interpretation, and Python examples, see [USAGE.md](./USAGE.md).
 
 ## Benchmark Suite
@@ -143,10 +172,16 @@ Wraps a base benchmark and sweeps depolarizing noise levels. Noise behavior diff
 
 ```python
 from quantum_backend_bench.benchmarks.ghz import build_benchmark
-from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench import build_suite, run_benchmark, summarize_results
 
 benchmark = build_benchmark(n_qubits=5)
 results = run_benchmark(benchmark, ["cirq", "pennylane", "braket_local"], shots=1024)
+suite_results = [
+    result
+    for benchmark in build_suite("smoke")
+    for result in run_benchmark(benchmark, ["cirq"], shots=128)
+]
+summary = summarize_results(suite_results)
 ```
 
 ## Project Layout
@@ -184,7 +219,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.1.1` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, build, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.1.2` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## Notes
 

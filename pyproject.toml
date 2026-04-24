@@ -1,33 +1,47 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.1.1"
+version = "0.1.2"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   { name = "Sid Richards" },
 ]
-dependencies = [
-  "amazon-braket-sdk",
-  "cirq",
-  "matplotlib",
-  "numpy",
-  "pennylane",
-  "pytket",
-]
-
 [project.optional-dependencies]
+braket = [
+  "amazon-braket-sdk",
+]
+cirq = [
+  "cirq",
+]
 dev = [
   "build",
   "black",
   "pytest",
   "ruff",
   "twine",
+]
+pennylane = [
+  "pennylane",
+]
+plot = [
+  "matplotlib",
+]
+tket = [
+  "pytket",
+]
+all = [
+  "amazon-braket-sdk",
+  "cirq",
+  "matplotlib",
+  "pennylane",
+  "pytket",
 ]
 
 [project.scripts]

@@ -15,6 +15,17 @@ Install from PyPI:
 python -m pip install quantum-backend-bench
 ```
 
+Install only the backend integrations you need:
+
+```bash
+python -m pip install "quantum-backend-bench[cirq]"
+python -m pip install "quantum-backend-bench[pennylane]"
+python -m pip install "quantum-backend-bench[braket]"
+python -m pip install "quantum-backend-bench[tket]"
+python -m pip install "quantum-backend-bench[plot]"
+python -m pip install "quantum-backend-bench[all]"
+```
+
 Install from a local checkout:
 
 ```bash
@@ -26,6 +37,12 @@ Install development tools:
 
 ```bash
 python -m pip install -e .[dev]
+```
+
+Install everything needed for the full local test matrix:
+
+```bash
+python -m pip install -e ".[all,dev]"
 ```
 
 ## CLI Usage
@@ -41,6 +58,7 @@ Available subcommands:
 - `run`
 - `compare`
 - `noise-sweep`
+- `suite`
 - `draw`
 
 ### Run One Benchmark on One Backend
@@ -84,7 +102,17 @@ quantum-bench compare ghz \
   --backends cirq pennylane braket_local \
   --n-qubits 5 \
   --save-json artifacts/ghz_compare.json \
+  --save-csv artifacts/ghz_compare.csv \
   --save-plot artifacts/ghz_compare.png
+```
+
+Print fastest/lowest-depth/best-quality summary rankings:
+
+```bash
+quantum-bench compare ghz \
+  --backends cirq pennylane braket_local \
+  --n-qubits 5 \
+  --summary
 ```
 
 ### Run a Noise Sweep
@@ -103,6 +131,22 @@ quantum-bench noise-sweep ghz \
   --n-qubits 5 \
   --noise-levels 0.0 0.001 0.005 0.01 0.02
 ```
+
+### Run Benchmark Suites
+
+Suites run multiple benchmark presets with one command:
+
+```bash
+quantum-bench suite smoke --backends cirq --summary
+quantum-bench suite standard --backends cirq pennylane braket_local --save-csv artifacts/standard.csv
+quantum-bench suite scaling --backends cirq --shots 256 --save-json artifacts/scaling.json
+```
+
+Available suites:
+
+- `smoke`: small GHZ and Grover checks for quick validation
+- `standard`: representative GHZ, QFT, random circuit, Grover, and Hamiltonian simulation cases
+- `scaling`: repeated GHZ, QFT, and random-circuit cases at larger sizes or depths
 
 ### Draw Circuits
 
@@ -153,7 +197,7 @@ When supported by the benchmark, result payloads also include:
 - normalized measurement distributions
 - total variation distance from an ideal distribution
 
-Use `--save-json` to persist the full result objects and `--save-plot` to write a runtime/depth bar chart.
+Use `--summary` to print per-case rankings, `--save-json` to persist the full result objects, `--save-csv` for spreadsheet-friendly output, and `--save-plot` to write a runtime/depth bar chart.
 
 ## Python API Usage
 
@@ -161,7 +205,7 @@ Use `--save-json` to persist the full result objects and `--save-plot` to write 
 
 ```python
 from quantum_backend_bench.benchmarks.ghz import build_benchmark
-from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench import run_benchmark
 
 benchmark = build_benchmark(n_qubits=5)
 results = run_benchmark(
@@ -187,6 +231,18 @@ results = run_benchmark(
     metrics=["depth", "gate_count", "runtime_seconds"],
     shots=512,
 )
+```
+
+### Running a Suite from Python
+
+```python
+from quantum_backend_bench import build_suite, run_benchmark, summarize_results
+
+results = []
+for benchmark in build_suite("smoke"):
+    results.extend(run_benchmark(benchmark, backends=["cirq"], shots=128))
+
+summary = summarize_results(results)
 ```
 
 ### Noise Sweep from Python

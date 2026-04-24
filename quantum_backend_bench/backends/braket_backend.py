@@ -25,7 +25,9 @@ class BraketLocalBackend(BaseBackend):
         try:
             from braket.circuits import Circuit
         except ImportError as exc:
-            raise RuntimeError("Amazon Braket SDK is not installed.") from exc
+            raise RuntimeError(
+                'Amazon Braket SDK is not installed. Install with: pip install "quantum-backend-bench[braket]"'
+            ) from exc
 
         circuit_data = _unwrap_noise_benchmark(benchmark)
         if not isinstance(circuit_data, InternalCircuit):
@@ -42,7 +44,9 @@ class BraketLocalBackend(BaseBackend):
         try:
             from braket.devices import LocalSimulator
         except ImportError as exc:
-            raise RuntimeError("Amazon Braket SDK is not installed.") from exc
+            raise RuntimeError(
+                'Amazon Braket SDK is not installed. Install with: pip install "quantum-backend-bench[braket]"'
+            ) from exc
 
         circuit = self.build_native_circuit(benchmark)
 
