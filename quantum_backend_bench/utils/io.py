@@ -25,10 +25,15 @@ def save_csv(results: list[dict[str, Any]], path: str | Path) -> Path:
     fieldnames = [
         "benchmark",
         "backend",
+        "case_label",
+        "benchmark_family",
         "n_qubits",
         "shots",
+        "repeats",
+        "total_shots",
         "parameters",
         "runtime_seconds",
+        "runtime_seconds_stddev",
         "depth",
         "gate_count",
         "two_qubit_gate_count",
@@ -41,14 +46,20 @@ def save_csv(results: list[dict[str, Any]], path: str | Path) -> Path:
         writer.writeheader()
         for result in results:
             metrics = result.get("metrics", {})
+            metadata = result.get("metadata", {})
             writer.writerow(
                 {
                     "benchmark": result.get("benchmark"),
                     "backend": result.get("backend"),
+                    "case_label": metadata.get("case_label"),
+                    "benchmark_family": metadata.get("benchmark_family"),
                     "n_qubits": result.get("n_qubits"),
                     "shots": result.get("shots"),
+                    "repeats": result.get("repeats"),
+                    "total_shots": result.get("total_shots"),
                     "parameters": json.dumps(result.get("parameters", {}), sort_keys=True),
                     "runtime_seconds": metrics.get("runtime_seconds"),
+                    "runtime_seconds_stddev": metrics.get("runtime_seconds_stddev"),
                     "depth": metrics.get("depth"),
                     "gate_count": metrics.get("gate_count"),
                     "two_qubit_gate_count": metrics.get("two_qubit_gate_count"),

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.1.2"
+version = "0.1.3"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,6 +20,9 @@ braket = [
 cirq = [
   "cirq",
 ]
+cudaq = [
+  "cudaq",
+]
 dev = [
   "build",
   "black",
@@ -33,15 +36,41 @@ pennylane = [
 plot = [
   "matplotlib",
 ]
+pyquil = [
+  "pyquil",
+]
+qbraid = [
+  "qbraid",
+]
+qiskit = [
+  "qiskit",
+  "qiskit-aer",
+]
+qsharp = [
+  "qsharp",
+]
+qutip = [
+  "qutip",
+]
 tket = [
   "pytket",
+]
+yaml = [
+  "PyYAML",
 ]
 all = [
   "amazon-braket-sdk",
   "cirq",
+  "cudaq",
   "matplotlib",
   "pennylane",
+  "pyquil",
   "pytket",
+  "qiskit",
+  "qiskit-aer",
+  "qsharp",
+  "qutip",
+  "PyYAML",
 ]
 
 [project.scripts]

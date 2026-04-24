@@ -1,0 +1,19 @@
+{
+  "name": "structure-vs-runtime",
+  "description": "Collect structural metrics and repeated runtimes for workloads with different gate profiles.",
+  "backends": ["cirq"],
+  "shots": 256,
+  "repeats": 5,
+  "benchmarks": [
+    {"benchmark": "bernstein-vazirani", "n_qubits": 4, "secret_string": "101"},
+    {"benchmark": "deutsch-jozsa", "n_qubits": 4, "oracle_type": "balanced", "bitmask": "101"},
+    {"benchmark": "grover", "n_qubits": 3, "marked_state": "101"},
+    {"benchmark": "hamiltonian-sim", "n_qubits": 4, "time": 1.0, "trotter_steps": 2},
+    {"benchmark": "quantum-volume", "n_qubits": 4, "depth": 4, "seed": 42}
+  ],
+  "outputs": {
+    "json": "artifacts/research/structure_vs_runtime.json",
+    "csv": "artifacts/research/structure_vs_runtime.csv",
+    "suite_plot": "artifacts/research/structure_vs_runtime.png"
+  }
+}

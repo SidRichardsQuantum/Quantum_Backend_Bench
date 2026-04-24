@@ -5,7 +5,7 @@
 - CLI-driven benchmarking with `quantum-bench`
 - Python-driven benchmarking with `build_benchmark(...)` and `run_benchmark(...)`
 
-The package is designed for local simulator execution only. Cirq, PennyLane, and Amazon Braket `LocalSimulator` are supported as execution backends, while `pytket` is used for structural analysis.
+The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP are supported as execution backends, while `pytket` is used for structural analysis.
 
 ## Installation
 
@@ -23,6 +23,12 @@ python -m pip install "quantum-backend-bench[pennylane]"
 python -m pip install "quantum-backend-bench[braket]"
 python -m pip install "quantum-backend-bench[tket]"
 python -m pip install "quantum-backend-bench[plot]"
+python -m pip install "quantum-backend-bench[qiskit]"
+python -m pip install "quantum-backend-bench[cudaq]"
+python -m pip install "quantum-backend-bench[pyquil]"
+python -m pip install "quantum-backend-bench[qutip]"
+python -m pip install "quantum-backend-bench[qbraid]"
+python -m pip install "quantum-backend-bench[qsharp]"
 python -m pip install "quantum-backend-bench[all]"
 ```
 
@@ -55,11 +61,59 @@ quantum-bench
 
 Available subcommands:
 
+- `list`
+- `info`
+- `recommend`
+- `validate`
 - `run`
 - `compare`
 - `noise-sweep`
 - `suite`
 - `draw`
+- `experiment`
+
+### Discover Benchmarks and Integrations
+
+List available benchmarks and suites:
+
+```bash
+quantum-bench list
+quantum-bench list --kind benchmarks
+quantum-bench list --kind suites
+```
+
+Show installed and missing backend, analysis, and plotting integrations:
+
+```bash
+quantum-bench info
+```
+
+Recommend installed backends for a use case:
+
+```bash
+quantum-bench recommend --use-case research
+quantum-bench recommend --use-case teaching
+quantum-bench recommend --use-case noise
+```
+
+Validate installed or selected backends with known-correct small circuits:
+
+```bash
+quantum-bench validate
+quantum-bench validate --backends cirq pennylane --shots 128 --save-json artifacts/validation.json
+```
+
+Execution backend names are:
+
+- `cirq`
+- `pennylane`
+- `braket_local`
+- `qiskit_aer`
+- `cudaq`
+- `pyquil_qvm`
+- `qutip`
+
+`qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations, but they are not execution backends in this local circuit adapter.
 
 ### Run One Benchmark on One Backend
 
@@ -67,6 +121,7 @@ GHZ on Cirq:
 
 ```bash
 quantum-bench run ghz --backend cirq --n-qubits 5
+quantum-bench run ghz --backend cirq --n-qubits 5 --repeats 5
 ```
 
 Grover on PennyLane:
@@ -87,12 +142,31 @@ Hamiltonian simulation on Cirq:
 quantum-bench run hamiltonian-sim --backend cirq --n-qubits 4 --time 1.0 --trotter-steps 2
 ```
 
+Bernstein-Vazirani on Cirq:
+
+```bash
+quantum-bench run bernstein-vazirani --backend cirq --n-qubits 4 --secret-string 101
+```
+
+Deutsch-Jozsa on Cirq:
+
+```bash
+quantum-bench run deutsch-jozsa --backend cirq --n-qubits 4 --oracle-type balanced --bitmask 101
+quantum-bench run deutsch-jozsa --backend cirq --n-qubits 4 --oracle-type constant --constant-value 1
+```
+
+Quantum-volume-style circuit on Cirq:
+
+```bash
+quantum-bench run quantum-volume --backend cirq --n-qubits 4 --depth 4 --seed 42
+```
+
 ### Compare Backends
 
 Compare QFT across all execution backends:
 
 ```bash
-quantum-bench compare qft --backends cirq pennylane braket_local --n-qubits 5
+quantum-bench compare qft --backends cirq pennylane braket_local qiskit_aer qutip --n-qubits 5
 ```
 
 Compare GHZ and save artifacts:
@@ -142,11 +216,18 @@ quantum-bench suite standard --backends cirq pennylane braket_local --save-csv a
 quantum-bench suite scaling --backends cirq --shots 256 --save-json artifacts/scaling.json
 ```
 
+Preview suite cases without running them:
+
+```bash
+quantum-bench suite standard --list-cases
+quantum-bench suite standard --dry-run --save-json artifacts/standard_manifest.json
+```
+
 Available suites:
 
-- `smoke`: small GHZ and Grover checks for quick validation
-- `standard`: representative GHZ, QFT, random circuit, Grover, and Hamiltonian simulation cases
-- `scaling`: repeated GHZ, QFT, and random-circuit cases at larger sizes or depths
+- `smoke`: small GHZ, oracle, and Grover checks for quick validation
+- `standard`: representative GHZ, oracle, QFT, random circuit, Grover, Hamiltonian simulation, and quantum-volume-style cases
+- `scaling`: repeated GHZ, QFT, quantum-volume-style, and random-circuit cases at larger sizes or depths
 
 ### Draw Circuits
 
@@ -174,6 +255,37 @@ Render with PennyLane and save a plotted figure:
 quantum-bench draw ghz --backend pennylane --n-qubits 5 --save-path artifacts/ghz_pennylane.png
 ```
 
+### Run Experiment Manifests
+
+Experiment manifests make benchmark runs reproducible and research-friendly:
+
+```bash
+quantum-bench experiment run examples/manifests/runtime_scaling.json
+quantum-bench experiment run examples/manifests/noise_sensitivity.json
+quantum-bench experiment run examples/manifests/structure_vs_runtime.json
+```
+
+Manifests can set `backends`, `shots`, `repeats`, benchmark cases, and output paths. JSON works with the standard library. YAML files require `PyYAML`, available with:
+
+```bash
+python -m pip install "quantum-backend-bench[yaml]"
+```
+
+Research-oriented example helpers:
+
+```bash
+python examples/backend_capability_matrix.py
+python examples/generate_manifest.py
+python examples/noise_manifest_builder.py
+python examples/repeated_runtime_analysis.py
+python examples/schema_walkthrough.py
+python examples/experiment_report.py
+```
+
+`schema_walkthrough.py` and `experiment_report.py` expect an experiment bundle such as `artifacts/research/runtime_scaling.json`.
+
+See [`examples/README.md`](./examples/README.md) for the recommended run order and expected artifacts.
+
 Behavior by backend:
 
 - `cirq`: prints Cirq's text diagram and can save it as text
@@ -198,6 +310,19 @@ When supported by the benchmark, result payloads also include:
 - total variation distance from an ideal distribution
 
 Use `--summary` to print per-case rankings, `--save-json` to persist the full result objects, `--save-csv` for spreadsheet-friendly output, and `--save-plot` to write a runtime/depth bar chart.
+
+Result JSON includes standardized metadata fields such as `benchmark_family`, `case_label`, `depth`, `seed`, `oracle_type`, and `noise_level` when applicable. CSV exports include `case_label` and `benchmark_family` columns for easier spreadsheet grouping.
+
+When `--repeats` is greater than 1, `runtime_seconds` is the mean runtime. Raw samples and environment metadata are stored in result metadata. See [SCHEMA.md](./SCHEMA.md) and [METHODOLOGY.md](./METHODOLOGY.md).
+
+Additional image outputs:
+
+- `--save-distribution`: measured bitstring probability bar charts
+- `--save-heatmap`: top bitstring probability heatmap
+- `--save-quality-plot`: noise level vs TVD/success probability
+- `--save-suite-plot`: runtime chart for suite or multi-benchmark results
+
+Plots display measured computational basis states in bra-ket notation, such as `|101>`.
 
 ## Python API Usage
 
@@ -269,9 +394,21 @@ Use when you want an entanglement-oriented sanity check. Ideal output mass is sp
 
 Use when you care about circuit structure, controlled-phase usage, and cross-backend runtime on a more interaction-heavy circuit.
 
+### Bernstein-Vazirani
+
+Use when you want a deterministic oracle benchmark with a known success state. The final qubit is an oracle work qubit, so a 4-qubit run uses a 3-bit secret string.
+
+### Deutsch-Jozsa
+
+Use when you want a deterministic constant-vs-balanced oracle workload. Linear balanced cases report the bitmask as the expected measurement state; constant cases report the all-zero input register.
+
 ### Random Circuit
 
 Use when you want reproducible synthetic workloads. Control reproducibility with `seed`, and scale difficulty with `n_qubits` and `depth`.
+
+### Quantum Volume Style
+
+Use when you want shuffled-pair random layers with more structure than the generic random circuit benchmark. This workload is inspired by quantum volume circuits but is not a certification routine.
 
 ### Grover
 
@@ -327,8 +464,26 @@ If a metric cannot be provided consistently for a given benchmark or backend, th
 The repository includes example scripts:
 
 - [`examples/basic_benchmark.py`](./examples/basic_benchmark.py)
+- [`examples/circuit_diagrams.py`](./examples/circuit_diagrams.py)
 - [`examples/compare_backends.py`](./examples/compare_backends.py)
 - [`examples/noise_sweep_demo.py`](./examples/noise_sweep_demo.py)
+- [`examples/oracle_benchmarks.py`](./examples/oracle_benchmarks.py)
+- [`examples/plot_gallery.py`](./examples/plot_gallery.py)
+- [`examples/quantum_volume_demo.py`](./examples/quantum_volume_demo.py)
+- [`examples/suite_export.py`](./examples/suite_export.py)
+
+Run them from a local checkout:
+
+```bash
+python examples/basic_benchmark.py
+python examples/circuit_diagrams.py
+python examples/oracle_benchmarks.py
+python examples/plot_gallery.py
+python examples/quantum_volume_demo.py
+python examples/suite_export.py
+```
+
+`plot_gallery.py` intentionally uses larger shot counts, multiple backends, a 0% to 5% GHZ noise sweep, and larger circuits so the generated images contain non-trivial distributions and comparisons.
 
 ## Development Workflow
 

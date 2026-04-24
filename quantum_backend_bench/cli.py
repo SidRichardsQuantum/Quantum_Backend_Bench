@@ -5,28 +5,42 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
+from quantum_backend_bench.backends import BACKEND_REGISTRY
 from quantum_backend_bench.benchmarks import (
+    bernstein_vazirani,
+    deutsch_jozsa,
     ghz,
     grover,
     hamiltonian_sim,
     noise_sensitivity,
     qft,
+    quantum_volume,
     random_circuit,
 )
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
+from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabilities
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.summary import format_summary, summarize_results
 from quantum_backend_bench.utils.formatting import format_results_table
 from quantum_backend_bench.utils.io import save_csv, save_json
-from quantum_backend_bench.utils.plotting import save_runtime_depth_plot
+from quantum_backend_bench.utils.plotting import (
+    save_counts_heatmap,
+    save_distribution_plot,
+    save_noise_quality_plot,
+    save_runtime_depth_plot,
+    save_suite_runtime_plot,
+)
 
 BENCHMARK_BUILDERS: dict[str, Callable[..., BenchmarkSpec]] = {
+    "bernstein-vazirani": bernstein_vazirani.build_benchmark,
+    "deutsch-jozsa": deutsch_jozsa.build_benchmark,
     "ghz": ghz.build_benchmark,
     "grover": grover.build_benchmark,
     "hamiltonian-sim": hamiltonian_sim.build_benchmark,
     "qft": qft.build_benchmark,
+    "quantum-volume": quantum_volume.build_benchmark,
     "random-circuit": random_circuit.build_benchmark,
 }
 
@@ -43,11 +57,47 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="quantum-bench")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    list_parser = subparsers.add_parser("list", help="List available benchmarks and suites.")
+    list_parser.add_argument("--kind", choices=["all", "benchmarks", "suites"], default="all")
+    list_parser.set_defaults(func=_list_command)
+
+    info_parser = subparsers.add_parser("info", help="Show backend and integration availability.")
+    info_parser.set_defaults(func=_info_command)
+
+    recommend_parser = subparsers.add_parser(
+        "recommend", help="Recommend installed backends for a use case."
+    )
+    recommend_parser.add_argument(
+        "--use-case",
+        choices=["portable", "teaching", "noise", "performance", "research"],
+        default="research",
+    )
+    recommend_parser.set_defaults(func=_recommend_command)
+
+    validate_parser = subparsers.add_parser(
+        "validate", help="Run known-correct checks against installed or selected backends."
+    )
+    validate_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
+    validate_parser.add_argument("--shots", type=int, default=64)
+    validate_parser.add_argument("--success-threshold", type=float, default=0.95)
+    validate_parser.add_argument("--save-json")
+    validate_parser.set_defaults(func=_validate_command)
+
+    experiment_parser = subparsers.add_parser(
+        "experiment", help="Run benchmark cases from a JSON or YAML manifest."
+    )
+    experiment_subparsers = experiment_parser.add_subparsers(
+        dest="experiment_command", required=True
+    )
+    experiment_run_parser = experiment_subparsers.add_parser(
+        "run", help="Run an experiment manifest."
+    )
+    experiment_run_parser.add_argument("manifest")
+    experiment_run_parser.set_defaults(func=_experiment_run_command)
+
     run_parser = subparsers.add_parser("run", help="Run a single benchmark on one backend.")
     _add_benchmark_arguments(run_parser)
-    run_parser.add_argument(
-        "--backend", required=True, choices=["cirq", "pennylane", "braket_local"]
-    )
+    run_parser.add_argument("--backend", required=True, choices=sorted(BACKEND_REGISTRY))
     run_parser.set_defaults(func=_run_command)
 
     compare_parser = subparsers.add_parser(
@@ -55,15 +105,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_benchmark_arguments(compare_parser)
     compare_parser.add_argument(
-        "--backends", nargs="+", required=True, choices=["cirq", "pennylane", "braket_local"]
+        "--backends", nargs="+", required=True, choices=sorted(BACKEND_REGISTRY)
     )
     compare_parser.set_defaults(func=_compare_command)
 
     noise_parser = subparsers.add_parser("noise-sweep", help="Run a depolarizing noise sweep.")
     _add_benchmark_arguments(noise_parser)
-    noise_parser.add_argument(
-        "--backend", required=True, choices=["cirq", "pennylane", "braket_local"]
-    )
+    noise_parser.add_argument("--backend", required=True, choices=sorted(BACKEND_REGISTRY))
     noise_parser.add_argument(
         "--noise-levels", nargs="+", type=float, default=[0.0, 0.001, 0.005, 0.01, 0.02]
     )
@@ -75,26 +123,157 @@ def _build_parser() -> argparse.ArgumentParser:
         "--backends",
         nargs="+",
         default=["cirq"],
-        choices=["cirq", "pennylane", "braket_local"],
+        choices=sorted(BACKEND_REGISTRY),
+    )
+    suite_parser.add_argument(
+        "--list-cases",
+        "--dry-run",
+        action="store_true",
+        dest="list_cases",
+        help="Print planned suite cases without executing them.",
     )
     suite_parser.set_defaults(func=_suite_command)
 
     draw_parser = subparsers.add_parser("draw", help="Render a circuit diagram using a native SDK.")
     _add_benchmark_arguments(draw_parser)
     draw_parser.add_argument(
-        "--backend", required=True, choices=["cirq", "pennylane", "braket_local", "tket"]
+        "--backend", required=True, choices=[*sorted(BACKEND_REGISTRY), "tket"]
     )
     draw_parser.add_argument("--save-path")
     draw_parser.set_defaults(func=_draw_command)
 
     for command_parser in (run_parser, compare_parser, noise_parser, suite_parser):
         command_parser.add_argument("--shots", type=int, default=1024)
+        command_parser.add_argument("--repeats", type=int, default=1)
         command_parser.add_argument("--save-json")
         command_parser.add_argument("--save-csv")
         command_parser.add_argument("--save-plot")
+        command_parser.add_argument("--save-distribution")
+        command_parser.add_argument("--save-quality-plot")
+        command_parser.add_argument("--save-suite-plot")
+        command_parser.add_argument("--save-heatmap")
         command_parser.add_argument("--summary", action="store_true")
 
     return parser
+
+
+def _list_command(args: argparse.Namespace) -> int:
+    if args.kind in {"all", "benchmarks"}:
+        print("Benchmarks")
+        for info in sorted(BENCHMARK_INFOS.values(), key=lambda item: item.cli_name):
+            params = ", ".join(info.key_parameters)
+            print(f"  {info.cli_name:<20} {info.family:<12} {info.description}")
+            print(f"  {'':<20} parameters: {params}")
+    if args.kind == "all":
+        print()
+    if args.kind in {"all", "suites"}:
+        print("Suites")
+        for suite_name, cases in sorted(SUITES.items()):
+            print(f"  {suite_name:<10} {len(cases)} cases")
+            for case in cases:
+                print(f"    - {case.benchmark}: {case.description}")
+    return 0
+
+
+def _info_command(args: argparse.Namespace) -> int:
+    del args
+    print("Integrations")
+    print("name          role           installed  noise support   local  external  notes")
+    for capability in backend_capabilities():
+        installed = "yes" if capability.installed else "no"
+        local = "yes" if capability.local_only else "no"
+        external = "yes" if capability.external_process else "no"
+        install_hint = (
+            ""
+            if capability.installed
+            else f" Install with quantum-backend-bench[{capability.install_extra}]."
+        )
+        print(
+            f"{capability.name:<13} {capability.role:<14} {installed:<10} "
+            f"{capability.noise_support:<15} {local:<6} {external:<9} "
+            f"{capability.notes}{install_hint}"
+        )
+    return 0
+
+
+def _recommend_command(args: argparse.Namespace) -> int:
+    capabilities = [
+        capability
+        for capability in backend_capabilities()
+        if capability.role == "execution" and capability.installed
+    ]
+    ranked = _rank_capabilities(capabilities, args.use_case)
+    print(f"Recommended installed backends for {args.use_case}")
+    if not ranked:
+        print("No installed execution backends found.")
+        return 1
+    for index, capability in enumerate(ranked, start=1):
+        reasons = _recommendation_reasons(capability, args.use_case)
+        print(f"{index}. {capability.name}: {', '.join(reasons)}")
+    return 0
+
+
+def _validate_command(args: argparse.Namespace) -> int:
+    from quantum_backend_bench.core.validation import validate_backends, validation_passed
+
+    checks = validate_backends(
+        backends=args.backends,
+        shots=args.shots,
+        success_threshold=args.success_threshold,
+    )
+    print("Validation")
+    print("backend       benchmark             status  message")
+    for check in checks:
+        print(
+            f"{check['backend']:<13} {check['benchmark']:<21} "
+            f"{check['status']:<7} {check['message']}"
+        )
+    if args.save_json:
+        save_json(checks, args.save_json)
+        print(f"\nSaved validation JSON to {args.save_json}")
+    return 0 if validation_passed(checks) else 1
+
+
+def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object]:
+    def score(capability: object) -> tuple[int, str]:
+        value = 0
+        if getattr(capability, "local_only"):
+            value += 2
+        if getattr(capability, "shot_sampling"):
+            value += 2
+        if (
+            use_case in {"noise", "research"}
+            and getattr(capability, "noise_support") != "not injected"
+        ):
+            value += 4
+        if use_case == "performance" and not getattr(capability, "external_process"):
+            value += 2
+        if use_case == "teaching" and not getattr(capability, "external_process"):
+            value += 2
+        if use_case == "portable" and not getattr(capability, "includes_transpilation_time"):
+            value += 1
+        return (-value, getattr(capability, "name"))
+
+    return sorted(capabilities, key=score)
+
+
+def _recommendation_reasons(capability: object, use_case: str) -> list[str]:
+    reasons = []
+    if getattr(capability, "local_only"):
+        reasons.append("local")
+    if getattr(capability, "shot_sampling"):
+        reasons.append("shot sampling")
+    if getattr(capability, "noise_support") != "not injected":
+        reasons.append(f"noise={getattr(capability, 'noise_support')}")
+    if getattr(capability, "exact_statevector"):
+        reasons.append("exact statevector")
+    if getattr(capability, "external_process"):
+        reasons.append("external local process")
+    if getattr(capability, "includes_transpilation_time"):
+        reasons.append("runtime includes transpilation")
+    if use_case == "research":
+        reasons.append("capture caveats in results")
+    return reasons or ["installed"]
 
 
 def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
@@ -103,37 +282,72 @@ def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--depth", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--marked-state", default=None)
+    parser.add_argument("--secret-string", default=None)
+    parser.add_argument("--oracle-type", choices=["balanced", "constant"], default="balanced")
+    parser.add_argument("--bitmask", default=None)
+    parser.add_argument("--constant-value", type=int, choices=[0, 1], default=0)
     parser.add_argument("--iterations", type=int, default=None)
     parser.add_argument("--time", type=float, default=0.5)
     parser.add_argument("--trotter-steps", type=int, default=1)
 
 
 def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:
-    builder = BENCHMARK_BUILDERS[args.benchmark]
+    config: dict[str, object] = {"benchmark": args.benchmark}
+    for key in (
+        "n_qubits",
+        "depth",
+        "seed",
+        "marked_state",
+        "secret_string",
+        "oracle_type",
+        "bitmask",
+        "constant_value",
+        "iterations",
+        "time",
+        "trotter_steps",
+    ):
+        value = getattr(args, key, None)
+        if value is not None:
+            config[key] = value
+    return build_benchmark_from_config(config)
+
+
+def build_benchmark_from_config(config: dict[str, object]) -> BenchmarkSpec:
+    """Build a benchmark from CLI-style manifest configuration."""
+
+    name = str(config["benchmark"])
+    builder = BENCHMARK_BUILDERS[name]
     kwargs: dict[str, object] = {}
-    if args.n_qubits is not None:
-        kwargs["n_qubits"] = args.n_qubits
-    if args.benchmark == "random-circuit":
-        kwargs["depth"] = args.depth
-        kwargs["seed"] = args.seed
-    elif args.benchmark == "grover":
-        kwargs["marked_state"] = args.marked_state or ("1" * (args.n_qubits or 3))
-        kwargs["iterations"] = args.iterations
-    elif args.benchmark == "hamiltonian-sim":
-        kwargs["time"] = args.time
-        kwargs["trotter_steps"] = args.trotter_steps
+    if config.get("n_qubits") is not None:
+        kwargs["n_qubits"] = config["n_qubits"]
+    if name in {"quantum-volume", "random-circuit"}:
+        kwargs["depth"] = config.get("depth", 10)
+        kwargs["seed"] = config.get("seed", 42)
+    if name == "bernstein-vazirani":
+        kwargs["secret_string"] = config.get("secret_string")
+    elif name == "deutsch-jozsa":
+        kwargs["oracle_type"] = config.get("oracle_type", "balanced")
+        kwargs["bitmask"] = config.get("bitmask")
+        kwargs["constant_value"] = config.get("constant_value", 0)
+    elif name == "grover":
+        n_qubits = int(config.get("n_qubits") or 3)
+        kwargs["marked_state"] = config.get("marked_state") or ("1" * n_qubits)
+        kwargs["iterations"] = config.get("iterations")
+    elif name == "hamiltonian-sim":
+        kwargs["time"] = config.get("time", 0.5)
+        kwargs["trotter_steps"] = config.get("trotter_steps", 1)
     return builder(**kwargs)
 
 
 def _run_command(args: argparse.Namespace) -> int:
     benchmark = _build_benchmark_from_args(args)
-    results = run_benchmark(benchmark, [args.backend], shots=args.shots)
+    results = run_benchmark(benchmark, [args.backend], shots=args.shots, repeats=args.repeats)
     return _render_and_save(results, args)
 
 
 def _compare_command(args: argparse.Namespace) -> int:
     benchmark = _build_benchmark_from_args(args)
-    results = run_benchmark(benchmark, list(args.backends), shots=args.shots)
+    results = run_benchmark(benchmark, list(args.backends), shots=args.shots, repeats=args.repeats)
     return _render_and_save(results, args)
 
 
@@ -142,15 +356,68 @@ def _noise_command(args: argparse.Namespace) -> int:
     noisy_specs = noise_sensitivity.build_benchmark(benchmark, noise_levels=args.noise_levels)
     results = []
     for spec in noisy_specs:
-        results.extend(run_benchmark(spec, [args.backend], shots=args.shots))
+        results.extend(run_benchmark(spec, [args.backend], shots=args.shots, repeats=args.repeats))
     return _render_and_save(results, args)
 
 
 def _suite_command(args: argparse.Namespace) -> int:
+    if args.list_cases:
+        manifest = _suite_manifest(args.suite)
+        _print_suite_cases(args.suite, manifest)
+        if args.save_json:
+            save_json(manifest, args.save_json)
+            print(f"\nSaved suite manifest to {args.save_json}")
+        return 0
     results = []
     for benchmark in build_suite(args.suite):
-        results.extend(run_benchmark(benchmark, list(args.backends), shots=args.shots))
+        results.extend(
+            run_benchmark(benchmark, list(args.backends), shots=args.shots, repeats=args.repeats)
+        )
     return _render_and_save(results, args)
+
+
+def _experiment_run_command(args: argparse.Namespace) -> int:
+    from quantum_backend_bench.core.manifest import run_experiment_manifest
+
+    bundle = run_experiment_manifest(args.manifest)
+    print(format_results_table(bundle["results"]))
+    outputs = bundle["manifest"].get("outputs", {})
+    if outputs.get("json"):
+        print(f"\nSaved experiment JSON to {outputs['json']}")
+    if outputs.get("csv"):
+        print(f"Saved experiment CSV to {outputs['csv']}")
+    if outputs.get("suite_plot"):
+        print(f"Saved experiment plot to {outputs['suite_plot']}")
+    return 0
+
+
+def _suite_manifest(suite_name: str) -> list[dict[str, object]]:
+    manifest = []
+    for index, case in enumerate(SUITES[suite_name], start=1):
+        benchmark = case.build()
+        manifest.append(
+            {
+                "index": index,
+                "suite": suite_name,
+                "benchmark": case.benchmark,
+                "result_name": benchmark.name,
+                "description": case.description,
+                "n_qubits": benchmark.n_qubits,
+                "parameters": benchmark.parameters,
+                "metadata": benchmark.metadata or {},
+            }
+        )
+    return manifest
+
+
+def _print_suite_cases(suite_name: str, manifest: list[dict[str, object]]) -> None:
+    print(f"Suite: {suite_name}")
+    for case in manifest:
+        parameters = ", ".join(
+            f"{key}={value}" for key, value in sorted(case["parameters"].items())
+        )
+        print(f"{case['index']}. {case['benchmark']}: {case['description']}")
+        print(f"   result_name={case['result_name']}; {parameters}")
 
 
 def _draw_command(args: argparse.Namespace) -> int:
@@ -176,6 +443,18 @@ def _render_and_save(results: list[dict], args: argparse.Namespace) -> int:
     if args.save_plot:
         save_runtime_depth_plot(results, args.save_plot)
         print(f"Saved plot to {args.save_plot}")
+    if args.save_distribution:
+        save_distribution_plot(results, args.save_distribution)
+        print(f"Saved distribution plot to {args.save_distribution}")
+    if args.save_quality_plot:
+        save_noise_quality_plot(results, args.save_quality_plot)
+        print(f"Saved quality plot to {args.save_quality_plot}")
+    if args.save_suite_plot:
+        save_suite_runtime_plot(results, args.save_suite_plot)
+        print(f"Saved suite plot to {args.save_suite_plot}")
+    if args.save_heatmap:
+        save_counts_heatmap(results, args.save_heatmap)
+        print(f"Saved heatmap to {args.save_heatmap}")
     return 0
 
 

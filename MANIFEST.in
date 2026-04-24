@@ -1,12 +1,19 @@
 include LICENSE
 include README.md
 include CHANGELOG.md
+include CITATION.cff
+include LIMITATIONS.md
+include METHODOLOGY.md
+include PROBLEM.md
+include SCHEMA.md
 include USAGE.md
 include pyproject.toml
 
 recursive-include quantum_backend_bench *.py
 recursive-include tests *.py
 recursive-include examples *.py
+recursive-include examples *.json
+recursive-include examples *.md
 recursive-include .devcontainer *.json
 
 global-exclude __pycache__

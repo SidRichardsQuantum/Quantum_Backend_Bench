@@ -1,0 +1,20 @@
+{
+  "name": "runtime-scaling-local-simulators",
+  "description": "Compare runtime scaling for GHZ, QFT, and random circuits across local SDK simulators.",
+  "backends": ["cirq"],
+  "shots": 256,
+  "repeats": 3,
+  "benchmarks": [
+    {"benchmark": "ghz", "n_qubits": 3},
+    {"benchmark": "ghz", "n_qubits": 5},
+    {"benchmark": "qft", "n_qubits": 3},
+    {"benchmark": "qft", "n_qubits": 5},
+    {"benchmark": "random-circuit", "n_qubits": 4, "depth": 8, "seed": 42},
+    {"benchmark": "random-circuit", "n_qubits": 4, "depth": 16, "seed": 42}
+  ],
+  "outputs": {
+    "json": "artifacts/research/runtime_scaling.json",
+    "csv": "artifacts/research/runtime_scaling.csv",
+    "suite_plot": "artifacts/research/runtime_scaling.png"
+  }
+}

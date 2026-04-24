@@ -1,0 +1,16 @@
+{
+  "name": "noise-sensitivity-local-simulators",
+  "description": "Compare GHZ noise sensitivity on backends that inject depolarizing noise in this project.",
+  "backends": ["cirq", "pennylane"],
+  "shots": 512,
+  "repeats": 3,
+  "benchmarks": [
+    {"benchmark": "ghz", "n_qubits": 3, "noise_levels": [0.0, 0.001, 0.005, 0.01, 0.02]},
+    {"benchmark": "ghz", "n_qubits": 5, "noise_levels": [0.0, 0.001, 0.005, 0.01, 0.02]}
+  ],
+  "outputs": {
+    "json": "artifacts/research/noise_sensitivity.json",
+    "csv": "artifacts/research/noise_sensitivity.csv",
+    "suite_plot": "artifacts/research/noise_sensitivity.png"
+  }
+}

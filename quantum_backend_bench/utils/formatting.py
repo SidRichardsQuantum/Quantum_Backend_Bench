@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from quantum_backend_bench.core.discovery import result_case_label
+
 
 def format_results_table(results: list[dict[str, Any]]) -> str:
     """Render a small plain-text table."""
 
     headers = [
+        "case",
         "backend",
         "runtime_seconds",
+        "runtime_stddev",
         "depth",
         "gate_count",
         "two_qubit_gate_count",
@@ -21,8 +25,10 @@ def format_results_table(results: list[dict[str, Any]]) -> str:
         metrics = result["metrics"]
         rows.append(
             [
+                result_case_label(result),
                 result["backend"],
                 _fmt(metrics.get("runtime_seconds")),
+                _fmt(metrics.get("runtime_seconds_stddev")),
                 _fmt(metrics.get("depth")),
                 _fmt(metrics.get("gate_count")),
                 _fmt(metrics.get("two_qubit_gate_count")),

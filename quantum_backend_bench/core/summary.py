@@ -64,7 +64,7 @@ def format_summary(summary: dict[str, Any]) -> str:
         ):
             winner = group.get(key)
             if winner is not None:
-                details.append(f"{key}={winner['backend']} ({winner['value']})")
+                details.append(f"{key}={winner['backend']} ({_format_value(winner['value'])})")
         lines.append(f"- {label}: " + "; ".join(details or ["no comparable metrics"]))
     return "\n".join(lines)
 
@@ -95,3 +95,9 @@ def _case_label(group: dict[str, Any]) -> str:
     if extras:
         return f"{group['benchmark']}({extras})"
     return f"{group['benchmark']}(n_qubits={group['n_qubits']})"
+
+
+def _format_value(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.6f}"
+    return str(value)

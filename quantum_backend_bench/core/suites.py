@@ -5,7 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from quantum_backend_bench.benchmarks import ghz, grover, hamiltonian_sim, qft, random_circuit
+from quantum_backend_bench.benchmarks import (
+    bernstein_vazirani,
+    deutsch_jozsa,
+    ghz,
+    grover,
+    hamiltonian_sim,
+    qft,
+    quantum_volume,
+    random_circuit,
+)
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
 
 
@@ -22,6 +31,11 @@ SUITES: dict[str, list[SuiteCase]] = {
     "smoke": [
         SuiteCase("ghz", "Small GHZ sanity check", lambda: ghz.build_benchmark(n_qubits=3)),
         SuiteCase(
+            "bernstein-vazirani",
+            "Small oracle secret-string check",
+            lambda: bernstein_vazirani.build_benchmark(n_qubits=4, secret_string="101"),
+        ),
+        SuiteCase(
             "grover",
             "Small target-state success check",
             lambda: grover.build_benchmark(n_qubits=2, marked_state="11"),
@@ -29,6 +43,16 @@ SUITES: dict[str, list[SuiteCase]] = {
     ],
     "standard": [
         SuiteCase("ghz", "Entanglement baseline", lambda: ghz.build_benchmark(n_qubits=5)),
+        SuiteCase(
+            "bernstein-vazirani",
+            "Oracle secret-string recovery",
+            lambda: bernstein_vazirani.build_benchmark(n_qubits=5, secret_string="1011"),
+        ),
+        SuiteCase(
+            "deutsch-jozsa",
+            "Balanced oracle classification",
+            lambda: deutsch_jozsa.build_benchmark(n_qubits=5, bitmask="1100"),
+        ),
         SuiteCase("qft", "Controlled-phase workload", lambda: qft.build_benchmark(n_qubits=4)),
         SuiteCase(
             "random-circuit",
@@ -45,6 +69,11 @@ SUITES: dict[str, list[SuiteCase]] = {
             "Trotterized Ising-style evolution",
             lambda: hamiltonian_sim.build_benchmark(n_qubits=4, time=1.0, trotter_steps=2),
         ),
+        SuiteCase(
+            "quantum-volume",
+            "Layered randomized workload",
+            lambda: quantum_volume.build_benchmark(n_qubits=4, depth=4, seed=42),
+        ),
     ],
     "scaling": [
         SuiteCase("ghz", "GHZ with 3 qubits", lambda: ghz.build_benchmark(n_qubits=3)),
@@ -52,6 +81,16 @@ SUITES: dict[str, list[SuiteCase]] = {
         SuiteCase("ghz", "GHZ with 7 qubits", lambda: ghz.build_benchmark(n_qubits=7)),
         SuiteCase("qft", "QFT with 3 qubits", lambda: qft.build_benchmark(n_qubits=3)),
         SuiteCase("qft", "QFT with 5 qubits", lambda: qft.build_benchmark(n_qubits=5)),
+        SuiteCase(
+            "quantum-volume",
+            "Quantum-volume-style circuit with 4 qubits",
+            lambda: quantum_volume.build_benchmark(n_qubits=4, depth=4, seed=42),
+        ),
+        SuiteCase(
+            "quantum-volume",
+            "Quantum-volume-style circuit with 6 qubits",
+            lambda: quantum_volume.build_benchmark(n_qubits=6, depth=6, seed=42),
+        ),
         SuiteCase(
             "random-circuit",
             "Random circuit with depth 8",

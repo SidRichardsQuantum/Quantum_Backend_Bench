@@ -2,7 +2,18 @@
 
 from collections import Counter
 
-from quantum_backend_bench.benchmarks import ghz, grover, hamiltonian_sim, qft, random_circuit
+import pytest
+
+from quantum_backend_bench.benchmarks import (
+    bernstein_vazirani,
+    deutsch_jozsa,
+    ghz,
+    grover,
+    hamiltonian_sim,
+    qft,
+    quantum_volume,
+    random_circuit,
+)
 from quantum_backend_bench.benchmarks.noise_sensitivity import build_benchmark as build_noise_suite
 from quantum_backend_bench.core.suites import build_suite
 
@@ -11,6 +22,48 @@ def test_ghz_builder_sets_ideal_distribution() -> None:
     benchmark = ghz.build_benchmark(n_qubits=3)
     assert benchmark.name == "ghz"
     assert benchmark.ideal_distribution == {"000": 0.5, "111": 0.5}
+
+
+def test_bernstein_vazirani_tracks_secret_string() -> None:
+    benchmark = bernstein_vazirani.build_benchmark(n_qubits=4, secret_string="101")
+    assert benchmark.name == "bernstein_vazirani"
+    assert benchmark.circuit_data.n_qubits == 4
+    assert benchmark.circuit_data.measurements == [0, 1, 2]
+    assert benchmark.ideal_distribution == {"101": 1.0}
+    assert benchmark.metadata["target_state"] == "101"
+
+
+def test_bernstein_vazirani_rejects_wrong_secret_length() -> None:
+    with pytest.raises(ValueError, match="3 for n_qubits=4"):
+        bernstein_vazirani.build_benchmark(n_qubits=4, secret_string="10")
+
+
+def test_bernstein_vazirani_rejects_non_bit_secret() -> None:
+    with pytest.raises(ValueError, match="only 0 and 1"):
+        bernstein_vazirani.build_benchmark(n_qubits=4, secret_string="10x")
+
+
+def test_deutsch_jozsa_balanced_oracle_tracks_bitmask() -> None:
+    benchmark = deutsch_jozsa.build_benchmark(n_qubits=4, oracle_type="balanced", bitmask="101")
+    assert benchmark.name == "deutsch_jozsa"
+    assert benchmark.circuit_data.measurements == [0, 1, 2]
+    assert benchmark.ideal_distribution == {"101": 1.0}
+    assert benchmark.metadata["target_state"] == "101"
+
+
+def test_deutsch_jozsa_constant_oracle_targets_zero_string() -> None:
+    benchmark = deutsch_jozsa.build_benchmark(n_qubits=4, oracle_type="constant", constant_value=1)
+    assert benchmark.ideal_distribution == {"000": 1.0}
+
+
+def test_deutsch_jozsa_rejects_zero_balanced_bitmask() -> None:
+    with pytest.raises(ValueError, match="balanced"):
+        deutsch_jozsa.build_benchmark(n_qubits=4, oracle_type="balanced", bitmask="000")
+
+
+def test_deutsch_jozsa_rejects_wrong_bitmask_length() -> None:
+    with pytest.raises(ValueError, match="3 for n_qubits=4"):
+        deutsch_jozsa.build_benchmark(n_qubits=4, bitmask="10")
 
 
 def test_qft_builder_emits_operations() -> None:
@@ -32,9 +85,33 @@ def test_random_circuit_is_reproducible() -> None:
     assert a.circuit_data.operations == b.circuit_data.operations
 
 
+def test_quantum_volume_is_reproducible_and_layered() -> None:
+    a = quantum_volume.build_benchmark(n_qubits=4, depth=3, seed=7)
+    b = quantum_volume.build_benchmark(n_qubits=4, depth=3, seed=7)
+    assert a.circuit_data.operations == b.circuit_data.operations
+    assert a.parameters == {"n_qubits": 4, "depth": 3, "seed": 7}
+    assert Counter(operation.gate for operation in a.circuit_data.operations)["CNOT"] == 12
+
+
+def test_quantum_volume_rejects_non_positive_depth() -> None:
+    with pytest.raises(ValueError, match="depth must be at least 1"):
+        quantum_volume.build_benchmark(n_qubits=4, depth=0)
+
+
 def test_grover_tracks_target_state() -> None:
     benchmark = grover.build_benchmark(n_qubits=3, marked_state="101")
     assert benchmark.metadata["target_state"] == "101"
+
+
+def test_grover_rejects_invalid_inputs() -> None:
+    with pytest.raises(ValueError, match="at least 2 qubits"):
+        grover.build_benchmark(n_qubits=1, marked_state="1")
+    with pytest.raises(ValueError, match="at most 4 qubits"):
+        grover.build_benchmark(n_qubits=5, marked_state="11111")
+    with pytest.raises(ValueError, match="length equal to n_qubits"):
+        grover.build_benchmark(n_qubits=3, marked_state="10")
+    with pytest.raises(ValueError, match="iterations must be at least 1"):
+        grover.build_benchmark(n_qubits=3, marked_state="101", iterations=0)
 
 
 def test_hamiltonian_builder_tracks_parameters() -> None:
@@ -44,7 +121,7 @@ def test_hamiltonian_builder_tracks_parameters() -> None:
 
 def test_named_suite_builds_benchmark_specs() -> None:
     suite = build_suite("smoke")
-    assert [benchmark.name for benchmark in suite] == ["ghz", "grover"]
+    assert [benchmark.name for benchmark in suite] == ["ghz", "bernstein_vazirani", "grover"]
 
 
 def test_noise_suite_preserves_base_metadata_and_parameters() -> None:

@@ -16,8 +16,19 @@ def build_benchmark(
 ) -> BenchmarkSpec:
     """Build a small Grover search circuit."""
 
-    if len(marked_state) != n_qubits or any(bit not in {"0", "1"} for bit in marked_state):
-        raise ValueError("marked_state must be a bitstring with length equal to n_qubits.")
+    if n_qubits < 2:
+        raise ValueError("Grover benchmark requires at least 2 qubits.")
+    if n_qubits > 4:
+        raise ValueError("Grover benchmark supports at most 4 qubits in this implementation.")
+    if len(marked_state) != n_qubits:
+        raise ValueError(
+            "marked_state must have length equal to n_qubits "
+            f"({n_qubits}); got length {len(marked_state)}."
+        )
+    if any(bit not in {"0", "1"} for bit in marked_state):
+        raise ValueError("marked_state must contain only 0 and 1 characters.")
+    if iterations is not None and iterations < 1:
+        raise ValueError("iterations must be at least 1 when provided.")
 
     total_states = 2**n_qubits
     suggested_iterations = max(1, round((math.pi / 4.0) * math.sqrt(total_states)))
