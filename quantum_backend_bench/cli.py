@@ -15,6 +15,7 @@ from quantum_backend_bench.core.diff import (
     load_result_file,
 )
 from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabilities
+from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
 from quantum_backend_bench.core.runner import run_benchmark
@@ -50,6 +51,16 @@ def _build_parser() -> argparse.ArgumentParser:
     info_parser = subparsers.add_parser("info", help="Show backend and integration availability.")
     info_parser.set_defaults(func=_info_command)
 
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="Diagnose local optional integrations and backend readiness."
+    )
+    doctor_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with status 1 when no execution backend is installed.",
+    )
+    doctor_parser.set_defaults(func=_doctor_command)
+
     recommend_parser = subparsers.add_parser(
         "recommend", help="Recommend installed backends for a use case."
     )
@@ -64,8 +75,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate", help="Run known-correct checks against installed or selected backends."
     )
     validate_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
-    validate_parser.add_argument("--shots", type=int, default=64)
-    validate_parser.add_argument("--success-threshold", type=float, default=0.95)
+    validate_parser.add_argument("--shots", type=_positive_int, default=64)
+    validate_parser.add_argument("--success-threshold", type=_probability, default=0.95)
     validate_parser.add_argument("--save-json")
     validate_parser.set_defaults(func=_validate_command)
 
@@ -130,7 +141,10 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_benchmark_arguments(noise_parser)
     noise_parser.add_argument("--backend", required=True, choices=sorted(BACKEND_REGISTRY))
     noise_parser.add_argument(
-        "--noise-levels", nargs="+", type=float, default=[0.0, 0.001, 0.005, 0.01, 0.02]
+        "--noise-levels",
+        nargs="+",
+        type=_probability,
+        default=[0.0, 0.001, 0.005, 0.01, 0.02],
     )
     noise_parser.set_defaults(func=_noise_command)
 
@@ -160,8 +174,8 @@ def _build_parser() -> argparse.ArgumentParser:
     draw_parser.set_defaults(func=_draw_command)
 
     for command_parser in (run_parser, compare_parser, noise_parser, suite_parser):
-        command_parser.add_argument("--shots", type=int, default=1024)
-        command_parser.add_argument("--repeats", type=int, default=1)
+        command_parser.add_argument("--shots", type=_positive_int, default=1024)
+        command_parser.add_argument("--repeats", type=_positive_int, default=1)
         command_parser.add_argument("--save-json")
         command_parser.add_argument("--save-csv")
         command_parser.add_argument("--save-plot")
@@ -228,6 +242,15 @@ def _recommend_command(args: argparse.Namespace) -> int:
         reasons = _recommendation_reasons(capability, args.use_case)
         print(f"{index}. {capability.name}: {', '.join(reasons)}")
     return 0
+
+
+def _doctor_command(args: argparse.Namespace) -> int:
+    checks = doctor_checks()
+    print("Diagnostics")
+    print(format_doctor_table(checks))
+    if not doctor_passed(checks):
+        print("\nNo installed execution backend found.")
+    return 0 if not args.strict or doctor_passed(checks) else 1
 
 
 def _validate_command(args: argparse.Namespace) -> int:
@@ -325,6 +348,20 @@ def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--iterations", type=int, default=None)
     parser.add_argument("--time", type=float, default=0.5)
     parser.add_argument("--trotter-steps", type=int, default=1)
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
+def _probability(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0.0 or parsed > 1.0:
+        raise argparse.ArgumentTypeError("must be between 0 and 1")
+    return parsed
 
 
 def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:

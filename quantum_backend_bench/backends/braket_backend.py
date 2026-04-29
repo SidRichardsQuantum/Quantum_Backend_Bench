@@ -63,6 +63,8 @@ class BraketLocalBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": noise_supported,
             "noise_applied": False,
+            "seed_supported": False,
+            "seed_applied": False,
             "notes": (
                 "Braket LocalSimulator execution is offline only. Noise injection is not enabled in this adapter."
                 if metadata.get("noise_level", 0.0) > 0

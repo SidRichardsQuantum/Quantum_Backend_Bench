@@ -14,6 +14,8 @@ For the theoretical background behind shots, distributions, success probability,
 - [Installation](#installation)
 - [CLI Usage](#cli-usage)
   - [Discover Benchmarks and Integrations](#discover-benchmarks-and-integrations)
+  - [Diagnose Local Readiness](#diagnose-local-readiness)
+  - [Choosing Backends](#choosing-backends)
   - [Run One Benchmark on One Backend](#run-one-benchmark-on-one-backend)
   - [Compare Backends](#compare-backends)
   - [Run a Noise Sweep](#run-a-noise-sweep)
@@ -99,6 +101,7 @@ Available subcommands:
 
 - `list`
 - `info`
+- `doctor`
 - `recommend`
 - `validate`
 - `diff`
@@ -125,6 +128,17 @@ Show installed and missing backend, analysis, and plotting integrations:
 quantum-bench info
 ```
 
+### Diagnose Local Readiness
+
+Use `doctor` for a compact readiness report with install hints:
+
+```bash
+quantum-bench doctor
+quantum-bench doctor --strict
+```
+
+The default command exits successfully after printing diagnostics. `--strict` exits with status 1 if no execution backend is installed.
+
 Recommend installed backends for a use case:
 
 ```bash
@@ -132,6 +146,17 @@ quantum-bench recommend --use-case research
 quantum-bench recommend --use-case teaching
 quantum-bench recommend --use-case noise
 ```
+
+### Choosing Backends
+
+Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` before comparing results. In general:
+
+- Use Cirq or PennyLane for noise-sweep studies because this project injects depolarizing noise for those adapters.
+- Use Qiskit Aer when you want a common transpilation-inclusive local simulator workflow.
+- Use Braket LocalSimulator when you want offline Braket circuit coverage without AWS credentials.
+- Use QuTiP when statevector-style local simulation is useful for small physics-oriented cases.
+- Use pyQuil only when local `qvm` and `quilc` runtime support is available.
+- Treat CUDA-Q availability as platform-sensitive and check it with `doctor` in CI or fresh environments.
 
 Validate installed or selected backends with known-correct small circuits:
 
@@ -498,12 +523,16 @@ Important metric keys:
 
 If a metric cannot be provided consistently for a given benchmark or backend, the value may be `None`.
 
+Quality metrics should be interpreted with shot count in mind. A lower `total_variation_distance` means the observed distribution is closer to the benchmark's ideal distribution. A higher `success_probability` means the target state appeared more often for benchmarks with a target state, such as Grover. Small shot counts can make both values noisy.
+
 ## Practical Notes
 
 - Amazon Braket support is limited to `LocalSimulator`; no AWS credentials are required.
 - `pytket` is not used as an execution backend.
 - No GPUs or paid cloud services are required.
 - Noisy simulation is materially slower than noiseless simulation, especially for larger Cirq runs.
+- `--shots`, `--repeats`, and `--noise-levels` are validated by the CLI before backend execution starts.
+- Random seeds are applied where backend APIs expose stable seed controls; result metadata reports whether a seed was supported and applied.
 - This package intentionally uses a simple internal circuit description to keep per-backend translation maintainable.
 
 ## Examples

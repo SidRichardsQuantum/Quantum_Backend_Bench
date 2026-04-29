@@ -1,7 +1,7 @@
 # Quantum Backend Bench
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.5-green.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.6-green.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20%7C%20Qiskit%20%7C%20CUDA--Q-purple.svg)](./USAGE.md)
 [![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
@@ -115,6 +115,7 @@ List available benchmarks, suites, and local integrations:
 ```bash
 quantum-bench list
 quantum-bench info
+quantum-bench doctor
 quantum-bench recommend --use-case research
 quantum-bench validate
 ```

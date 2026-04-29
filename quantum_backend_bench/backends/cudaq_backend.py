@@ -49,6 +49,10 @@ class CudaQBackend(BaseBackend):
 
         kernel = self.build_native_circuit(benchmark)
         metadata = benchmark.metadata or {}
+        seed = benchmark.parameters.get("seed")
+        seed_supported = hasattr(cudaq, "set_random_seed")
+        if seed is not None and seed_supported:
+            cudaq.set_random_seed(int(seed))
 
         start = time.perf_counter()
         result = cudaq.sample(kernel, shots_count=shots)
@@ -59,6 +63,8 @@ class CudaQBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": False,
             "noise_applied": False,
+            "seed_supported": seed_supported,
+            "seed_applied": seed is not None and seed_supported,
             "notes": (
                 "CUDA-Q execution completed without noise injection in this adapter."
                 if metadata.get("noise_level", 0.0) > 0

@@ -8,6 +8,22 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 No changes yet.
 
+## [0.1.6] - 2026-04-29
+
+### Added
+
+- `quantum-bench doctor` for local integration diagnostics and install hints.
+- CLI validation for positive `--shots` and `--repeats`, probability-bounded success thresholds, and noise levels.
+- Backend runtime metadata in result rows, including transpilation/runtime caveats, external-process usage, local-only status, noise support, and backend package versions.
+- Best-effort deterministic simulator seeding for backends that expose seed controls.
+- Packaging regression coverage for required source-distribution documentation.
+- Python 3.11 and 3.12 CI coverage.
+- Backend-selection guidance, result-interpretation notes, and a reproducibility checklist in the documentation.
+
+### Changed
+
+- CI now runs the main test/build job across the supported Python version matrix.
+
 ## [0.1.5] - 2026-04-29
 
 ### Added

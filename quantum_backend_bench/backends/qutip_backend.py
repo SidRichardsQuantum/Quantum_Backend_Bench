@@ -49,12 +49,15 @@ class QuTiPBackend(BaseBackend):
         )
         counts = _sample_counts(probabilities, shots=shots, seed=benchmark.parameters.get("seed"))
         runtime = time.perf_counter() - start
+        seed = benchmark.parameters.get("seed")
 
         return {
             "counts": counts,
             "runtime_seconds": runtime,
             "noise_supported": False,
             "noise_applied": False,
+            "seed_supported": True,
+            "seed_applied": seed is not None,
             "notes": (
                 "QuTiP statevector execution completed without noise injection in this adapter."
                 if metadata.get("noise_level", 0.0) > 0

@@ -72,6 +72,8 @@ class PyQuilQVMBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": False,
             "noise_applied": False,
+            "seed_supported": False,
+            "seed_applied": False,
             "notes": (
                 "pyQuil QVM execution completed without noise injection in this adapter."
                 if metadata.get("noise_level", 0.0) > 0

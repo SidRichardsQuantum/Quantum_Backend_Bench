@@ -49,10 +49,15 @@ class QiskitAerBackend(BaseBackend):
             ) from exc
 
         circuit = self.build_native_circuit(benchmark)
-        simulator = AerSimulator()
+        seed = benchmark.parameters.get("seed")
+        simulator = AerSimulator(seed_simulator=seed) if seed is not None else AerSimulator()
 
         start = time.perf_counter()
-        compiled = transpile(circuit, simulator)
+        compiled = (
+            transpile(circuit, simulator, seed_transpiler=seed)
+            if seed is not None
+            else transpile(circuit, simulator)
+        )
         result = simulator.run(compiled, shots=shots).result()
         runtime = time.perf_counter() - start
 
@@ -62,6 +67,8 @@ class QiskitAerBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": False,
             "noise_applied": False,
+            "seed_supported": True,
+            "seed_applied": seed is not None,
             "notes": (
                 "Qiskit Aer execution completed without noise injection in this adapter."
                 if metadata.get("noise_level", 0.0) > 0

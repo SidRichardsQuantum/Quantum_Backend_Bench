@@ -13,6 +13,7 @@ For background on qubits, circuits, shots, distributions, noise, benchmark famil
 - [Noise Benchmarks](#noise-benchmarks)
 - [Benchmark Validity](#benchmark-validity)
 - [Recommended Research Workflow](#recommended-research-workflow)
+- [Reproducibility Checklist](#reproducibility-checklist)
 
 ## What Is Measured
 
@@ -80,3 +81,17 @@ Noise comparisons should be treated as adapter-specific behavior, not a claim th
 3. Save JSON and CSV outputs.
 4. Record the git commit and dirty-state metadata from the result bundle.
 5. Report backend capability caveats from `quantum-bench info`.
+
+## Reproducibility Checklist
+
+When publishing or comparing results, record:
+
+- package version and git commit
+- whether the git tree was dirty
+- Python version, OS, and machine type
+- installed backend package versions
+- backend caveats from `quantum-bench doctor` or `quantum-bench info`
+- benchmark parameters, random seeds, shot counts, and repeat counts
+- whether runtime includes transpilation or external local services
+- whether noise was requested, supported, and applied
+- raw runtime samples, not only the mean

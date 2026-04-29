@@ -211,6 +211,8 @@ Prefer statements like:
 - "On this machine and environment, backend A was faster than backend B for this workload."
 - "The observed distribution was closer to the ideal distribution at this shot count."
 - "Runtime variance increased for this benchmark family under this setup."
+- "A higher success probability is better for this target-state benchmark, but the estimate depends on shots."
+- "A lower TVD is better for this ideal-distribution benchmark, but finite-shot sampling prevents exact conclusions."
 
 Avoid statements like:
 

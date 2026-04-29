@@ -60,7 +60,9 @@ class CirqBackend(BaseBackend):
         start = time.perf_counter()
         import cirq
 
-        result = cirq.Simulator().run(circuit, repetitions=shots)
+        seed = benchmark.parameters.get("seed")
+        simulator = cirq.Simulator(seed=seed) if seed is not None else cirq.Simulator()
+        result = simulator.run(circuit, repetitions=shots)
         runtime = time.perf_counter() - start
 
         counts = Counter(
@@ -71,6 +73,8 @@ class CirqBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": True,
             "noise_applied": noise_applied,
+            "seed_supported": True,
+            "seed_applied": seed is not None,
         }
 
 

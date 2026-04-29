@@ -65,9 +65,21 @@ Common metadata keys:
 - `benchmark_family`: broad category such as `oracle`, `search`, or `synthetic`
 - `case_label`: stable human-readable label used in tables and plots
 - `noise_level`: noise level when applicable
+- `noise_requested`: whether the benchmark requested a nonzero noise level
+- `noise_supported`: whether the adapter reported support for the requested noise mode
+- `noise_applied`: whether the adapter reported applying noise
 - `oracle_type`: oracle mode when applicable
 - `seed`: random seed when applicable
+- `seed_supported`: whether the adapter exposes seed control for this execution path
+- `seed_applied`: whether a requested seed was applied
 - `depth`: benchmark depth parameter when applicable
+- `runtime_includes_transpilation`: whether adapter runtime includes compilation/transpilation work
+- `external_process`: whether the backend depends on an external local process
+- `local_only`: whether the integration is local-only
+- `shot_sampling`: whether the backend reports shot-sampling behavior
+- `exact_statevector`: whether the backend is reported as exact-statevector oriented
+- `backend_noise_support`: capability-level noise support label
+- `backend_package_versions`: package versions for backend-specific distributions
 - `repeats`: repeated execution count
 - `shots_per_repeat`: shots per repeat
 - `total_shots`: total aggregate shots

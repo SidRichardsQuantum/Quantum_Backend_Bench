@@ -19,6 +19,7 @@ from quantum_backend_bench.core.diff import (
     format_diff_table,
     load_result_file,
 )
+from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
 from quantum_backend_bench.core.runner import run_benchmark
@@ -60,8 +61,11 @@ __all__ = [
     "compare_result_sets",
     "capture_environment",
     "diff_passed",
+    "doctor_checks",
+    "doctor_passed",
     "draw_benchmark",
     "format_diff_table",
+    "format_doctor_table",
     "format_summary",
     "load_result_file",
     "load_manifest",

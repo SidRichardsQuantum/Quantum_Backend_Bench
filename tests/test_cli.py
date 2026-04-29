@@ -33,6 +33,15 @@ def test_cli_info_command(capsys: pytest.CaptureFixture[str]) -> None:
     assert "matplotlib" in captured.out
 
 
+def test_cli_doctor_command(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["doctor"])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Diagnostics" in captured.out
+    assert "cirq" in captured.out
+    assert "quantum-backend-bench" in captured.out
+
+
 def test_cli_recommend_command(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(["recommend", "--use-case", "research"])
     captured = capsys.readouterr()
@@ -124,6 +133,38 @@ def test_cli_suite_list_cases_writes_manifest(capsys: pytest.CaptureFixture[str]
     assert manifest[0]["suite"] == "smoke"
     assert manifest[0]["benchmark"] == "ghz"
     assert manifest[1]["result_name"] == "bernstein_vazirani"
+
+
+def test_cli_rejects_invalid_shots(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["run", "ghz", "--backend", "cirq", "--shots", "0"])
+    captured = capsys.readouterr()
+    assert exc.value.code == 2
+    assert "must be at least 1" in captured.err
+
+
+def test_cli_rejects_invalid_repeats(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["suite", "smoke", "--repeats", "0"])
+    captured = capsys.readouterr()
+    assert exc.value.code == 2
+    assert "must be at least 1" in captured.err
+
+
+def test_cli_rejects_invalid_noise_level(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["noise-sweep", "ghz", "--backend", "cirq", "--noise-levels", "1.5"])
+    captured = capsys.readouterr()
+    assert exc.value.code == 2
+    assert "must be between 0 and 1" in captured.err
+
+
+def test_cli_rejects_invalid_success_threshold(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["validate", "--success-threshold", "-0.1"])
+    captured = capsys.readouterr()
+    assert exc.value.code == 2
+    assert "must be between 0 and 1" in captured.err
 
 
 @pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")

@@ -35,7 +35,8 @@ class PennyLaneBackend(BaseBackend):
         noise_level = float(metadata.get("noise_level", 0.0))
         use_mixed = metadata.get("noise_type") == "depolarizing" and noise_level > 0
         device_name = "default.mixed" if use_mixed else "default.qubit"
-        dev = qml.device(device_name, wires=circuit_data.n_qubits)
+        seed = benchmark.parameters.get("seed")
+        dev, seed_applied = _make_device(qml, device_name, wires=circuit_data.n_qubits, seed=seed)
 
         @qml.qnode(dev)
         def circuit() -> Any:
@@ -43,6 +44,10 @@ class PennyLaneBackend(BaseBackend):
                 _apply_pennylane_op(qml, operation, noise_level=noise_level if use_mixed else 0.0)
             return qml.sample(wires=circuit_data.measurements or list(range(circuit_data.n_qubits)))
 
+        try:
+            circuit._qbb_seed_applied = seed_applied  # type: ignore[attr-defined]
+        except AttributeError:
+            pass
         return circuit
 
     def draw(self, benchmark: BenchmarkSpec, save_path: str | None = None) -> str:
@@ -76,6 +81,8 @@ class PennyLaneBackend(BaseBackend):
             "runtime_seconds": runtime,
             "noise_supported": True,
             "noise_applied": use_mixed,
+            "seed_supported": True,
+            "seed_applied": bool(getattr(circuit, "_qbb_seed_applied", False)),
         }
 
 
@@ -120,3 +127,12 @@ def _apply_pennylane_op(qml: Any, operation: CircuitOperation, noise_level: floa
 
 def _unwrap_noise_benchmark(benchmark: BenchmarkSpec) -> Any:
     return (benchmark.metadata or {}).get("base_circuit", benchmark.circuit_data)
+
+
+def _make_device(qml: Any, device_name: str, wires: int, seed: object | None) -> tuple[Any, bool]:
+    if seed is None:
+        return qml.device(device_name, wires=wires), False
+    try:
+        return qml.device(device_name, wires=wires, seed=int(seed)), True
+    except TypeError:
+        return qml.device(device_name, wires=wires), False

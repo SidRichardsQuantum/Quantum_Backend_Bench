@@ -8,6 +8,7 @@ from typing import Any
 
 from quantum_backend_bench.backends import get_backend
 from quantum_backend_bench.backends.tket_analysis import analyze_with_tket
+from quantum_backend_bench.core.backend_metadata import backend_runtime_metadata
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
 from quantum_backend_bench.core.discovery import case_label
 from quantum_backend_bench.core.environment import capture_environment
@@ -57,6 +58,8 @@ def run_benchmark(
         distribution = normalize_counts(counts, shots=total_shots)
         runtime_stats = _runtime_stats(executions)
         execution = executions[-1]
+        noise_supported = execution.get("noise_supported")
+        noise_applied = execution.get("noise_applied")
 
         metric_values: dict[str, Any] = {}
         if "depth" in selected_metrics:
@@ -103,15 +106,29 @@ def run_benchmark(
                 "oracle_type": benchmark.parameters.get("oracle_type"),
                 "seed": benchmark.parameters.get("seed"),
                 "depth": benchmark.parameters.get("depth"),
+                "noise_requested": _noise_requested(benchmark),
+                "noise_supported": noise_supported,
+                "noise_applied": noise_applied,
+                "seed_supported": execution.get("seed_supported"),
+                "seed_applied": execution.get("seed_applied"),
                 "repeats": repeats,
                 "shots_per_repeat": shots,
                 "total_shots": total_shots,
                 "runtime_seconds_samples": runtime_stats["samples"],
                 "environment": environment,
+                **backend_runtime_metadata(backend.name),
                 **{
                     key: value
                     for key, value in execution.items()
-                    if key not in {"counts", "runtime_seconds"}
+                    if key
+                    not in {
+                        "counts",
+                        "runtime_seconds",
+                        "noise_supported",
+                        "noise_applied",
+                        "seed_supported",
+                        "seed_applied",
+                    }
                 },
             },
         )
@@ -141,3 +158,9 @@ def _runtime_stats(executions: list[dict[str, Any]]) -> dict[str, Any]:
         "min": min(samples),
         "max": max(samples),
     }
+
+
+def _noise_requested(benchmark: BenchmarkSpec) -> bool:
+    metadata = benchmark.metadata or {}
+    parameters = benchmark.parameters or {}
+    return float(metadata.get("noise_level", parameters.get("noise_level", 0.0)) or 0.0) > 0.0

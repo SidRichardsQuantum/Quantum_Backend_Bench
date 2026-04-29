@@ -13,6 +13,7 @@ For the theory behind the benchmark families, metrics, noise model terminology, 
 - [pyQuil Requires Local Runtime Support](#pyquil-requires-local-runtime-support)
 - [Quantum-Volume-Style Is Not Certification](#quantum-volume-style-is-not-certification)
 - [Statistical Interpretation Needs Care](#statistical-interpretation-needs-care)
+- [Seeds Are Best Effort](#seeds-are-best-effort)
 
 ## Not a Hardware Benchmark
 
@@ -41,3 +42,7 @@ The quantum-volume-style benchmark is a portable randomized workload. It is not 
 ## Statistical Interpretation Needs Care
 
 `--repeats` gives mean/stddev/min/max for local runtime samples. These are useful for reproducibility and regression checks, but should not be treated as universal performance claims.
+
+## Seeds Are Best Effort
+
+Some backend SDKs expose deterministic simulator seed controls and others do not. Result metadata reports `seed_supported` and `seed_applied` so seeded and unseeded comparisons can be separated.

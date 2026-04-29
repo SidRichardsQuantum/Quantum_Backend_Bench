@@ -66,6 +66,9 @@ def test_run_benchmark_repeats_aggregate_counts_and_runtime(
     assert result["metrics"]["runtime_seconds"] == pytest.approx(2.0)
     assert result["metrics"]["runtime_seconds_stddev"] == pytest.approx(1.0)
     assert result["metrics"]["success_probability"] == 1.0
+    assert result["metadata"]["noise_requested"] is False
+    assert "runtime_includes_transpilation" in result["metadata"]
+    assert "backend_package_versions" in result["metadata"]
 
 
 def test_run_benchmark_rejects_invalid_shots() -> None:
