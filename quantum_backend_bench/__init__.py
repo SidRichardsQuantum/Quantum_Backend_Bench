@@ -20,6 +20,7 @@ from quantum_backend_bench.core.diff import (
     load_result_file,
 )
 from quantum_backend_bench.core.environment import capture_environment
+from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.summary import format_summary, summarize_results
@@ -46,6 +47,7 @@ def run_experiment_manifest(path):  # type: ignore[no-untyped-def]
 
 __all__ = [
     "BenchmarkSpec",
+    "BENCHMARK_BUILDERS",
     "BENCHMARK_INFOS",
     "BackendCapability",
     "BenchmarkInfo",
@@ -53,6 +55,7 @@ __all__ = [
     "InternalCircuit",
     "SUITES",
     "backend_capabilities",
+    "build_benchmark_from_config",
     "build_suite",
     "compare_result_sets",
     "capture_environment",

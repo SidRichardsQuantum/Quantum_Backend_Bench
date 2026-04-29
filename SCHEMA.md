@@ -2,6 +2,17 @@
 
 `quantum-backend-bench` writes JSON result bundles and flat CSV tables for research workflows.
 
+For definitions of shots, counts, measurement distributions, success probability, and total variation distance, see [THEORY.md](./THEORY.md).
+
+## Table of Contents
+
+- [Experiment Bundle](#experiment-bundle)
+- [Result Row](#result-row)
+- [Metrics](#metrics)
+- [Metadata](#metadata)
+- [Manifest](#manifest)
+- [CSV](#csv)
+
 ## Experiment Bundle
 
 `quantum-bench experiment run examples/manifests/runtime_scaling.json` returns and optionally writes a JSON object:

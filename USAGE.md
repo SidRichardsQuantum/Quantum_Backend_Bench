@@ -7,6 +7,42 @@
 
 The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP are supported as execution backends, while `pytket` is used for structural analysis.
 
+For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./THEORY.md).
+
+## Table of Contents
+
+- [Installation](#installation)
+- [CLI Usage](#cli-usage)
+  - [Discover Benchmarks and Integrations](#discover-benchmarks-and-integrations)
+  - [Run One Benchmark on One Backend](#run-one-benchmark-on-one-backend)
+  - [Compare Backends](#compare-backends)
+  - [Run a Noise Sweep](#run-a-noise-sweep)
+  - [Run Benchmark Suites](#run-benchmark-suites)
+  - [Draw Circuits](#draw-circuits)
+  - [Run Experiment Manifests](#run-experiment-manifests)
+- [CLI Output](#cli-output)
+- [Python API Usage](#python-api-usage)
+  - [Minimal Example](#minimal-example)
+  - [Selecting Specific Metrics](#selecting-specific-metrics)
+  - [Running a Suite from Python](#running-a-suite-from-python)
+  - [Noise Sweep from Python](#noise-sweep-from-python)
+- [Benchmarks](#benchmarks)
+  - [GHZ](#ghz)
+  - [QFT](#qft)
+  - [Bernstein-Vazirani](#bernstein-vazirani)
+  - [Deutsch-Jozsa](#deutsch-jozsa)
+  - [Random Circuit](#random-circuit)
+  - [Quantum Volume Style](#quantum-volume-style)
+  - [Grover](#grover)
+  - [Hamiltonian Simulation](#hamiltonian-simulation)
+  - [Noise Sensitivity](#noise-sensitivity)
+- [Result Schema](#result-schema)
+- [Practical Notes](#practical-notes)
+- [Examples](#examples)
+- [Development Workflow](#development-workflow)
+- [Author](#author)
+- [License](#license)
+
 ## Installation
 
 Install from PyPI:
@@ -517,3 +553,16 @@ Build release artifacts:
 python -m build
 python -m twine check dist/*
 ```
+
+---
+
+## Author
+
+Sid Richards
+
+- LinkedIn: [sid-richards-21374b30b](https://www.linkedin.com/in/sid-richards-21374b30b/)
+- GitHub: [SidRichardsQuantum](https://github.com/SidRichardsQuantum)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

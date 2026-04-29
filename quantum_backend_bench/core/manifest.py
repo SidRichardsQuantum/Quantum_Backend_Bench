@@ -6,11 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from quantum_backend_bench.cli import build_benchmark_from_config
 from quantum_backend_bench.benchmarks.noise_sensitivity import (
     build_benchmark as build_noise_benchmarks,
 )
 from quantum_backend_bench.core.environment import capture_environment
+from quantum_backend_bench.core.factory import build_benchmark_from_config
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.utils.io import save_csv, save_json
 from quantum_backend_bench.utils.plotting import save_suite_runtime_plot

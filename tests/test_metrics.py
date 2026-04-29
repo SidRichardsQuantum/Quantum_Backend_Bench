@@ -68,6 +68,16 @@ def test_run_benchmark_repeats_aggregate_counts_and_runtime(
     assert result["metrics"]["success_probability"] == 1.0
 
 
+def test_run_benchmark_rejects_invalid_shots() -> None:
+    with pytest.raises(ValueError, match="shots must be at least 1"):
+        run_benchmark(build_grover(n_qubits=3, marked_state="101"), ["fake"], shots=0)
+
+
+def test_run_benchmark_rejects_invalid_repeats() -> None:
+    with pytest.raises(ValueError, match="repeats must be at least 1"):
+        run_benchmark(build_grover(n_qubits=3, marked_state="101"), ["fake"], repeats=0)
+
+
 def test_total_variation_distance() -> None:
     distance = total_variation_distance({"00": 6, "11": 4}, {"00": 0.5, "11": 0.5}, shots=10)
     assert distance == pytest.approx(0.1)

@@ -1,7 +1,7 @@
 # Quantum Backend Bench
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.4-green.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.5-green.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20%7C%20Qiskit%20%7C%20CUDA--Q-purple.svg)](./USAGE.md)
 [![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
@@ -9,7 +9,31 @@
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across local simulator adapters such as Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
 See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
-For research workflows, see [PROBLEM.md](./PROBLEM.md), [METHODOLOGY.md](./METHODOLOGY.md), [SCHEMA.md](./SCHEMA.md), and [LIMITATIONS.md](./LIMITATIONS.md).
+For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [SCHEMA.md](./SCHEMA.md), and [LIMITATIONS.md](./LIMITATIONS.md).
+
+## Table of Contents
+
+- [Features](#features)
+- [Backend Support](#backend-support)
+- [Installation](#installation)
+- [GitHub Codespaces](#github-codespaces)
+- [Quickstart](#quickstart)
+- [Benchmark Suite](#benchmark-suite)
+  - [GHZ](#ghz)
+  - [QFT](#qft)
+  - [Bernstein-Vazirani](#bernstein-vazirani)
+  - [Deutsch-Jozsa](#deutsch-jozsa)
+  - [Random Circuit](#random-circuit)
+  - [Quantum Volume Style](#quantum-volume-style)
+  - [Grover](#grover)
+  - [Hamiltonian Simulation](#hamiltonian-simulation)
+  - [Noise Sensitivity](#noise-sensitivity)
+- [Python API](#python-api)
+- [Project Layout](#project-layout)
+- [Development](#development)
+- [Notes](#notes)
+- [Author](#author)
+- [License](#license)
 
 ## Features
 
@@ -302,3 +326,16 @@ Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/work
 - The project targets standard `pip` environments with Python 3.11 or newer.
 - No AWS account, cloud credentials, GPUs, or paid services are required.
 - The internal circuit model is intentionally simple to keep backend translation maintainable.
+
+---
+
+## Author
+
+Sid Richards
+
+- LinkedIn: [sid-richards-21374b30b](https://www.linkedin.com/in/sid-richards-21374b30b/)
+- GitHub: [SidRichardsQuantum](https://github.com/SidRichardsQuantum)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

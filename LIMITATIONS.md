@@ -2,6 +2,18 @@
 
 This project is useful for reproducible local SDK comparison, but it has important limits.
 
+For the theory behind the benchmark families, metrics, noise model terminology, and statistical interpretation, see [THEORY.md](./THEORY.md).
+
+## Table of Contents
+
+- [Not a Hardware Benchmark](#not-a-hardware-benchmark)
+- [SDK Runtimes Are Not Perfectly Equivalent](#sdk-runtimes-are-not-perfectly-equivalent)
+- [Noise Models Are Adapter-Specific](#noise-models-are-adapter-specific)
+- [Circuit Support Is Intentionally Small](#circuit-support-is-intentionally-small)
+- [pyQuil Requires Local Runtime Support](#pyquil-requires-local-runtime-support)
+- [Quantum-Volume-Style Is Not Certification](#quantum-volume-style-is-not-certification)
+- [Statistical Interpretation Needs Care](#statistical-interpretation-needs-care)
+
 ## Not a Hardware Benchmark
 
 The package does not measure QPU performance, cloud queue time, calibration quality, or provider service reliability.

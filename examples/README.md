@@ -6,6 +6,13 @@ These examples are meant to be run from the repository root:
 python examples/backend_capability_matrix.py
 ```
 
+## Table of Contents
+
+- [Recommended Research Flow](#recommended-research-flow)
+- [CLI Manifest Examples](#cli-manifest-examples)
+- [Basic Usage Examples](#basic-usage-examples)
+- [Dependency Notes](#dependency-notes)
+
 ## Recommended Research Flow
 
 1. Inspect installed integrations:

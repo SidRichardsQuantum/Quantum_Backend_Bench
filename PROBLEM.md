@@ -16,6 +16,18 @@ Today that is harder than it should be. A student, researcher, or SDK maintainer
 
 `quantum-backend-bench` solves this by providing a local-first, reproducible benchmark harness for common quantum workloads.
 
+## Table of Contents
+
+- [Who It Serves](#who-it-serves)
+- [Problems Solved](#problems-solved)
+  - [Benchmark Portability](#benchmark-portability)
+  - [Teaching](#teaching)
+  - [Methodology](#methodology)
+  - [SDK Regression Checks](#sdk-regression-checks)
+  - [Noise-Model Comparison](#noise-model-comparison)
+  - [Backend Selection](#backend-selection)
+- [Core Promise](#core-promise)
+
 ## Who It Serves
 
 - Researchers comparing local simulator behavior across SDKs.

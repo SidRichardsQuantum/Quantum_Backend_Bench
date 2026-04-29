@@ -8,6 +8,24 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 No changes yet.
 
+## [0.1.5] - 2026-04-29
+
+### Added
+
+- `THEORY.md` with conceptual background for qubits, circuits, shots, distributions, metrics, noise models, benchmark families, and backend comparability.
+- Tables of contents for long-form and reference Markdown documentation.
+- Public benchmark factory helpers for CLI-style benchmark configuration.
+
+### Changed
+
+- Experiment manifest execution now builds benchmarks through shared core factory helpers instead of importing CLI internals.
+- The `all` optional dependency extra now includes `qbraid`.
+- Optional-backend CI coverage now includes CUDA-Q and pyQuil smoke jobs, with CUDA-Q marked experimental.
+
+### Fixed
+
+- `run_benchmark` now rejects invalid `shots` values before dispatching to backend adapters.
+
 ## [0.1.4] - 2026-04-29
 
 ### Added

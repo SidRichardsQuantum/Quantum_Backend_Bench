@@ -2,6 +2,18 @@
 
 This project is intended for local, reproducible comparisons of quantum SDK simulator behavior. It is not a hardware benchmark and does not certify quantum volume, hardware fidelity, or vendor performance.
 
+For background on qubits, circuits, shots, distributions, noise, benchmark families, and metric definitions, see [THEORY.md](./THEORY.md). This document focuses on how those concepts are measured and reported by this package.
+
+## Table of Contents
+
+- [What Is Measured](#what-is-measured)
+- [What Is Not Measured](#what-is-not-measured)
+- [Runtime Interpretation](#runtime-interpretation)
+- [Backend Fairness](#backend-fairness)
+- [Noise Benchmarks](#noise-benchmarks)
+- [Benchmark Validity](#benchmark-validity)
+- [Recommended Research Workflow](#recommended-research-workflow)
+
 ## What Is Measured
 
 - Runtime for local SDK execution adapters.

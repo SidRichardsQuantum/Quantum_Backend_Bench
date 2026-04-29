@@ -45,6 +45,7 @@ jobs:
   optional-backends:
     name: Optional backend smoke (${{ matrix.extra }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -55,6 +56,11 @@ jobs:
             filter: braket
           - extra: qiskit
             filter: qiskit
+          - extra: cudaq
+            filter: cudaq
+            experimental: true
+          - extra: pyquil
+            filter: pyquil
           - extra: qutip
             filter: qutip
 

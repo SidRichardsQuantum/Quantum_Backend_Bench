@@ -39,6 +39,8 @@ def run_benchmark(
 ) -> list[dict[str, Any]]:
     """Run a benchmark on one or more backends and return standardized dicts."""
 
+    if shots < 1:
+        raise ValueError("shots must be at least 1.")
     if repeats < 1:
         raise ValueError("repeats must be at least 1.")
 

@@ -23,6 +23,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["qsharp"] == ["qsharp"]
     assert extras["yaml"] == ["PyYAML"]
     assert "cirq" in extras["all"]
+    assert "qbraid" in extras["all"]
     assert "qiskit-aer" in extras["all"]
     assert "pytket" in extras["all"]
     assert "PyYAML" in extras["all"]
