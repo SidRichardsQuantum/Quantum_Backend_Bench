@@ -65,6 +65,7 @@ Available subcommands:
 - `info`
 - `recommend`
 - `validate`
+- `diff`
 - `run`
 - `compare`
 - `noise-sweep`
@@ -101,6 +102,14 @@ Validate installed or selected backends with known-correct small circuits:
 ```bash
 quantum-bench validate
 quantum-bench validate --backends cirq pennylane --shots 128 --save-json artifacts/validation.json
+```
+
+Compare saved JSON or CSV result files:
+
+```bash
+quantum-bench diff artifacts/baseline.json artifacts/current.json
+quantum-bench diff artifacts/baseline.csv artifacts/current.csv --metric runtime_seconds
+quantum-bench diff artifacts/baseline.json artifacts/current.json --relative-threshold 0.05 --fail-on-regression
 ```
 
 Execution backend names are:
@@ -312,6 +321,8 @@ When supported by the benchmark, result payloads also include:
 Use `--summary` to print per-case rankings, `--save-json` to persist the full result objects, `--save-csv` for spreadsheet-friendly output, and `--save-plot` to write a runtime/depth bar chart.
 
 Result JSON includes standardized metadata fields such as `benchmark_family`, `case_label`, `depth`, `seed`, `oracle_type`, and `noise_level` when applicable. CSV exports include `case_label` and `benchmark_family` columns for easier spreadsheet grouping.
+
+Use `quantum-bench diff` to compare saved result files from two runs. It matches results by benchmark, backend, qubit count, and benchmark parameters, then reports metric deltas. By default it compares `runtime_seconds`, `success_probability`, and `total_variation_distance`. Use repeated `--metric` flags to choose metrics, `--absolute-threshold` or `--relative-threshold` to tolerate expected noise, and `--fail-on-regression` for CI-style gating.
 
 When `--repeats` is greater than 1, `runtime_seconds` is the mean runtime. Raw samples and environment metadata are stored in result metadata. See [SCHEMA.md](./SCHEMA.md) and [METHODOLOGY.md](./METHODOLOGY.md).
 

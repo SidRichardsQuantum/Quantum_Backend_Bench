@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
 from dataclasses import dataclass
 from typing import Any
 
@@ -169,7 +170,7 @@ def backend_capabilities() -> list[BackendCapability]:
         BackendCapability(
             name="pyquil_qvm",
             role="execution",
-            installed=_is_module_installed("pyquil"),
+            installed=_is_module_installed("pyquil") and _has_executables("qvm", "quilc"),
             install_extra="pyquil",
             noise_support="not injected",
             shot_sampling=True,
@@ -301,6 +302,10 @@ def case_label(benchmark: str, n_qubits: int, parameters: dict[str, Any]) -> str
 
 def _is_module_installed(module_name: str) -> bool:
     return importlib.util.find_spec(module_name) is not None
+
+
+def _has_executables(*names: str) -> bool:
+    return all(shutil.which(name) is not None for name in names)
 
 
 def _ket(state: Any) -> str:

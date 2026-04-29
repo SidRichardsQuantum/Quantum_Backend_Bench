@@ -18,6 +18,13 @@ from quantum_backend_bench.benchmarks import (
     random_circuit,
 )
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
+from quantum_backend_bench.core.diff import (
+    DEFAULT_DIFF_METRICS,
+    compare_result_sets,
+    diff_passed,
+    format_diff_table,
+    load_result_file,
+)
 from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabilities
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.runner import run_benchmark
@@ -82,6 +89,37 @@ def _build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument("--success-threshold", type=float, default=0.95)
     validate_parser.add_argument("--save-json")
     validate_parser.set_defaults(func=_validate_command)
+
+    diff_parser = subparsers.add_parser("diff", help="Compare two saved JSON or CSV result files.")
+    diff_parser.add_argument("baseline")
+    diff_parser.add_argument("candidate")
+    diff_parser.add_argument(
+        "--metric",
+        action="append",
+        dest="metrics",
+        help=(
+            "Metric to compare. Can be repeated. Defaults to " f"{', '.join(DEFAULT_DIFF_METRICS)}."
+        ),
+    )
+    diff_parser.add_argument(
+        "--absolute-threshold",
+        type=float,
+        default=0.0,
+        help="Allowed absolute metric delta before flagging a regression.",
+    )
+    diff_parser.add_argument(
+        "--relative-threshold",
+        type=float,
+        default=0.0,
+        help="Allowed relative metric delta before flagging a regression, e.g. 0.05.",
+    )
+    diff_parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="Exit with status 1 when a matching metric regresses or is missing.",
+    )
+    diff_parser.add_argument("--save-json")
+    diff_parser.set_defaults(func=_diff_command)
 
     experiment_parser = subparsers.add_parser(
         "experiment", help="Run benchmark cases from a JSON or YAML manifest."
@@ -232,6 +270,25 @@ def _validate_command(args: argparse.Namespace) -> int:
         save_json(checks, args.save_json)
         print(f"\nSaved validation JSON to {args.save_json}")
     return 0 if validation_passed(checks) else 1
+
+
+def _diff_command(args: argparse.Namespace) -> int:
+    baseline = load_result_file(args.baseline)
+    candidate = load_result_file(args.candidate)
+    rows = compare_result_sets(
+        baseline,
+        candidate,
+        metrics=args.metrics,
+        absolute_threshold=args.absolute_threshold,
+        relative_threshold=args.relative_threshold,
+    )
+    print(format_diff_table(rows))
+    if args.save_json:
+        save_json(rows, args.save_json)
+        print(f"\nSaved diff JSON to {args.save_json}")
+    if args.fail_on_regression and not diff_passed(rows):
+        return 1
+    return 0
 
 
 def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object]:

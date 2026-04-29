@@ -8,6 +8,17 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 No changes yet.
 
+## [0.1.4] - 2026-04-29
+
+### Added
+
+- `quantum-bench diff` for comparing saved JSON or CSV result files with metric thresholds.
+- Public result-diff helpers for loading saved outputs, comparing metric deltas, and formatting diff tables.
+
+### Fixed
+
+- pyQuil QVM discovery now requires local `qvm` and `quilc` executables in addition to the Python package.
+
 ## [0.1.3] - 2026-04-24
 
 ### Added

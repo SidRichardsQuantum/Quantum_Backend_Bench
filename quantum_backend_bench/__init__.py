@@ -13,6 +13,12 @@ from quantum_backend_bench.core.discovery import (
     backend_capabilities,
 )
 from quantum_backend_bench.core.draw import draw_benchmark
+from quantum_backend_bench.core.diff import (
+    compare_result_sets,
+    diff_passed,
+    format_diff_table,
+    load_result_file,
+)
 from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
@@ -46,11 +52,15 @@ __all__ = [
     "CircuitOperation",
     "InternalCircuit",
     "SUITES",
-    "draw_benchmark",
     "backend_capabilities",
     "build_suite",
+    "compare_result_sets",
     "capture_environment",
+    "diff_passed",
+    "draw_benchmark",
+    "format_diff_table",
     "format_summary",
+    "load_result_file",
     "load_manifest",
     "run_benchmark",
     "run_experiment_manifest",

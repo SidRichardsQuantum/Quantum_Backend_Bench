@@ -67,6 +67,53 @@ def test_cli_validate_command_with_fake_checks(
     assert "fake" in captured.out
 
 
+def test_cli_diff_command_reports_regression(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    baseline_path = tmp_path / "baseline.json"
+    candidate_path = tmp_path / "candidate.json"
+    baseline_path.write_text(
+        json.dumps(
+            [
+                {
+                    "benchmark": "ghz",
+                    "backend": "cirq",
+                    "n_qubits": 3,
+                    "parameters": {},
+                    "metrics": {"runtime_seconds": 0.1},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    candidate_path.write_text(
+        json.dumps(
+            [
+                {
+                    "benchmark": "ghz",
+                    "backend": "cirq",
+                    "n_qubits": 3,
+                    "parameters": {},
+                    "metrics": {"runtime_seconds": 0.2},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "diff",
+            str(baseline_path),
+            str(candidate_path),
+            "--metric",
+            "runtime_seconds",
+            "--fail-on-regression",
+        ]
+    )
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "regressed" in captured.out
+
+
 def test_cli_suite_list_cases_writes_manifest(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
     output_path = tmp_path / "suite_manifest.json"
     exit_code = main(["suite", "smoke", "--list-cases", "--save-json", str(output_path)])

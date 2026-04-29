@@ -1,7 +1,7 @@
 # Quantum Backend Bench
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.3-green.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.4-green.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20%7C%20Qiskit%20%7C%20CUDA--Q-purple.svg)](./USAGE.md)
 [![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
@@ -177,6 +177,13 @@ Save CSV:
 
 ```bash
 quantum-bench compare ghz --backends cirq pennylane --n-qubits 5 --save-csv artifacts/ghz.csv
+```
+
+Compare saved results and fail on regressions:
+
+```bash
+quantum-bench diff artifacts/baseline.json artifacts/current.json --relative-threshold 0.05 --fail-on-regression
+quantum-bench diff artifacts/baseline.csv artifacts/current.csv --metric runtime_seconds
 ```
 
 Run a named suite:

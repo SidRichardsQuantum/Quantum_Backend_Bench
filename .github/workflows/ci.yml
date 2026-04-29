@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test:
-    name: Test and lint
+    name: Test, lint, and build
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install package and dev tools
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[all,dev]"
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[cirq,plot,yaml,tket,dev]"
 
       - name: Check formatting
         run: black --check quantum_backend_bench tests examples
@@ -41,3 +41,34 @@ jobs:
 
       - name: Check distributions
         run: python -m twine check dist/*
+
+  optional-backends:
+    name: Optional backend smoke (${{ matrix.extra }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: pennylane
+            filter: pennylane
+          - extra: braket
+            filter: braket
+          - extra: qiskit
+            filter: qiskit
+          - extra: qutip
+            filter: qutip
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install optional backend
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[${{ matrix.extra }},dev]"
+
+      - name: Run backend smoke tests
+        run: pytest tests/test_backends.py -k "${{ matrix.filter }}"

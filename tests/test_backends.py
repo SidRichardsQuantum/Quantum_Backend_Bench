@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import builtins
+import shutil
 
 import pytest
 
@@ -21,6 +22,14 @@ from quantum_backend_bench.benchmarks.ghz import build_benchmark
 
 def _has_module(name: str) -> bool:
     return importlib.util.find_spec(name) is not None
+
+
+def _has_pyquil_runtime() -> bool:
+    return (
+        _has_module("pyquil")
+        and shutil.which("qvm") is not None
+        and shutil.which("quilc") is not None
+    )
 
 
 @pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
@@ -91,7 +100,10 @@ def test_cudaq_backend_runs() -> None:
     assert sum(result["counts"].values()) == 32
 
 
-@pytest.mark.skipif(not _has_module("pyquil"), reason="pyQuil not installed")
+@pytest.mark.skipif(
+    not _has_pyquil_runtime(),
+    reason="pyQuil local Forest runtime not installed",
+)
 def test_pyquil_backend_runs() -> None:
     result = get_backend("pyquil_qvm").run(build_benchmark(n_qubits=3), shots=32)
     assert sum(result["counts"].values()) == 32
