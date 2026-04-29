@@ -123,6 +123,48 @@ def test_cli_diff_command_reports_regression(capsys: pytest.CaptureFixture[str],
     assert "regressed" in captured.out
 
 
+def test_cli_report_command_writes_markdown(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    result_path = tmp_path / "results.json"
+    report_path = tmp_path / "report.md"
+    result_path.write_text(
+        json.dumps(
+            [
+                {
+                    "benchmark": "ghz",
+                    "backend": "cirq",
+                    "n_qubits": 3,
+                    "shots": 8,
+                    "repeats": 1,
+                    "parameters": {"n_qubits": 3},
+                    "metrics": {"runtime_seconds": 0.1, "depth": 3},
+                    "metadata": {
+                        "case_label": "ghz n=3",
+                        "backend_noise_support": "depolarizing",
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["report", str(result_path), "--output", str(report_path)])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Saved report" in captured.out
+    assert "ghz n=3" in report_path.read_text(encoding="utf-8")
+
+
+def test_cli_preset_list_and_show(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    output_path = tmp_path / "preset.json"
+    assert main(["preset", "list"]) == 0
+    captured = capsys.readouterr()
+    assert "algorithmic" in captured.out
+
+    assert main(["preset", "show", "algorithmic", "--save-json", str(output_path)]) == 0
+    manifest = json.loads(output_path.read_text(encoding="utf-8"))
+    assert manifest["benchmarks"][-1]["benchmark"] == "qaoa-maxcut"
+
+
 def test_cli_suite_list_cases_writes_manifest(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
     output_path = tmp_path / "suite_manifest.json"
     exit_code = main(["suite", "smoke", "--list-cases", "--save-json", str(output_path)])

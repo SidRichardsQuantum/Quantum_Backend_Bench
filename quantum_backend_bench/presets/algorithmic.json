@@ -1,0 +1,13 @@
+{
+  "description": "Algorithm-flavored workloads with oracle, search, simulation, and optimization cases.",
+  "backends": ["cirq", "pennylane", "qiskit_aer"],
+  "shots": 256,
+  "repeats": 3,
+  "benchmarks": [
+    {"benchmark": "bernstein-vazirani", "n_qubits": 5, "secret_string": "1011"},
+    {"benchmark": "deutsch-jozsa", "n_qubits": 5, "oracle_type": "balanced", "bitmask": "1100"},
+    {"benchmark": "grover", "n_qubits": 3, "marked_state": "101"},
+    {"benchmark": "hamiltonian-sim", "n_qubits": 4, "time": 1.0, "trotter_steps": 2},
+    {"benchmark": "qaoa-maxcut", "n_qubits": 4, "gamma": 0.8, "beta": 0.4, "graph": "ring"}
+  ]
+}

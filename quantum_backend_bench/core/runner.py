@@ -15,6 +15,7 @@ from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.metrics import (
     normalize_counts,
     success_probability,
+    target_success_probability,
     total_variation_distance,
 )
 from quantum_backend_bench.core.results import BenchmarkResult
@@ -78,11 +79,17 @@ def run_benchmark(
             metric_values["measurement_distribution"] = distribution
         if "success_probability" in selected_metrics:
             target_state = benchmark.metadata.get("target_state") if benchmark.metadata else None
-            metric_values["success_probability"] = (
-                success_probability(counts, target_state, shots=total_shots)
-                if target_state
-                else None
-            )
+            target_states = benchmark.metadata.get("target_states") if benchmark.metadata else None
+            if target_states:
+                metric_values["success_probability"] = target_success_probability(
+                    counts, target_states, shots=total_shots
+                )
+            else:
+                metric_values["success_probability"] = (
+                    success_probability(counts, target_state, shots=total_shots)
+                    if target_state
+                    else None
+                )
         if "total_variation_distance" in selected_metrics:
             metric_values["total_variation_distance"] = total_variation_distance(
                 counts, benchmark.ideal_distribution, shots=total_shots

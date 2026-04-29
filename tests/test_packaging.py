@@ -37,6 +37,10 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert "qiskit-aer" in extras["all"]
     assert "pytket" in extras["all"]
     assert "PyYAML" in extras["all"]
+    assert "cudaq" not in extras["all"]
+    assert "pyquil" not in extras["all"]
+    assert "cudaq" in extras["full"]
+    assert "pyquil" in extras["full"]
 
 
 def test_required_docs_are_included_in_sdist_manifest() -> None:

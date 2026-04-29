@@ -1,0 +1,10 @@
+{
+  "description": "Depolarizing-noise sensitivity comparison for adapters that inject noise.",
+  "backends": ["cirq", "pennylane", "qiskit_aer"],
+  "shots": 256,
+  "repeats": 3,
+  "benchmarks": [
+    {"benchmark": "ghz", "n_qubits": 3, "noise_levels": [0.0, 0.001, 0.005, 0.01, 0.02]},
+    {"benchmark": "ghz", "n_qubits": 5, "noise_levels": [0.0, 0.001, 0.005, 0.01, 0.02]}
+  ]
+}

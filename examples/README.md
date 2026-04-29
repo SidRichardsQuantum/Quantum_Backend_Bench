@@ -64,6 +64,7 @@ python examples/backend_capability_matrix.py
 5. Generate a compact Markdown report:
 
    ```bash
+   quantum-bench report artifacts/research/runtime_scaling.json --output artifacts/research/runtime_scaling_report.md
    python examples/experiment_report.py
    ```
 
@@ -87,6 +88,8 @@ You can also run manifests directly:
 quantum-bench experiment run examples/manifests/runtime_scaling.json
 quantum-bench experiment run examples/manifests/noise_sensitivity.json
 quantum-bench experiment run examples/manifests/structure_vs_runtime.json
+quantum-bench preset list
+quantum-bench preset run runtime --backends cirq pennylane qiskit_aer --save-report artifacts/runtime_report.md
 ```
 
 Bundled manifests:
@@ -108,13 +111,13 @@ Bundled manifests:
 
 ## Dependency Notes
 
-The core examples work with the dependencies already installed in a full development environment:
+The core examples work with the practical Python-only development stack:
 
 ```bash
 python -m pip install -e ".[all,dev]"
 ```
 
-Individual SDK adapters are optional. Use `python examples/backend_capability_matrix.py` or `quantum-bench info` to see which are installed. Some examples use only backends available in your current environment; generated manifests choose installed local execution backends automatically.
+Individual SDK adapters are optional. Use `python examples/backend_capability_matrix.py` or `quantum-bench info` to see which are installed. Some examples use only backends available in your current environment; generated manifests choose installed local execution backends automatically. CUDA-Q and pyQuil are intentionally outside `all`; use `.[full,dev]` only when you want every Python SDK extra. pyQuil execution still requires local `qvm` and `quilc` executables on `PATH`.
 
 YAML experiment manifests require:
 

@@ -1,0 +1,11 @@
+{
+  "description": "Small SDK smoke comparison for installed local execution backends.",
+  "backends": ["cirq", "pennylane", "braket_local", "qiskit_aer", "qutip"],
+  "shots": 64,
+  "repeats": 1,
+  "benchmarks": [
+    {"benchmark": "ghz", "n_qubits": 3},
+    {"benchmark": "bernstein-vazirani", "n_qubits": 4, "secret_string": "101"},
+    {"benchmark": "qaoa-maxcut", "n_qubits": 3, "gamma": 0.8, "beta": 0.4, "graph": "line"}
+  ]
+}

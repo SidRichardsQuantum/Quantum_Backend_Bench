@@ -11,6 +11,7 @@ from quantum_backend_bench.benchmarks.noise_sensitivity import (
 )
 from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.factory import build_benchmark_from_config
+from quantum_backend_bench.core.report import save_markdown_report
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.utils.io import save_csv, save_json
 from quantum_backend_bench.utils.plotting import save_suite_runtime_plot
@@ -43,6 +44,17 @@ def run_experiment_manifest(path: str | Path) -> dict[str, Any]:
 
     manifest_path = Path(path)
     manifest = load_manifest(manifest_path)
+    return run_experiment(manifest, manifest_path=manifest_path)
+
+
+def run_experiment(
+    manifest: dict[str, Any],
+    *,
+    manifest_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Run an experiment manifest object and return a complete result bundle."""
+
+    manifest_source = Path(manifest_path) if manifest_path is not None else None
     defaults = manifest.get("defaults", {})
     backends = manifest.get("backends", defaults.get("backends", ["cirq"]))
     shots = int(manifest.get("shots", defaults.get("shots", 1024)))
@@ -78,9 +90,9 @@ def run_experiment_manifest(path: str | Path) -> dict[str, Any]:
 
     bundle = {
         "schema_version": "0.1",
-        "manifest_path": str(manifest_path),
+        "manifest_path": str(manifest_source) if manifest_source is not None else None,
         "manifest": manifest,
-        "environment": capture_environment(manifest_path.parent),
+        "environment": capture_environment(manifest_source.parent if manifest_source else None),
         "results": results,
     }
     outputs = manifest.get("outputs", {})
@@ -90,4 +102,6 @@ def run_experiment_manifest(path: str | Path) -> dict[str, Any]:
         save_csv(results, outputs["csv"])
     if outputs.get("suite_plot"):
         save_suite_runtime_plot(results, outputs["suite_plot"])
+    if outputs.get("report"):
+        save_markdown_report(bundle, outputs["report"])
     return bundle

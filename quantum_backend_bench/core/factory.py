@@ -11,6 +11,7 @@ from quantum_backend_bench.benchmarks import (
     grover,
     hamiltonian_sim,
     qft,
+    qaoa_maxcut,
     quantum_volume,
     random_circuit,
 )
@@ -23,6 +24,7 @@ BENCHMARK_BUILDERS: dict[str, Callable[..., BenchmarkSpec]] = {
     "grover": grover.build_benchmark,
     "hamiltonian-sim": hamiltonian_sim.build_benchmark,
     "qft": qft.build_benchmark,
+    "qaoa-maxcut": qaoa_maxcut.build_benchmark,
     "quantum-volume": quantum_volume.build_benchmark,
     "random-circuit": random_circuit.build_benchmark,
 }
@@ -52,4 +54,8 @@ def build_benchmark_from_config(config: dict[str, object]) -> BenchmarkSpec:
     elif name == "hamiltonian-sim":
         kwargs["time"] = config.get("time", 0.5)
         kwargs["trotter_steps"] = config.get("trotter_steps", 1)
+    elif name == "qaoa-maxcut":
+        kwargs["gamma"] = config.get("gamma", 0.8)
+        kwargs["beta"] = config.get("beta", 0.4)
+        kwargs["graph"] = config.get("graph", "ring")
     return builder(**kwargs)

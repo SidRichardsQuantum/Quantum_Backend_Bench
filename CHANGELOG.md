@@ -4,9 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
-## [Unreleased]
+## [0.1.7] - 2026-04-29
 
-No changes yet.
+### Added
+
+- QAOA MaxCut benchmark for single-layer line and ring graph optimization workloads.
+- Packaged comparison presets for runtime, noise, algorithmic, and SDK smoke studies.
+- `quantum-bench preset` commands for listing, exporting, and running packaged presets.
+- `quantum-bench report` for Markdown reports from saved JSON, result bundles, or CSV exports.
+- Experiment manifest `outputs.report` support for Markdown report generation.
+- Qiskit Aer depolarizing-noise injection for noisy benchmark wrappers.
+
+### Changed
+
+- Backend discovery and result metadata now report Qiskit Aer depolarizing noise support.
+- The standard suite now includes a small QAOA MaxCut optimization workload.
+- The `all` extra now targets the practical Python-only comparison stack; `full` includes heavyweight and external-runtime-backed SDK extras.
+- Optional backend tests are marked by Python SDK, heavyweight SDK, and external runtime requirements.
 
 ## [0.1.6] - 2026-04-29
 

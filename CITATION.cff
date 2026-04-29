@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Richards
     given-names: Sid
-version: 0.1.3
+version: 0.1.7
 license: MIT
 repository-code: "https://github.com/SidRichardsQuantum/Quantum_Backend_Bench"
 abstract: "A reproducible local quantum SDK benchmark harness for comparing simulator behavior, runtime, circuit structure, and measurement quality across Python quantum frameworks."

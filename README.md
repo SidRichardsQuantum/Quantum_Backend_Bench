@@ -1,7 +1,7 @@
 # Quantum Backend Bench
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.6-green.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.7-green.svg)](./CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20%7C%20Qiskit%20%7C%20CUDA--Q-purple.svg)](./USAGE.md)
 [![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
@@ -27,6 +27,7 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
   - [Quantum Volume Style](#quantum-volume-style)
   - [Grover](#grover)
   - [Hamiltonian Simulation](#hamiltonian-simulation)
+  - [QAOA MaxCut](#qaoa-maxcut)
   - [Noise Sensitivity](#noise-sensitivity)
 - [Python API](#python-api)
 - [Project Layout](#project-layout)
@@ -39,9 +40,9 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
 
 - Unified `BenchmarkSpec` abstraction for reusable benchmark definitions
 - Local-first execution backends with no cloud credentials required
-- Built-in benchmarks for GHZ, Bernstein-Vazirani, Deutsch-Jozsa, QFT, random circuits, quantum-volume-style circuits, Grover search, Hamiltonian simulation, and noise sweeps
+- Built-in benchmarks for GHZ, Bernstein-Vazirani, Deutsch-Jozsa, QFT, random circuits, quantum-volume-style circuits, Grover search, Hamiltonian simulation, QAOA MaxCut, and noise sweeps
 - Standardized metrics including depth, gate counts, runtime, success probability, and total variation distance
-- CLI commands for discovery, backend capability reporting, single runs, backend comparison, and noise sweeps
+- CLI commands for discovery, backend capability reporting, single runs, backend comparison, presets, reports, and noise sweeps
 - Experiment manifests with environment capture and repeated runtime statistics
 - Named benchmark suites for smoke, standard, and scaling runs
 - Native circuit drawing through Cirq, PennyLane, Braket, and pytket renderers
@@ -55,7 +56,7 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
 | Cirq | `cirq.Simulator` | Supports depolarizing noise injection in this project |
 | PennyLane | `default.qubit` / `default.mixed` | Uses local devices only |
 | Amazon Braket | `LocalSimulator` only | Offline execution, no AWS credentials required |
-| Qiskit Aer | `AerSimulator` | Local Aer simulation, no IBM account required |
+| Qiskit Aer | `AerSimulator` | Local Aer simulation with depolarizing noise injection support |
 | NVIDIA CUDA-Q | local simulator target | Optional local CUDA-Q execution adapter |
 | pyQuil QVM | local QVM/quilc runtime | Requires local Forest runtime support |
 | QuTiP | local statevector simulation | Useful for physics-oriented local simulation coverage |
@@ -83,7 +84,13 @@ python -m pip install "quantum-backend-bench[pyquil]"
 python -m pip install "quantum-backend-bench[qutip]"
 python -m pip install "quantum-backend-bench[yaml]"
 python -m pip install "quantum-backend-bench[all]"
+python -m pip install "quantum-backend-bench[full]"
 ```
+
+The default package and `.[dev]` workflow are self-contained Python installs. The `all`
+extra is the practical Python-only comparison stack and intentionally excludes CUDA-Q
+and pyQuil. Use `full` only when you explicitly want every Python SDK extra, including
+heavy or external-runtime-backed adapters.
 
 Install from a local checkout:
 
@@ -98,11 +105,20 @@ For development tools:
 python -m pip install -e .[dev]
 ```
 
-For the full local test matrix:
+For the practical local test matrix:
 
 ```bash
 python -m pip install -e ".[all,dev]"
 ```
+
+For the exhaustive optional SDK matrix:
+
+```bash
+python -m pip install -e ".[full,dev]"
+```
+
+The pyQuil execution test also requires local `qvm` and `quilc` executables on `PATH`.
+Those are external Rigetti runtime tools and are not installed by pip extras.
 
 ## GitHub Codespaces
 
@@ -163,6 +179,12 @@ Run Hamiltonian simulation:
 quantum-bench run hamiltonian-sim --backend cirq --n-qubits 4 --time 1.0 --trotter-steps 2
 ```
 
+Run QAOA MaxCut:
+
+```bash
+quantum-bench run qaoa-maxcut --backend cirq --n-qubits 4 --graph ring --gamma 0.8 --beta 0.4
+```
+
 Run a noise sweep:
 
 ```bash
@@ -209,6 +231,20 @@ Compare saved results and fail on regressions:
 ```bash
 quantum-bench diff artifacts/baseline.json artifacts/current.json --relative-threshold 0.05 --fail-on-regression
 quantum-bench diff artifacts/baseline.csv artifacts/current.csv --metric runtime_seconds
+```
+
+Generate a Markdown report:
+
+```bash
+quantum-bench report artifacts/current.json --output artifacts/current_report.md
+```
+
+Use packaged comparison presets:
+
+```bash
+quantum-bench preset list
+quantum-bench preset show algorithmic --save-json artifacts/algorithmic_manifest.json
+quantum-bench preset run runtime --backends cirq pennylane qiskit_aer --save-report artifacts/runtime_report.md
 ```
 
 Run a named suite:
@@ -265,9 +301,13 @@ Implements first-order Trotterized evolution for a simple Ising-style Hamiltonia
 H = sum_i Z_i Z_{i+1} + 0.5 * sum_i X_i
 ```
 
+### QAOA MaxCut
+
+Builds a single-layer QAOA circuit for line or ring MaxCut instances and reports success probability as probability mass on optimal cut bitstrings.
+
 ### Noise Sensitivity
 
-Wraps a base benchmark and sweeps depolarizing noise levels. Noise behavior differs by backend and is reported in result metadata. Braket remains local-only and does not inject noise in this adapter.
+Wraps a base benchmark and sweeps depolarizing noise levels. Noise behavior differs by backend and is reported in result metadata. Cirq, PennyLane, and Qiskit Aer inject depolarizing noise in this project; other adapters may report the request without applying noise.
 
 ## Python API
 

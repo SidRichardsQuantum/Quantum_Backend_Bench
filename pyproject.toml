@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.1.6"
+version = "0.1.7"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -61,6 +61,19 @@ yaml = [
 all = [
   "amazon-braket-sdk",
   "cirq",
+  "matplotlib",
+  "pennylane",
+  "pytket",
+  "qbraid",
+  "qiskit",
+  "qiskit-aer",
+  "qsharp",
+  "qutip",
+  "PyYAML",
+]
+full = [
+  "amazon-braket-sdk",
+  "cirq",
   "cudaq",
   "matplotlib",
   "pennylane",
@@ -95,3 +108,8 @@ target-version = "py311"
 testpaths = ["tests"]
 addopts = "-ra"
 pythonpath = ["."]
+markers = [
+  "optional_sdk: tests that require optional Python SDK integrations",
+  "heavy_sdk: tests that require heavyweight or platform-sensitive SDK integrations",
+  "external_runtime: tests that require non-Python local runtime executables or services",
+]

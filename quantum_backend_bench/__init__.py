@@ -22,6 +22,12 @@ from quantum_backend_bench.core.diff import (
 from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
+from quantum_backend_bench.core.presets import list_presets, load_preset, write_preset
+from quantum_backend_bench.core.report import (
+    format_markdown_report,
+    load_report_input,
+    save_markdown_report,
+)
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.summary import format_summary, summarize_results
@@ -69,9 +75,15 @@ __all__ = [
     "format_summary",
     "load_result_file",
     "load_manifest",
+    "list_presets",
+    "load_preset",
+    "load_report_input",
+    "format_markdown_report",
     "run_benchmark",
     "run_experiment_manifest",
+    "save_markdown_report",
     "summarize_results",
     "validate_backends",
     "validation_passed",
+    "write_preset",
 ]

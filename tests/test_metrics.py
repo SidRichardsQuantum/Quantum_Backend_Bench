@@ -5,6 +5,7 @@ import pytest
 from quantum_backend_bench.core.metrics import (
     normalize_counts,
     success_probability,
+    target_success_probability,
     total_variation_distance,
 )
 from quantum_backend_bench.core.runner import run_benchmark
@@ -18,6 +19,10 @@ def test_normalize_counts() -> None:
 
 def test_success_probability() -> None:
     assert success_probability({"101": 9, "000": 1}, "101") == 0.9
+
+
+def test_target_success_probability_sums_target_mass() -> None:
+    assert target_success_probability({"00": 2, "01": 3, "10": 5}, ["01", "10"]) == 0.8
 
 
 def test_grover_success_probability_uses_marked_state(monkeypatch: pytest.MonkeyPatch) -> None:

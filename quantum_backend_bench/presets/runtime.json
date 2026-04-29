@@ -1,0 +1,12 @@
+{
+  "description": "Runtime and structure comparison across portable benchmark families.",
+  "backends": ["cirq", "pennylane", "qiskit_aer"],
+  "shots": 256,
+  "repeats": 3,
+  "benchmarks": [
+    {"benchmark": "ghz", "n_qubits": 5},
+    {"benchmark": "qft", "n_qubits": 4},
+    {"benchmark": "random-circuit", "n_qubits": 4, "depth": 12, "seed": 42},
+    {"benchmark": "quantum-volume", "n_qubits": 4, "depth": 4, "seed": 42}
+  ]
+}

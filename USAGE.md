@@ -20,6 +20,7 @@ For the theoretical background behind shots, distributions, success probability,
   - [Compare Backends](#compare-backends)
   - [Run a Noise Sweep](#run-a-noise-sweep)
   - [Run Benchmark Suites](#run-benchmark-suites)
+  - [Run Presets and Reports](#run-presets-and-reports)
   - [Draw Circuits](#draw-circuits)
   - [Run Experiment Manifests](#run-experiment-manifests)
 - [CLI Output](#cli-output)
@@ -37,6 +38,7 @@ For the theoretical background behind shots, distributions, success probability,
   - [Quantum Volume Style](#quantum-volume-style)
   - [Grover](#grover)
   - [Hamiltonian Simulation](#hamiltonian-simulation)
+  - [QAOA MaxCut](#qaoa-maxcut)
   - [Noise Sensitivity](#noise-sensitivity)
 - [Result Schema](#result-schema)
 - [Practical Notes](#practical-notes)
@@ -68,7 +70,13 @@ python -m pip install "quantum-backend-bench[qutip]"
 python -m pip install "quantum-backend-bench[qbraid]"
 python -m pip install "quantum-backend-bench[qsharp]"
 python -m pip install "quantum-backend-bench[all]"
+python -m pip install "quantum-backend-bench[full]"
 ```
+
+`all` is the practical Python-only comparison stack. It excludes CUDA-Q and pyQuil so
+normal local setup does not pull a large CUDA dependency set or imply that external
+Rigetti runtime executables are available. Use `full` when you explicitly want every
+Python SDK extra.
 
 Install from a local checkout:
 
@@ -83,11 +91,20 @@ Install development tools:
 python -m pip install -e .[dev]
 ```
 
-Install everything needed for the full local test matrix:
+Install the practical local test matrix:
 
 ```bash
 python -m pip install -e ".[all,dev]"
 ```
+
+Install every optional Python SDK extra:
+
+```bash
+python -m pip install -e ".[full,dev]"
+```
+
+Even with `full`, the pyQuil execution test requires non-Python local runtime tools:
+`qvm` and `quilc` must be installed separately and available on `PATH`.
 
 ## CLI Usage
 
@@ -105,6 +122,8 @@ Available subcommands:
 - `recommend`
 - `validate`
 - `diff`
+- `report`
+- `preset`
 - `run`
 - `compare`
 - `noise-sweep`
@@ -151,7 +170,7 @@ quantum-bench recommend --use-case noise
 
 Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` before comparing results. In general:
 
-- Use Cirq or PennyLane for noise-sweep studies because this project injects depolarizing noise for those adapters.
+- Use Cirq, PennyLane, or Qiskit Aer for noise-sweep studies because this project injects depolarizing noise for those adapters.
 - Use Qiskit Aer when you want a common transpilation-inclusive local simulator workflow.
 - Use Braket LocalSimulator when you want offline Braket circuit coverage without AWS credentials.
 - Use QuTiP when statevector-style local simulation is useful for small physics-oriented cases.
@@ -183,6 +202,22 @@ Execution backend names are:
 - `pyquil_qvm`
 - `qutip`
 
+### Run Presets and Reports
+
+Packaged presets provide ready-made comparison manifests:
+
+```bash
+quantum-bench preset list
+quantum-bench preset show runtime --save-json artifacts/runtime_manifest.json
+quantum-bench preset run runtime --backends cirq pennylane qiskit_aer --save-json artifacts/runtime.json --save-report artifacts/runtime.md
+```
+
+Generate a Markdown report from an existing JSON, JSON bundle, or CSV export:
+
+```bash
+quantum-bench report artifacts/runtime.json --output artifacts/runtime_report.md
+```
+
 `qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations, but they are not execution backends in this local circuit adapter.
 
 ### Run One Benchmark on One Backend
@@ -210,6 +245,12 @@ Hamiltonian simulation on Cirq:
 
 ```bash
 quantum-bench run hamiltonian-sim --backend cirq --n-qubits 4 --time 1.0 --trotter-steps 2
+```
+
+QAOA MaxCut on Cirq:
+
+```bash
+quantum-bench run qaoa-maxcut --backend cirq --n-qubits 4 --graph ring --gamma 0.8 --beta 0.4
 ```
 
 Bernstein-Vazirani on Cirq:
@@ -296,7 +337,7 @@ quantum-bench suite standard --dry-run --save-json artifacts/standard_manifest.j
 Available suites:
 
 - `smoke`: small GHZ, oracle, and Grover checks for quick validation
-- `standard`: representative GHZ, oracle, QFT, random circuit, Grover, Hamiltonian simulation, and quantum-volume-style cases
+- `standard`: representative GHZ, oracle, QFT, random circuit, Grover, Hamiltonian simulation, QAOA MaxCut, and quantum-volume-style cases
 - `scaling`: repeated GHZ, QFT, quantum-volume-style, and random-circuit cases at larger sizes or depths
 
 ### Draw Circuits
@@ -490,9 +531,13 @@ Use when you want a benchmark with a target success state. This is the main buil
 
 Use when you want a small, documented time-evolution workload based on a simple Ising-style Hamiltonian.
 
+### QAOA MaxCut
+
+Use when you want an optimization-flavored workload. The benchmark builds a single-layer QAOA circuit for line or ring MaxCut graphs and reports success probability as probability mass on optimal cut bitstrings.
+
 ### Noise Sensitivity
 
-Use when you want to compare how output quality changes under injected depolarizing noise. Cirq and PennyLane support noisy execution in this project; Braket local remains local-only but does not inject noise in this adapter.
+Use when you want to compare how output quality changes under injected depolarizing noise. Cirq, PennyLane, and Qiskit Aer support noisy execution in this project; other adapters may execute the base circuit without injecting noise and report that in result metadata.
 
 ## Result Schema
 

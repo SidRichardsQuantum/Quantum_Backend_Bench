@@ -50,7 +50,14 @@ class QiskitAerBackend(BaseBackend):
 
         circuit = self.build_native_circuit(benchmark)
         seed = benchmark.parameters.get("seed")
-        simulator = AerSimulator(seed_simulator=seed) if seed is not None else AerSimulator()
+        metadata = benchmark.metadata or {}
+        noise_model = _qiskit_noise_model(metadata)
+        simulator_kwargs = {}
+        if seed is not None:
+            simulator_kwargs["seed_simulator"] = seed
+        if noise_model is not None:
+            simulator_kwargs["noise_model"] = noise_model
+        simulator = AerSimulator(**simulator_kwargs)
 
         start = time.perf_counter()
         compiled = (
@@ -61,17 +68,17 @@ class QiskitAerBackend(BaseBackend):
         result = simulator.run(compiled, shots=shots).result()
         runtime = time.perf_counter() - start
 
-        metadata = benchmark.metadata or {}
+        noise_applied = noise_model is not None
         return {
             "counts": dict(Counter(result.get_counts(compiled))),
             "runtime_seconds": runtime,
-            "noise_supported": False,
-            "noise_applied": False,
+            "noise_supported": True,
+            "noise_applied": noise_applied,
             "seed_supported": True,
             "seed_applied": seed is not None,
             "notes": (
-                "Qiskit Aer execution completed without noise injection in this adapter."
-                if metadata.get("noise_level", 0.0) > 0
+                "Qiskit Aer execution completed with depolarizing noise."
+                if noise_applied
                 else "Qiskit Aer execution completed."
             ),
         }
@@ -114,3 +121,26 @@ def _apply_qiskit_op(circuit: Any, operation: CircuitOperation) -> None:
 
 def _unwrap_noise_benchmark(benchmark: BenchmarkSpec) -> Any:
     return (benchmark.metadata or {}).get("base_circuit", benchmark.circuit_data)
+
+
+def _qiskit_noise_model(metadata: dict[str, Any]) -> Any | None:
+    if metadata.get("noise_type") != "depolarizing":
+        return None
+    probability = float(metadata.get("noise_level", 0.0))
+    if probability <= 0:
+        return None
+    try:
+        from qiskit_aer.noise import NoiseModel, depolarizing_error
+    except ImportError as exc:
+        raise RuntimeError(
+            'Qiskit Aer noise support requires qiskit-aer. Install with: pip install "quantum-backend-bench[qiskit]"'
+        ) from exc
+
+    noise_model = NoiseModel()
+    one_qubit_error = depolarizing_error(probability, 1)
+    two_qubit_error = depolarizing_error(probability, 2)
+    noise_model.add_all_qubit_quantum_error(
+        one_qubit_error, ["h", "x", "y", "z", "s", "t", "rx", "ry", "rz"]
+    )
+    noise_model.add_all_qubit_quantum_error(two_qubit_error, ["cx", "cz", "swap", "cp"])
+    return noise_model

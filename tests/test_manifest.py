@@ -21,6 +21,7 @@ def test_load_json_manifest(tmp_path) -> None:
 def test_run_experiment_manifest_writes_outputs(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     output_path = tmp_path / "results.json"
     csv_path = tmp_path / "results.csv"
+    report_path = tmp_path / "report.md"
     manifest_path = tmp_path / "experiment.json"
     manifest_path.write_text(
         json.dumps(
@@ -29,7 +30,11 @@ def test_run_experiment_manifest_writes_outputs(monkeypatch: pytest.MonkeyPatch,
                 "shots": 8,
                 "repeats": 2,
                 "benchmarks": [{"benchmark": "ghz", "n_qubits": 3}],
-                "outputs": {"json": str(output_path), "csv": str(csv_path)},
+                "outputs": {
+                    "json": str(output_path),
+                    "csv": str(csv_path),
+                    "report": str(report_path),
+                },
             }
         ),
         encoding="utf-8",
@@ -56,6 +61,7 @@ def test_run_experiment_manifest_writes_outputs(monkeypatch: pytest.MonkeyPatch,
     assert bundle["results"][0]["repeats"] == 2
     assert output_path.exists()
     assert csv_path.exists()
+    assert report_path.exists()
 
 
 def test_manifest_noise_levels_expand_cases(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:

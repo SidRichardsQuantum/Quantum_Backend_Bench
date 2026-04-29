@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 from quantum_backend_bench.backends import BACKEND_REGISTRY
 from quantum_backend_bench.benchmarks import noise_sensitivity
@@ -18,6 +19,12 @@ from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabi
 from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
+from quantum_backend_bench.core.presets import list_presets, load_preset, write_preset
+from quantum_backend_bench.core.report import (
+    format_markdown_report,
+    load_report_input,
+    save_markdown_report,
+)
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.summary import format_summary, summarize_results
@@ -111,6 +118,14 @@ def _build_parser() -> argparse.ArgumentParser:
     diff_parser.add_argument("--save-json")
     diff_parser.set_defaults(func=_diff_command)
 
+    report_parser = subparsers.add_parser(
+        "report", help="Generate a Markdown report from saved JSON or CSV results."
+    )
+    report_parser.add_argument("results")
+    report_parser.add_argument("--output", "-o")
+    report_parser.add_argument("--title", default="Quantum Backend Benchmark Report")
+    report_parser.set_defaults(func=_report_command)
+
     experiment_parser = subparsers.add_parser(
         "experiment", help="Run benchmark cases from a JSON or YAML manifest."
     )
@@ -122,6 +137,26 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     experiment_run_parser.add_argument("manifest")
     experiment_run_parser.set_defaults(func=_experiment_run_command)
+
+    preset_parser = subparsers.add_parser("preset", help="Use packaged comparison presets.")
+    preset_subparsers = preset_parser.add_subparsers(dest="preset_command", required=True)
+    preset_list_parser = preset_subparsers.add_parser("list", help="List packaged presets.")
+    preset_list_parser.set_defaults(func=_preset_list_command)
+    preset_show_parser = preset_subparsers.add_parser("show", help="Print a preset manifest.")
+    preset_show_parser.add_argument("preset", choices=list_presets())
+    preset_show_parser.add_argument("--save-json")
+    preset_show_parser.set_defaults(func=_preset_show_command)
+    preset_run_parser = preset_subparsers.add_parser("run", help="Run a packaged preset.")
+    preset_run_parser.add_argument("preset", choices=list_presets())
+    preset_run_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
+    preset_run_parser.add_argument("--shots", type=_positive_int)
+    preset_run_parser.add_argument("--repeats", type=_positive_int)
+    preset_run_parser.add_argument("--save-json")
+    preset_run_parser.add_argument("--save-csv")
+    preset_run_parser.add_argument("--save-suite-plot")
+    preset_run_parser.add_argument("--save-report")
+    preset_run_parser.add_argument("--summary", action="store_true")
+    preset_run_parser.set_defaults(func=_preset_run_command)
 
     run_parser = subparsers.add_parser("run", help="Run a single benchmark on one backend.")
     _add_benchmark_arguments(run_parser)
@@ -293,6 +328,16 @@ def _diff_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _report_command(args: argparse.Namespace) -> int:
+    bundle = load_report_input(args.results)
+    if args.output:
+        save_markdown_report(bundle, args.output, title=args.title)
+        print(f"Saved report to {args.output}")
+    else:
+        print(format_markdown_report(bundle, title=args.title))
+    return 0
+
+
 def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object]:
     def score(capability: object) -> tuple[int, str]:
         value = 0
@@ -348,6 +393,9 @@ def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--iterations", type=int, default=None)
     parser.add_argument("--time", type=float, default=0.5)
     parser.add_argument("--trotter-steps", type=int, default=1)
+    parser.add_argument("--gamma", type=float, default=0.8)
+    parser.add_argument("--beta", type=float, default=0.4)
+    parser.add_argument("--graph", choices=["line", "ring"], default="ring")
 
 
 def _positive_int(value: str) -> int:
@@ -378,6 +426,9 @@ def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:
         "iterations",
         "time",
         "trotter_steps",
+        "gamma",
+        "beta",
+        "graph",
     ):
         value = getattr(args, key, None)
         if value is not None:
@@ -434,6 +485,64 @@ def _experiment_run_command(args: argparse.Namespace) -> int:
         print(f"Saved experiment CSV to {outputs['csv']}")
     if outputs.get("suite_plot"):
         print(f"Saved experiment plot to {outputs['suite_plot']}")
+    if outputs.get("report"):
+        print(f"Saved experiment report to {outputs['report']}")
+    return 0
+
+
+def _preset_list_command(args: argparse.Namespace) -> int:
+    del args
+    print("Presets")
+    for name in list_presets():
+        preset = load_preset(name)
+        print(f"  {name:<12} {preset.get('description', '')}")
+    return 0
+
+
+def _preset_show_command(args: argparse.Namespace) -> int:
+    if args.save_json:
+        write_preset(args.preset, args.save_json)
+        print(f"Saved preset manifest to {args.save_json}")
+    else:
+        print(json.dumps(load_preset(args.preset), indent=2, sort_keys=True))
+    return 0
+
+
+def _preset_run_command(args: argparse.Namespace) -> int:
+    from quantum_backend_bench.core.manifest import run_experiment
+
+    manifest = load_preset(args.preset)
+    if args.backends:
+        manifest["backends"] = list(args.backends)
+    if args.shots is not None:
+        manifest["shots"] = args.shots
+    if args.repeats is not None:
+        manifest["repeats"] = args.repeats
+    outputs = dict(manifest.get("outputs", {}))
+    if args.save_json:
+        outputs["json"] = args.save_json
+    if args.save_csv:
+        outputs["csv"] = args.save_csv
+    if args.save_suite_plot:
+        outputs["suite_plot"] = args.save_suite_plot
+    if args.save_report:
+        outputs["report"] = args.save_report
+    if outputs:
+        manifest["outputs"] = outputs
+
+    bundle = run_experiment(manifest)
+    print(format_results_table(bundle["results"]))
+    if args.summary:
+        print()
+        print(format_summary(summarize_results(bundle["results"])))
+    if args.save_json:
+        print(f"\nSaved preset JSON to {args.save_json}")
+    if args.save_csv:
+        print(f"Saved preset CSV to {args.save_csv}")
+    if args.save_suite_plot:
+        print(f"Saved preset plot to {args.save_suite_plot}")
+    if args.save_report:
+        print(f"Saved preset report to {args.save_report}")
     return 0
 
 

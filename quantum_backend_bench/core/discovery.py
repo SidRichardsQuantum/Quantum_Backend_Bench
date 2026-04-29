@@ -81,6 +81,13 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         description="Build a Quantum Fourier Transform workload.",
         key_parameters=("n_qubits",),
     ),
+    "qaoa-maxcut": BenchmarkInfo(
+        cli_name="qaoa-maxcut",
+        result_name="qaoa_maxcut",
+        family="optimization",
+        description="Run a single-layer QAOA MaxCut workload on a line or ring graph.",
+        key_parameters=("n_qubits", "gamma", "beta", "graph"),
+    ),
     "quantum-volume": BenchmarkInfo(
         cli_name="quantum-volume",
         result_name="quantum_volume",
@@ -146,7 +153,7 @@ def backend_capabilities() -> list[BackendCapability]:
             role="execution",
             installed=_is_module_installed("qiskit") and _is_module_installed("qiskit_aer"),
             install_extra="qiskit",
-            noise_support="not injected",
+            noise_support="depolarizing",
             shot_sampling=True,
             exact_statevector=False,
             external_process=False,
@@ -308,6 +315,8 @@ def case_label(benchmark: str, n_qubits: int, parameters: dict[str, Any]) -> str
         return f"{benchmark} c={parameters.get('constant_value', 0)}"
     if "marked_state" in parameters:
         return f"{benchmark} target={_ket(parameters['marked_state'])}"
+    if benchmark == "qaoa_maxcut":
+        return f"{benchmark} n={n_qubits} graph={parameters.get('graph', 'ring')}"
     if "depth" in parameters:
         return f"{benchmark} n={n_qubits} d={parameters['depth']}"
     return f"{benchmark} n={n_qubits}"

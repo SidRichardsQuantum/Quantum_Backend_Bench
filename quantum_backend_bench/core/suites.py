@@ -12,6 +12,7 @@ from quantum_backend_bench.benchmarks import (
     grover,
     hamiltonian_sim,
     qft,
+    qaoa_maxcut,
     quantum_volume,
     random_circuit,
 )
@@ -68,6 +69,11 @@ SUITES: dict[str, list[SuiteCase]] = {
             "hamiltonian-sim",
             "Trotterized Ising-style evolution",
             lambda: hamiltonian_sim.build_benchmark(n_qubits=4, time=1.0, trotter_steps=2),
+        ),
+        SuiteCase(
+            "qaoa-maxcut",
+            "Optimization workload on a small ring graph",
+            lambda: qaoa_maxcut.build_benchmark(n_qubits=4, gamma=0.8, beta=0.4),
         ),
         SuiteCase(
             "quantum-volume",

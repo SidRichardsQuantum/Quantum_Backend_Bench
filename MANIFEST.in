@@ -11,6 +11,7 @@ include USAGE.md
 include pyproject.toml
 
 recursive-include quantum_backend_bench *.py
+recursive-include quantum_backend_bench *.json
 recursive-include tests *.py
 recursive-include examples *.py
 recursive-include examples *.json

@@ -25,7 +25,7 @@ Adapters differ in what their runtime includes. Some include compilation or tran
 
 ## Noise Models Are Adapter-Specific
 
-Cirq and PennyLane currently inject depolarizing noise in this project. Other adapters may execute noisy benchmark wrappers without injecting noise. Result metadata reports `noise_supported` and `noise_applied` where available.
+Cirq, PennyLane, and Qiskit Aer currently inject depolarizing noise in this project. Other adapters may execute noisy benchmark wrappers without injecting noise. Result metadata reports `noise_supported` and `noise_applied` where available.
 
 ## Circuit Support Is Intentionally Small
 

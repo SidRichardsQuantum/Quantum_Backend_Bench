@@ -11,6 +11,7 @@ from quantum_backend_bench.benchmarks import (
     grover,
     hamiltonian_sim,
     qft,
+    qaoa_maxcut,
     quantum_volume,
     random_circuit,
 )
@@ -117,6 +118,23 @@ def test_grover_rejects_invalid_inputs() -> None:
 def test_hamiltonian_builder_tracks_parameters() -> None:
     benchmark = hamiltonian_sim.build_benchmark(n_qubits=2, time=1.0, trotter_steps=4)
     assert benchmark.parameters["trotter_steps"] == 4
+
+
+def test_qaoa_maxcut_tracks_optimal_cut_states() -> None:
+    benchmark = qaoa_maxcut.build_benchmark(n_qubits=4, graph="ring", gamma=0.8, beta=0.4)
+    gates = Counter(operation.gate for operation in benchmark.circuit_data.operations)
+    assert benchmark.name == "qaoa_maxcut"
+    assert benchmark.parameters["graph"] == "ring"
+    assert gates["H"] == 4
+    assert gates["RZ"] == 4
+    assert gates["RX"] == 4
+    assert benchmark.metadata["optimal_cut_size"] == 4
+    assert set(benchmark.metadata["target_states"]) == {"0101", "1010"}
+
+
+def test_qaoa_maxcut_rejects_invalid_graph() -> None:
+    with pytest.raises(ValueError, match="graph must be"):
+        qaoa_maxcut.build_benchmark(n_qubits=4, graph="complete")
 
 
 def test_named_suite_builds_benchmark_specs() -> None:

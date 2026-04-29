@@ -60,7 +60,7 @@ Every result captures package versions, Python version, platform metadata, and g
 
 ## Noise Benchmarks
 
-Depolarizing noise injection is currently implemented for Cirq and PennyLane adapters. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available.
+Depolarizing noise injection is currently implemented for Cirq, PennyLane, and Qiskit Aer adapters. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available.
 
 Noise comparisons should be treated as adapter-specific behavior, not a claim that two SDKs model identical physical channels.
 
@@ -70,6 +70,7 @@ Noise comparisons should be treated as adapter-specific behavior, not a claim th
 - QFT measures structured controlled-phase workloads.
 - Bernstein-Vazirani and Deutsch-Jozsa measure small oracle workloads with known ideal outputs.
 - Grover measures small marked-state amplification and is limited to 2 to 4 qubits in this implementation.
+- QAOA MaxCut measures a single-layer optimization circuit and reports probability mass on optimal line or ring graph cut bitstrings.
 - Random circuits provide reproducible synthetic workloads, not application-level algorithms.
 - Quantum-volume-style circuits provide shuffled-pair random layers, not formal quantum volume certification.
 - Hamiltonian simulation uses a simple first-order Trotterized Ising-style model.

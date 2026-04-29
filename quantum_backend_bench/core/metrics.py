@@ -28,6 +28,22 @@ def success_probability(
     return counts.get(target_state, 0) / total
 
 
+def target_success_probability(
+    counts: dict[str, int], target_states: Iterable[str], shots: int | None = None
+) -> float | None:
+    """Return the empirical probability mass on one or more target bitstrings."""
+
+    if not counts:
+        return None
+    targets = set(target_states)
+    if not targets:
+        return None
+    total = shots if shots is not None else sum(counts.values())
+    if total <= 0:
+        return None
+    return sum(counts.get(target, 0) for target in targets) / total
+
+
 def total_variation_distance(
     observed: dict[str, float] | dict[str, int],
     ideal: dict[str, float] | None,
