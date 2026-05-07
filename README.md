@@ -13,7 +13,7 @@ Website: [https://sidrichardsquantum.github.io/Quantum_Backend_Bench/](https://s
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across local simulator adapters such as Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
 See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
-For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [SCHEMA.md](./SCHEMA.md), and [LIMITATIONS.md](./LIMITATIONS.md).
+For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [RESULTS.md](./RESULTS.md), [SCHEMA.md](./SCHEMA.md), and [LIMITATIONS.md](./LIMITATIONS.md).
 
 ## Table of Contents
 

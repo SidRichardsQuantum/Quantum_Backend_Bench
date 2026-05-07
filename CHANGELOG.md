@@ -9,6 +9,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ### Added
 
 - GitHub Pages workflow and portfolio-style documentation landing page for the project website.
+- `RESULTS.md` with curated benchmark tables, reproduction commands, and generated plot assets for the website.
 - Website link in the README.
 
 ## [0.1.7] - 2026-04-29

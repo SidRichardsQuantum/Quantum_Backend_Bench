@@ -1,0 +1,649 @@
+[
+  {
+    "backend": "cirq",
+    "benchmark": "ghz",
+    "counts": {
+      "000": 134,
+      "111": 122
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 4,
+        "gate_count": 3,
+        "gate_histogram": {
+          "OpType.CX": 2,
+          "OpType.H": 1
+        },
+        "two_qubit_gate_count": 2
+      },
+      "backend_noise_support": "depolarizing",
+      "backend_package_versions": {
+        "cirq": "1.6.1"
+      },
+      "benchmark_family": "entanglement",
+      "case_label": "ghz n=3",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:36:59.505371+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": false,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": true,
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.007982068999808689,
+        0.0020958690001862124
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 4,
+      "gate_count": 3,
+      "measurement_distribution": {
+        "000": 0.5234375,
+        "111": 0.4765625
+      },
+      "runtime_seconds": 0.005038968999997451,
+      "runtime_seconds_max": 0.007982068999808689,
+      "runtime_seconds_mean": 0.005038968999997451,
+      "runtime_seconds_min": 0.0020958690001862124,
+      "runtime_seconds_stddev": 0.0041621719351533065,
+      "success_probability": null,
+      "total_variation_distance": 0.0234375,
+      "two_qubit_gate_count": 2
+    },
+    "n_qubits": 3,
+    "parameters": {
+      "n_qubits": 3
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  },
+  {
+    "backend": "qutip",
+    "benchmark": "ghz",
+    "counts": {
+      "000": 100,
+      "111": 156
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 4,
+        "gate_count": 3,
+        "gate_histogram": {
+          "OpType.CX": 2,
+          "OpType.H": 1
+        },
+        "two_qubit_gate_count": 2
+      },
+      "backend_noise_support": "not injected",
+      "backend_package_versions": {
+        "qutip": "5.2.3"
+      },
+      "benchmark_family": "entanglement",
+      "case_label": "ghz n=3",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:36:59.505371+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": true,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": false,
+      "notes": "QuTiP statevector execution completed.",
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.0007336380003835075,
+        0.0004809170000044105
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 4,
+      "gate_count": 3,
+      "measurement_distribution": {
+        "000": 0.390625,
+        "111": 0.609375
+      },
+      "runtime_seconds": 0.000607277500193959,
+      "runtime_seconds_max": 0.0007336380003835075,
+      "runtime_seconds_mean": 0.000607277500193959,
+      "runtime_seconds_min": 0.0004809170000044105,
+      "runtime_seconds_stddev": 0.0001787007331163075,
+      "success_probability": null,
+      "total_variation_distance": 0.109375,
+      "two_qubit_gate_count": 2
+    },
+    "n_qubits": 3,
+    "parameters": {
+      "n_qubits": 3
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  },
+  {
+    "backend": "cirq",
+    "benchmark": "bernstein_vazirani",
+    "counts": {
+      "101": 256
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 6,
+        "gate_count": 10,
+        "gate_histogram": {
+          "OpType.CX": 2,
+          "OpType.H": 7,
+          "OpType.X": 1
+        },
+        "two_qubit_gate_count": 2
+      },
+      "backend_noise_support": "depolarizing",
+      "backend_package_versions": {
+        "cirq": "1.6.1"
+      },
+      "benchmark_family": "oracle",
+      "case_label": "bernstein_vazirani s=|101>",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:37:06.245628+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": false,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": true,
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.008077926999703777,
+        0.007400053000310436
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 6,
+      "gate_count": 10,
+      "measurement_distribution": {
+        "101": 1.0
+      },
+      "runtime_seconds": 0.007738990000007107,
+      "runtime_seconds_max": 0.008077926999703777,
+      "runtime_seconds_mean": 0.007738990000007107,
+      "runtime_seconds_min": 0.007400053000310436,
+      "runtime_seconds_stddev": 0.0004793293017610773,
+      "success_probability": 1.0,
+      "total_variation_distance": 0.0,
+      "two_qubit_gate_count": 2
+    },
+    "n_qubits": 4,
+    "parameters": {
+      "n_qubits": 4,
+      "secret_string": "101"
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  },
+  {
+    "backend": "qutip",
+    "benchmark": "bernstein_vazirani",
+    "counts": {
+      "101": 256
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 6,
+        "gate_count": 10,
+        "gate_histogram": {
+          "OpType.CX": 2,
+          "OpType.H": 7,
+          "OpType.X": 1
+        },
+        "two_qubit_gate_count": 2
+      },
+      "backend_noise_support": "not injected",
+      "backend_package_versions": {
+        "qutip": "5.2.3"
+      },
+      "benchmark_family": "oracle",
+      "case_label": "bernstein_vazirani s=|101>",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:37:06.245628+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": true,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": false,
+      "notes": "QuTiP statevector execution completed.",
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.004458526000234997,
+        0.005015856000227359
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 6,
+      "gate_count": 10,
+      "measurement_distribution": {
+        "101": 1.0
+      },
+      "runtime_seconds": 0.004737191000231178,
+      "runtime_seconds_max": 0.005015856000227359,
+      "runtime_seconds_mean": 0.004737191000231178,
+      "runtime_seconds_min": 0.004458526000234997,
+      "runtime_seconds_stddev": 0.00039409182235329766,
+      "success_probability": 1.0,
+      "total_variation_distance": 0.0,
+      "two_qubit_gate_count": 2
+    },
+    "n_qubits": 4,
+    "parameters": {
+      "n_qubits": 4,
+      "secret_string": "101"
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  },
+  {
+    "backend": "cirq",
+    "benchmark": "grover",
+    "counts": {
+      "00": 69,
+      "01": 68,
+      "10": 52,
+      "11": 67
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 14,
+        "gate_count": 22,
+        "gate_histogram": {
+          "OpType.CZ": 4,
+          "OpType.H": 10,
+          "OpType.X": 8
+        },
+        "two_qubit_gate_count": 4
+      },
+      "backend_noise_support": "depolarizing",
+      "backend_package_versions": {
+        "cirq": "1.6.1"
+      },
+      "benchmark_family": "search",
+      "case_label": "grover target=|11>",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:37:06.367934+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": false,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": true,
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.012563753999984328,
+        0.013202696999996988
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 14,
+      "gate_count": 22,
+      "measurement_distribution": {
+        "00": 0.26953125,
+        "01": 0.265625,
+        "10": 0.203125,
+        "11": 0.26171875
+      },
+      "runtime_seconds": 0.012883225499990658,
+      "runtime_seconds_max": 0.013202696999996988,
+      "runtime_seconds_mean": 0.012883225499990658,
+      "runtime_seconds_min": 0.012563753999984328,
+      "runtime_seconds_stddev": 0.00045180092810062785,
+      "success_probability": 0.26171875,
+      "total_variation_distance": null,
+      "two_qubit_gate_count": 4
+    },
+    "n_qubits": 2,
+    "parameters": {
+      "iterations": 2,
+      "marked_state": "11",
+      "n_qubits": 2
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  },
+  {
+    "backend": "qutip",
+    "benchmark": "grover",
+    "counts": {
+      "00": 44,
+      "01": 56,
+      "10": 74,
+      "11": 82
+    },
+    "metadata": {
+      "analysis": {
+        "compiled": false,
+        "compiler_summary": "Raw circuit analyzed with pytket; no execution backend used.",
+        "depth": 14,
+        "gate_count": 22,
+        "gate_histogram": {
+          "OpType.CZ": 4,
+          "OpType.H": 10,
+          "OpType.X": 8
+        },
+        "two_qubit_gate_count": 4
+      },
+      "backend_noise_support": "not injected",
+      "backend_package_versions": {
+        "qutip": "5.2.3"
+      },
+      "benchmark_family": "search",
+      "case_label": "grover target=|11>",
+      "depth": null,
+      "environment": {
+        "captured_at": "2026-05-07T01:37:06.367934+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "2f05737a57c011aa10b7b9e710509c8b8beae849",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.116.0",
+          "cirq": "1.6.1",
+          "cudaq": "0.14.0",
+          "matplotlib": "3.10.8",
+          "numpy": "2.4.4",
+          "pennylane": "0.44.1",
+          "pyquil": "4.17.0",
+          "pytket": "2.16.0",
+          "qbraid": "0.11.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.27.0",
+          "qutip": "5.2.3"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "x86_64",
+          "release": "6.8.0-1044-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/home/codespace/.python/current/bin/python",
+          "implementation": "CPython",
+          "version": "3.12.1"
+        }
+      },
+      "exact_statevector": true,
+      "external_process": false,
+      "local_only": true,
+      "noise_applied": false,
+      "noise_level": null,
+      "noise_requested": false,
+      "noise_supported": false,
+      "notes": "QuTiP statevector execution completed.",
+      "oracle_type": null,
+      "repeats": 2,
+      "runtime_includes_transpilation": false,
+      "runtime_seconds_samples": [
+        0.02368432599996595,
+        0.01144168200016793
+      ],
+      "seed": null,
+      "seed_applied": false,
+      "seed_supported": true,
+      "shot_sampling": true,
+      "shots_per_repeat": 128,
+      "total_shots": 256
+    },
+    "metrics": {
+      "depth": 14,
+      "gate_count": 22,
+      "measurement_distribution": {
+        "00": 0.171875,
+        "01": 0.21875,
+        "10": 0.2890625,
+        "11": 0.3203125
+      },
+      "runtime_seconds": 0.01756300400006694,
+      "runtime_seconds_max": 0.02368432599996595,
+      "runtime_seconds_mean": 0.01756300400006694,
+      "runtime_seconds_min": 0.01144168200016793,
+      "runtime_seconds_stddev": 0.008656856591909977,
+      "success_probability": 0.3203125,
+      "total_variation_distance": null,
+      "two_qubit_gate_count": 4
+    },
+    "n_qubits": 2,
+    "parameters": {
+      "iterations": 2,
+      "marked_state": "11",
+      "n_qubits": 2
+    },
+    "repeats": 2,
+    "shots": 128,
+    "total_shots": 256
+  }
+]

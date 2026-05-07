@@ -18,6 +18,12 @@ PYPI_URL = "https://pypi.org/project/quantum-backend-bench/"
 DOCS = [
     ("Overview", ROOT / "README.md", "overview.html", "Package overview and quickstart."),
     ("Usage", ROOT / "USAGE.md", "usage.html", "CLI and Python API workflows."),
+    (
+        "Results",
+        ROOT / "RESULTS.md",
+        "results.html",
+        "Reference benchmark outputs, plots, and reproduction commands.",
+    ),
     ("Theory", ROOT / "THEORY.md", "theory.html", "Benchmark and simulator background."),
     (
         "Methodology",
@@ -90,6 +96,7 @@ def nav(current: str | None) -> str:
         ("Home", "index.html"),
         ("Docs", "overview.html"),
         ("Usage", "usage.html"),
+        ("Results", "results.html"),
         ("Theory", "theory.html"),
         ("Portfolio", PORTFOLIO_URL),
         ("GitHub", REPO_URL),
@@ -226,6 +233,7 @@ def home() -> str:
             <a class="button primary" href="{REPO_URL}" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
             <a class="button" href="{PYPI_URL}" target="_blank" rel="noopener noreferrer">PyPI Package</a>
             <a class="button" href="usage.html">Usage</a>
+            <a class="button" href="results.html">Results</a>
             <a class="button" href="{PORTFOLIO_URL}" target="_blank" rel="noopener noreferrer">Main Portfolio</a>
             <a class="button" href="{PROFILE_URL}" target="_blank" rel="noopener noreferrer">GitHub Profile</a>
           </div>
@@ -306,7 +314,7 @@ def documentation_page(label: str, source: Path) -> str:
         for name, doc_source, output, _ in DOCS
         if doc_source.exists()
     )
-    current = label if label in {"Usage", "Theory"} else "Docs"
+    current = label if label in {"Usage", "Results", "Theory"} else "Docs"
     body = f"""
       <section class="section doc-layout">
         <aside class="doc-sidebar" aria-label="Documentation navigation">
@@ -324,6 +332,9 @@ def main() -> None:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
     shutil.copyfile(ROOT / "docs/pages/styles.css", OUT / "styles.css")
+    assets = ROOT / "docs/pages/assets"
+    if assets.exists():
+        shutil.copytree(assets, OUT / "docs/pages/assets")
     (OUT / "index.html").write_text(home(), encoding="utf-8")
     for label, source, output, _ in DOCS:
         if source.exists():

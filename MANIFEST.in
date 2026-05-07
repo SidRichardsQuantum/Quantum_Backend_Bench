@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+include RESULTS.md
 include THEORY.md
 include CHANGELOG.md
 include CITATION.cff
@@ -16,6 +17,11 @@ recursive-include tests *.py
 recursive-include examples *.py
 recursive-include examples *.json
 recursive-include examples *.md
+recursive-include docs/pages *.py
+recursive-include docs/pages *.css
+recursive-include docs/pages *.csv
+recursive-include docs/pages *.json
+recursive-include docs/pages *.png
 recursive-include .devcontainer *.json
 
 global-exclude __pycache__
