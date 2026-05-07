@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+
+- GitHub Pages workflow and portfolio-style documentation landing page for the project website.
+- Website link in the README.
+
 ## [0.1.7] - 2026-04-29
 
 ### Added
