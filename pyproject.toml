@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.2.0"
+version = "0.2.1"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -60,6 +60,10 @@ dev = [
   "pytest",
   "ruff",
   "twine",
+]
+docs = [
+  "markdown",
+  "pymdown-extensions",
 ]
 notebooks = [
   "ipykernel",
@@ -142,9 +146,10 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not optional_sdk and not docs'"
 pythonpath = ["."]
 markers = [
+  "docs: tests that require optional documentation build tooling",
   "optional_sdk: tests that require optional Python SDK integrations",
   "heavy_sdk: tests that require heavyweight or platform-sensitive SDK integrations",
   "external_runtime: tests that require non-Python local runtime executables or services",

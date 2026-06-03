@@ -28,6 +28,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["braket"] == ["amazon-braket-sdk"]
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
+    assert extras["docs"] == ["markdown", "pymdown-extensions"]
     assert extras["pyquil"] == ["pyquil"]
     assert extras["notebooks"] == ["ipykernel", "matplotlib", "pandas"]
     assert extras["qutip"] == ["qutip"]

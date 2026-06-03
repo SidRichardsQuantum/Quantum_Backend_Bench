@@ -34,15 +34,9 @@ def _has_pyquil_runtime() -> bool:
 
 @pytest.mark.optional_sdk
 @pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cirq_backend_runs() -> None:
+def test_cirq_ghz_counts_use_expected_bitstrings() -> None:
     result = get_backend("cirq").run(build_benchmark(n_qubits=3), shots=32)
     assert sum(result["counts"].values()) == 32
-
-
-@pytest.mark.optional_sdk
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cirq_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("cirq").run(build_benchmark(n_qubits=3), shots=64)
     assert set(result["counts"]).issubset({"000", "111"})
 
 
@@ -57,40 +51,18 @@ def test_cirq_bernstein_vazirani_finds_secret_string() -> None:
 
 @pytest.mark.optional_sdk
 @pytest.mark.skipif(not _has_module("pennylane"), reason="PennyLane not installed")
-def test_pennylane_backend_runs() -> None:
+def test_pennylane_ghz_counts_use_expected_bitstrings() -> None:
     result = get_backend("pennylane").run(build_benchmark(n_qubits=3), shots=32)
     assert sum(result["counts"].values()) == 32
-
-
-@pytest.mark.optional_sdk
-@pytest.mark.skipif(not _has_module("pennylane"), reason="PennyLane not installed")
-def test_pennylane_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("pennylane").run(build_benchmark(n_qubits=3), shots=64)
     assert set(result["counts"]).issubset({"000", "111"})
-
-
-@pytest.mark.optional_sdk
-@pytest.mark.skipif(not _has_module("braket"), reason="Braket SDK not installed")
-def test_braket_backend_runs() -> None:
-    result = get_backend("braket_local").run(build_benchmark(n_qubits=3), shots=32)
-    assert sum(result["counts"].values()) == 32
 
 
 @pytest.mark.optional_sdk
 @pytest.mark.skipif(not _has_module("braket"), reason="Braket SDK not installed")
 def test_braket_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("braket_local").run(build_benchmark(n_qubits=3), shots=64)
-    assert set(result["counts"]).issubset({"000", "111"})
-
-
-@pytest.mark.skipif(
-    not (_has_module("qiskit") and _has_module("qiskit_aer")),
-    reason="Qiskit Aer not installed",
-)
-@pytest.mark.optional_sdk
-def test_qiskit_backend_runs() -> None:
-    result = get_backend("qiskit_aer").run(build_benchmark(n_qubits=3), shots=32)
+    result = get_backend("braket_local").run(build_benchmark(n_qubits=3), shots=32)
     assert sum(result["counts"].values()) == 32
+    assert set(result["counts"]).issubset({"000", "111"})
 
 
 @pytest.mark.skipif(
@@ -99,7 +71,8 @@ def test_qiskit_backend_runs() -> None:
 )
 @pytest.mark.optional_sdk
 def test_qiskit_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("qiskit_aer").run(build_benchmark(n_qubits=3), shots=64)
+    result = get_backend("qiskit_aer").run(build_benchmark(n_qubits=3), shots=32)
+    assert sum(result["counts"].values()) == 32
     assert set(result["counts"]).issubset({"000", "111"})
 
 
@@ -123,16 +96,17 @@ def test_pyquil_backend_runs() -> None:
 
 
 @pytest.mark.optional_sdk
-@pytest.mark.skipif(not _has_module("qutip"), reason="QuTiP not installed")
-def test_qutip_backend_runs() -> None:
-    result = get_backend("qutip").run(build_benchmark(n_qubits=3), shots=32)
-    assert sum(result["counts"].values()) == 32
+@pytest.mark.skipif(not _has_module("pyquil"), reason="pyQuil not installed")
+def test_pyquil_backend_builds_native_circuit_without_qvm_runtime() -> None:
+    program = get_backend("pyquil_qvm").build_native_circuit(build_benchmark(n_qubits=3))
+    assert "MEASURE" in program.out()
 
 
 @pytest.mark.optional_sdk
 @pytest.mark.skipif(not _has_module("qutip"), reason="QuTiP not installed")
 def test_qutip_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("qutip").run(build_benchmark(n_qubits=3), shots=64)
+    result = get_backend("qutip").run(build_benchmark(n_qubits=3), shots=32)
+    assert sum(result["counts"].values()) == 32
     assert set(result["counts"]).issubset({"000", "111"})
 
 

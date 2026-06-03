@@ -339,12 +339,14 @@ def main() -> None:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
     shutil.copyfile(ROOT / "docs/pages/styles.css", OUT / "styles.css")
+    shutil.copyfile(ROOT / "LICENSE", OUT / "LICENSE")
     assets = ROOT / "docs/pages/assets"
     if assets.exists():
         shutil.copytree(assets, OUT / "docs/pages/assets")
-    reference_results = ROOT / "examples/reference_results"
-    if reference_results.exists():
-        shutil.copytree(reference_results, OUT / "examples/reference_results")
+    for directory_name in ("examples", "notebooks", ".devcontainer", ".github"):
+        directory = ROOT / directory_name
+        if directory.exists():
+            shutil.copytree(directory, OUT / directory_name)
     (OUT / "index.html").write_text(home(), encoding="utf-8")
     for label, source, output, _ in DOCS:
         if source.exists():

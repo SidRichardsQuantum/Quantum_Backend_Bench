@@ -635,10 +635,17 @@ black .
 ruff check .
 ```
 
-Run tests:
+Run the default core test suite:
 
 ```bash
 pytest
+```
+
+Run optional SDK and generated-site documentation checks explicitly when needed:
+
+```bash
+pytest -m optional_sdk
+pytest tests/test_docs_links.py -m "docs or not docs"
 ```
 
 Build release artifacts:

@@ -417,10 +417,17 @@ black quantum_backend_bench tests examples
 ruff check quantum_backend_bench tests examples
 ```
 
-Run tests:
+Run the default core test suite:
 
 ```bash
 pytest
+```
+
+Run optional SDK and generated-site documentation checks explicitly when needed:
+
+```bash
+pytest -m optional_sdk
+pytest tests/test_docs_links.py -m "docs or not docs"
 ```
 
 Build and inspect release artifacts:
@@ -430,7 +437,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, build, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.0` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.1` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## Notes
 

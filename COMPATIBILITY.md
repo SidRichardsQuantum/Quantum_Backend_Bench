@@ -23,10 +23,11 @@ runtime expectations for the current package line.
 | QuTiP | `qutip` | Execution backend | No | Python package only | Optional backend smoke |
 | pytket | `tket` | Structural analysis and drawing | No | Python package only | Main CI install |
 | CUDA-Q | `cudaq` | Execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke |
-| pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Optional smoke, external runtime skipped unless available |
+| pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available |
 | qBraid | `qbraid` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
 | Q# / QDK | `qsharp` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
 | Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Not executed in CI |
+| Documentation tooling | `docs` | Pages build and link validation | No | Python packages only | Main CI docs validation |
 
 ## Extras Policy
 

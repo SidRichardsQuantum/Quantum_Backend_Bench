@@ -6,6 +6,21 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-03
+
+### Added
+
+- CI docs-link validation for Markdown sources and generated GitHub Pages output.
+- CI Cirq smoke regression gate that compares deterministic quality and structure metrics against the checked-in reference bundle.
+- `docs` optional dependency extra for local documentation build and validation tooling.
+- pyQuil package-level circuit-construction smoke coverage that does not require local `qvm` or `quilc` executables.
+
+### Changed
+
+- Optional-backend CI smoke jobs now fail when selected tests silently skip instead of reporting a false green run.
+- Default local `pytest` runs now focus on the core suite; optional SDK and generated-site docs checks are selected explicitly in CI or with pytest markers.
+- Generated Pages output now includes linked repository assets such as examples, notebooks, workflow files, devcontainer metadata, and the license.
+
 ## [0.2.0] - 2026-06-03
 
 ### Added

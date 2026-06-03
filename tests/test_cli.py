@@ -14,6 +14,49 @@ def _has_module(name: str) -> bool:
     return importlib.util.find_spec(name) is not None
 
 
+def _fake_result(benchmark, backend: str = "cirq", shots: int = 8) -> dict:
+    zero_state = "0" * benchmark.n_qubits
+    one_state = "1" * benchmark.n_qubits
+    counts = {zero_state: shots // 2, one_state: shots - shots // 2}
+    return {
+        "benchmark": benchmark.name,
+        "backend": backend,
+        "n_qubits": benchmark.n_qubits,
+        "shots": shots,
+        "repeats": 1,
+        "total_shots": shots,
+        "parameters": benchmark.parameters,
+        "metrics": {
+            "runtime_seconds": 0.001,
+            "runtime_seconds_stddev": 0.0,
+            "measurement_distribution": {
+                zero_state: counts[zero_state] / shots,
+                one_state: counts[one_state] / shots,
+            },
+            "depth": 3,
+            "gate_count": 4,
+            "two_qubit_gate_count": 2,
+            "success_probability": 1.0,
+            "total_variation_distance": 0.0,
+        },
+        "counts": counts,
+        "metadata": {
+            "case_label": f"{benchmark.name} n={benchmark.n_qubits}",
+            "benchmark_family": benchmark.metadata.get("benchmark_family", "test"),
+            "noise_level": benchmark.parameters.get("noise_level"),
+            "backend_noise_support": "depolarizing",
+        },
+    }
+
+
+def _patch_cli_run_benchmark(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run_benchmark(benchmark, backends, shots=1024, repeats=1):  # type: ignore[no-untyped-def]
+        del repeats
+        return [_fake_result(benchmark, backend=backend, shots=shots) for backend in backends]
+
+    monkeypatch.setattr("quantum_backend_bench.cli.run_benchmark", fake_run_benchmark)
+
+
 def test_cli_list_command(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code = main(["list"])
     captured = capsys.readouterr()
@@ -254,8 +297,10 @@ def test_cli_rejects_invalid_success_threshold(capsys: pytest.CaptureFixture[str
     assert "must be between 0 and 1" in captured.err
 
 
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cli_run_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+def test_cli_run_command(
+    capsys: pytest.CaptureFixture[str], tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
     output_path = tmp_path / "result.json"
     csv_path = tmp_path / "result.csv"
     exit_code = main(
@@ -267,7 +312,7 @@ def test_cli_run_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
             "--n-qubits",
             "3",
             "--shots",
-            "32",
+            "8",
             "--save-json",
             str(output_path),
             "--save-csv",
@@ -310,8 +355,10 @@ def test_cli_draw_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
     assert output_path.exists()
 
 
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cli_suite_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+def test_cli_suite_command(
+    capsys: pytest.CaptureFixture[str], tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
     output_path = tmp_path / "suite.csv"
     exit_code = main(
         [
@@ -320,7 +367,7 @@ def test_cli_suite_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None
             "--backends",
             "cirq",
             "--shots",
-            "32",
+            "8",
             "--save-csv",
             str(output_path),
             "--summary",
@@ -332,8 +379,10 @@ def test_cli_suite_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None
     assert "Summary" in captured.out
 
 
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cli_new_oracle_benchmark(capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_new_oracle_benchmark(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
     exit_code = main(
         [
             "run",
@@ -345,7 +394,7 @@ def test_cli_new_oracle_benchmark(capsys: pytest.CaptureFixture[str]) -> None:
             "--secret-string",
             "101",
             "--shots",
-            "32",
+            "8",
             "--summary",
         ]
     )
@@ -355,8 +404,8 @@ def test_cli_new_oracle_benchmark(capsys: pytest.CaptureFixture[str]) -> None:
     assert "1.000000" in captured.out
 
 
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cli_plot_artifacts(tmp_path) -> None:
+def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
     distribution_path = tmp_path / "distribution.png"
     heatmap_path = tmp_path / "heatmap.png"
     suite_path = tmp_path / "suite.png"
@@ -374,7 +423,7 @@ def test_cli_plot_artifacts(tmp_path) -> None:
                 "--marked-state",
                 "101",
                 "--shots",
-                "32",
+                "8",
                 "--save-distribution",
                 str(distribution_path),
                 "--save-heatmap",
@@ -394,7 +443,7 @@ def test_cli_plot_artifacts(tmp_path) -> None:
                 "--backends",
                 "cirq",
                 "--shots",
-                "32",
+                "8",
                 "--save-suite-plot",
                 str(suite_path),
             ]
@@ -413,7 +462,7 @@ def test_cli_plot_artifacts(tmp_path) -> None:
                 "--n-qubits",
                 "3",
                 "--shots",
-                "32",
+                "8",
                 "--noise-levels",
                 "0.0",
                 "0.001",
