@@ -2,7 +2,7 @@
 
 This page is generated from executed tutorial notebook artifacts. The source notebooks live in `../notebooks/`, and their saved JSON/CSV outputs are copied from `../artifacts/notebooks/` into `pages/assets/notebooks/` for the documentation site.
 
-The numbers demonstrate result shape, plotting, and qualitative benchmark behavior. Runtime values are local-machine dependent and should not be read as universal backend rankings.
+The numbers demonstrate result shape, plotting, and qualitative benchmark behavior. Runtime values are local-machine dependent and should not be read as universal backend rankings. The builder prefers fresh files under `../artifacts/notebooks/` and falls back to the committed assets under `pages/assets/notebooks/` for clean documentation builds.
 
 ## Reproduce These Outputs
 

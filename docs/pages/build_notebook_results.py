@@ -25,26 +25,36 @@ NOTEBOOK_RESULT_FILES = {
 
 
 def main() -> int:
-    missing = [
-        name for name in NOTEBOOK_RESULT_FILES.values() if not (NOTEBOOK_ARTIFACTS / name).exists()
-    ]
-    if missing:
-        joined = ", ".join(missing)
-        raise SystemExit(
-            f"Missing notebook artifacts: {joined}. Run the notebooks first, then rerun this script."
-        )
+    artifact_source = _artifact_source_dir()
 
     DOC_ASSETS.mkdir(parents=True, exist_ok=True)
     results = {
-        key: _load_json(NOTEBOOK_ARTIFACTS / file_name)
+        key: _load_json(artifact_source / file_name)
         for key, file_name in NOTEBOOK_RESULT_FILES.items()
     }
-    _copy_raw_artifacts()
+    if artifact_source != DOC_ASSETS:
+        _copy_raw_artifacts(artifact_source)
     _build_plots(results)
     RESULTS_DOC.write_text(_render_results_doc(results), encoding="utf-8")
     print(f"Wrote {RESULTS_DOC.relative_to(ROOT)}")
     print(f"Wrote notebook result assets under {DOC_ASSETS.relative_to(ROOT)}")
     return 0
+
+
+def _artifact_source_dir() -> Path:
+    for candidate in (NOTEBOOK_ARTIFACTS, DOC_ASSETS):
+        missing = [
+            name for name in NOTEBOOK_RESULT_FILES.values() if not (candidate / name).exists()
+        ]
+        if not missing:
+            return candidate
+
+    joined = ", ".join(NOTEBOOK_RESULT_FILES.values())
+    raise SystemExit(
+        "Missing notebook artifacts. Run the notebooks to write artifacts under "
+        f"{NOTEBOOK_ARTIFACTS.relative_to(ROOT)}, or commit generated docs assets under "
+        f"{DOC_ASSETS.relative_to(ROOT)}. Expected: {joined}."
+    )
 
 
 def _load_json(path: Path) -> list[dict[str, Any]]:
@@ -54,10 +64,10 @@ def _load_json(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-def _copy_raw_artifacts() -> None:
-    for source in sorted(NOTEBOOK_ARTIFACTS.glob("*.json")):
+def _copy_raw_artifacts(source_dir: Path) -> None:
+    for source in sorted(source_dir.glob("*.json")):
         shutil.copyfile(source, DOC_ASSETS / source.name)
-    for source in sorted(NOTEBOOK_ARTIFACTS.glob("*.csv")):
+    for source in sorted(source_dir.glob("*.csv")):
         shutil.copyfile(source, DOC_ASSETS / source.name)
 
 
@@ -207,7 +217,7 @@ def _render_results_doc(results: dict[str, list[dict[str, Any]]]) -> str:
             "",
             "This page is generated from executed tutorial notebook artifacts. The source notebooks live in `../notebooks/`, and their saved JSON/CSV outputs are copied from `../artifacts/notebooks/` into `pages/assets/notebooks/` for the documentation site.",
             "",
-            "The numbers demonstrate result shape, plotting, and qualitative benchmark behavior. Runtime values are local-machine dependent and should not be read as universal backend rankings.",
+            "The numbers demonstrate result shape, plotting, and qualitative benchmark behavior. Runtime values are local-machine dependent and should not be read as universal backend rankings. The builder prefers fresh files under `../artifacts/notebooks/` and falls back to the committed assets under `pages/assets/notebooks/` for clean documentation builds.",
             "",
             "## Reproduce These Outputs",
             "",

@@ -28,6 +28,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - Adjusted the smoke-suite Grover case to use a valid single marked-state amplification iteration for the configured qubit count.
 - Fixed documentation site imports so the Pages builder works both as a direct script and as an imported test module.
+- Fixed clean-checkout documentation builds by falling back to committed notebook result assets when ignored local notebook artifacts are absent.
 
 ## [0.2.2] - 2026-06-03
 
