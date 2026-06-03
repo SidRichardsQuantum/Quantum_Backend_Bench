@@ -39,6 +39,7 @@ __pypackages__/
 # Local artifacts
 artifacts/
 _site/
+config/
 
 # Notebook checkpoints
 .ipynb_checkpoints/

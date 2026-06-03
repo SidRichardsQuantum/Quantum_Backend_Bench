@@ -14,6 +14,10 @@ claims.
 The plotted assets live under `docs/pages/assets/` so they can be rendered both on
 GitHub and on the GitHub Pages site.
 
+For a smaller first-run artifact set, see
+[`examples/reference_results/cirq_smoke_2026-06-03/`](examples/reference_results/cirq_smoke_2026-06-03/).
+That bundle uses only the Cirq extra and mirrors the two-minute README workflow.
+
 ```bash
 MPLBACKEND=Agg MPLCONFIGDIR=/tmp/matplotlib \
 python -m quantum_backend_bench.cli compare ghz \

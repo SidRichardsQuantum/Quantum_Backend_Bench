@@ -1,0 +1,2 @@
+benchmark,backend,case_label,benchmark_family,n_qubits,shots,repeats,total_shots,parameters,runtime_seconds,runtime_seconds_stddev,depth,gate_count,two_qubit_gate_count,success_probability,total_variation_distance,counts
+ghz,cirq,ghz n=3,entanglement,3,128,1,128,"{""n_qubits"": 3}",0.006606582000131311,0.0,4,3,2,,0.0390625,"{""000"": 69, ""111"": 59}"

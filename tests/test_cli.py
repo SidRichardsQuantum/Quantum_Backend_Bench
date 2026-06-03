@@ -48,6 +48,51 @@ def test_cli_recommend_command(capsys: pytest.CaptureFixture[str]) -> None:
     assert exit_code == 0
     assert "Recommended installed backends" in captured.out
     assert "cirq" in captured.out
+    assert (
+        "Other execution backends" in captured.out
+        or "Recommended installed backends" in captured.out
+    )
+
+
+def test_cli_compatibility_command(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["compatibility"])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Compatibility" in captured.out
+    assert "Python:" in captured.out
+    assert "cirq" in captured.out
+
+
+def test_cli_bundle_command_writes_artifacts(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    result_path = tmp_path / "results.json"
+    output_dir = tmp_path / "bundle"
+    result_path.write_text(
+        json.dumps(
+            [
+                {
+                    "benchmark": "ghz",
+                    "backend": "cirq",
+                    "n_qubits": 3,
+                    "shots": 8,
+                    "repeats": 1,
+                    "total_shots": 8,
+                    "parameters": {"n_qubits": 3},
+                    "metrics": {"runtime_seconds": 0.1, "depth": 4},
+                    "counts": {"000": 4, "111": 4},
+                    "metadata": {"case_label": "ghz n=3"},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["bundle", str(result_path), "--output", str(output_dir), "--no-plots"])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Created bundle" in captured.out
+    assert (output_dir / "results.json").exists()
+    assert (output_dir / "results.csv").exists()
+    assert (output_dir / "report.md").exists()
 
 
 def test_cli_validate_command_with_fake_checks(

@@ -6,8 +6,10 @@ from quantum_backend_bench import (
     build_benchmark_from_config,
     build_suite,
     doctor_checks,
+    format_compatibility_report,
     format_doctor_table,
     format_summary,
+    results_to_records,
     summarize_results,
 )
 
@@ -30,3 +32,18 @@ def test_suite_and_summary_helpers_are_public() -> None:
         ]
     )
     assert "Summary" in format_summary(summary)
+    assert "Compatibility" in format_compatibility_report()
+    assert (
+        results_to_records(
+            [
+                {
+                    "benchmark": "ghz",
+                    "backend": "cirq",
+                    "n_qubits": 3,
+                    "parameters": {},
+                    "metrics": {},
+                }
+            ]
+        )[0]["backend"]
+        == "cirq"
+    )

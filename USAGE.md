@@ -16,11 +16,12 @@ For the theoretical background behind shots, distributions, success probability,
   - [Discover Benchmarks and Integrations](#discover-benchmarks-and-integrations)
   - [Diagnose Local Readiness](#diagnose-local-readiness)
   - [Choosing Backends](#choosing-backends)
+  - [Compatibility Matrix](#compatibility-matrix)
   - [Run One Benchmark on One Backend](#run-one-benchmark-on-one-backend)
   - [Compare Backends](#compare-backends)
   - [Run a Noise Sweep](#run-a-noise-sweep)
   - [Run Benchmark Suites](#run-benchmark-suites)
-  - [Run Presets and Reports](#run-presets-and-reports)
+  - [Run Presets, Reports, and Bundles](#run-presets-reports-and-bundles)
   - [Draw Circuits](#draw-circuits)
   - [Run Experiment Manifests](#run-experiment-manifests)
 - [CLI Output](#cli-output)
@@ -121,8 +122,10 @@ Available subcommands:
 - `doctor`
 - `recommend`
 - `validate`
+- `compatibility`
 - `diff`
 - `report`
+- `bundle`
 - `preset`
 - `run`
 - `compare`
@@ -177,6 +180,14 @@ Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` 
 - Use pyQuil only when local `qvm` and `quilc` runtime support is available.
 - Treat CUDA-Q availability as platform-sensitive and check it with `doctor` in CI or fresh environments.
 
+### Compatibility Matrix
+
+Show Python, SDK, account/runtime, and CI coverage status for known integrations:
+
+```bash
+quantum-bench compatibility
+```
+
 Validate installed or selected backends with known-correct small circuits:
 
 ```bash
@@ -202,7 +213,7 @@ Execution backend names are:
 - `pyquil_qvm`
 - `qutip`
 
-### Run Presets and Reports
+### Run Presets, Reports, and Bundles
 
 Packaged presets provide ready-made comparison manifests:
 
@@ -216,6 +227,13 @@ Generate a Markdown report from an existing JSON, JSON bundle, or CSV export:
 
 ```bash
 quantum-bench report artifacts/runtime.json --output artifacts/runtime_report.md
+```
+
+Create a reproducible result bundle with normalized outputs, report, plots, and metadata:
+
+```bash
+quantum-bench bundle artifacts/runtime.json --output artifacts/runtime_bundle
+quantum-bench bundle artifacts/runtime.csv --output artifacts/runtime_bundle --no-plots
 ```
 
 `qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations, but they are not execution backends in this local circuit adapter.
@@ -461,6 +479,7 @@ for result in results:
 ```python
 from quantum_backend_bench.benchmarks.qft import build_benchmark
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench import results_to_dataframe
 
 benchmark = build_benchmark(n_qubits=5)
 results = run_benchmark(
@@ -489,6 +508,7 @@ summary = summarize_results(results)
 from quantum_backend_bench.benchmarks.ghz import build_benchmark
 from quantum_backend_bench.benchmarks.noise_sensitivity import build_benchmark as build_noise_suite
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench import results_to_dataframe
 
 base = build_benchmark(n_qubits=5)
 all_results = []

@@ -33,6 +33,12 @@ DOCS = [
     ),
     ("Problem", ROOT / "PROBLEM.md", "problem.html", "Research motivation and scope."),
     ("Schema", ROOT / "SCHEMA.md", "schema.html", "Result and manifest schemas."),
+    (
+        "Compatibility",
+        ROOT / "COMPATIBILITY.md",
+        "compatibility.html",
+        "Supported Python versions, SDK extras, and local runtime requirements.",
+    ),
     ("Limitations", ROOT / "LIMITATIONS.md", "limitations.html", "Known boundaries and caveats."),
     ("Changelog", ROOT / "CHANGELOG.md", "changelog.html", "Release notes and project history."),
 ]
@@ -98,6 +104,7 @@ def nav(current: str | None) -> str:
         ("Usage", "usage.html"),
         ("Results", "results.html"),
         ("Theory", "theory.html"),
+        ("Compatibility", "compatibility.html"),
         ("Portfolio", PORTFOLIO_URL),
         ("GitHub", REPO_URL),
     ]
@@ -335,6 +342,9 @@ def main() -> None:
     assets = ROOT / "docs/pages/assets"
     if assets.exists():
         shutil.copytree(assets, OUT / "docs/pages/assets")
+    reference_results = ROOT / "examples/reference_results"
+    if reference_results.exists():
+        shutil.copytree(reference_results, OUT / "examples/reference_results")
     (OUT / "index.html").write_text(home(), encoding="utf-8")
     for label, source, output, _ in DOCS:
         if source.exists():

@@ -3,6 +3,7 @@ include README.md
 include RESULTS.md
 include THEORY.md
 include CHANGELOG.md
+include COMPATIBILITY.md
 include CITATION.cff
 include LIMITATIONS.md
 include METHODOLOGY.md
@@ -17,6 +18,11 @@ recursive-include tests *.py
 recursive-include examples *.py
 recursive-include examples *.json
 recursive-include examples *.md
+recursive-include examples/reference_results *.csv
+recursive-include examples/reference_results *.json
+recursive-include examples/reference_results *.md
+recursive-include notebooks *.ipynb
+recursive-include notebooks *.md
 recursive-include docs/pages *.py
 recursive-include docs/pages *.css
 recursive-include docs/pages *.csv

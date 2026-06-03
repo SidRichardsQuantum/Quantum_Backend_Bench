@@ -6,11 +6,27 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-03
+
 ### Added
 
+- `quantum-bench compatibility` for reporting Python support, installed SDK integrations, account/runtime requirements, and CI coverage status.
+- `quantum-bench bundle` for creating reproducible result bundles with normalized JSON/CSV outputs, flattened records, Markdown reports, optional plots, environment metadata, and bundle READMEs.
+- Public `results_to_records(...)` and `results_to_dataframe(...)` helpers for notebook and pandas workflows.
+- `COMPATIBILITY.md` documenting supported Python versions, optional SDK extras, local runtime requirements, CI coverage, and the free/local simulator scope.
+- Tutorial notebooks for a Cirq quickstart, local simulator comparison, and Hamiltonian simulation case study.
+- A Cirq smoke reference result bundle under `examples/reference_results/` for the two-minute first-run workflow.
 - GitHub Pages workflow and portfolio-style documentation landing page for the project website.
 - `RESULTS.md` with curated benchmark tables, reproduction commands, and generated plot assets for the website.
-- Website link in the README.
+- Live README badges for CI, Pages, PyPI, supported Python versions, license, and local simulator backends.
+
+### Changed
+
+- `quantum-bench recommend` now explains installed backend recommendations and reports unavailable execution backends with install/runtime caveats.
+- README and usage documentation now emphasize the free, local, credential-free default execution path.
+- Reference result artifacts are grouped under `examples/reference_results/` and copied into the generated Pages site.
+- The source distribution now includes compatibility docs, tutorial notebooks, and reference result artifacts.
+- Notebook and plot examples consistently use ordered ket notation for displayed computational-basis states.
 
 ## [0.1.7] - 2026-04-29
 

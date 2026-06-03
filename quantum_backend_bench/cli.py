@@ -8,6 +8,8 @@ import json
 from quantum_backend_bench.backends import BACKEND_REGISTRY
 from quantum_backend_bench.benchmarks import noise_sensitivity
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
+from quantum_backend_bench.core.bundle import create_result_bundle
+from quantum_backend_bench.core.compatibility import format_compatibility_report
 from quantum_backend_bench.core.diff import (
     DEFAULT_DIFF_METRICS,
     compare_result_sets,
@@ -77,6 +79,22 @@ def _build_parser() -> argparse.ArgumentParser:
         default="research",
     )
     recommend_parser.set_defaults(func=_recommend_command)
+
+    compatibility_parser = subparsers.add_parser(
+        "compatibility", help="Show Python, SDK, and local-runtime compatibility status."
+    )
+    compatibility_parser.set_defaults(func=_compatibility_command)
+
+    bundle_parser = subparsers.add_parser(
+        "bundle", help="Create a reproducible artifact bundle from saved benchmark results."
+    )
+    bundle_parser.add_argument("results")
+    bundle_parser.add_argument("--output", "-o", required=True)
+    bundle_parser.add_argument("--title", default="Quantum Backend Benchmark Bundle")
+    bundle_parser.add_argument(
+        "--no-plots", action="store_true", help="Skip plot generation when creating the bundle."
+    )
+    bundle_parser.set_defaults(func=_bundle_command)
 
     validate_parser = subparsers.add_parser(
         "validate", help="Run known-correct checks against installed or selected backends."
@@ -263,19 +281,43 @@ def _info_command(args: argparse.Namespace) -> int:
 
 
 def _recommend_command(args: argparse.Namespace) -> int:
-    capabilities = [
-        capability
-        for capability in backend_capabilities()
-        if capability.role == "execution" and capability.installed
+    execution_capabilities = [
+        capability for capability in backend_capabilities() if capability.role == "execution"
     ]
-    ranked = _rank_capabilities(capabilities, args.use_case)
+    installed = [capability for capability in execution_capabilities if capability.installed]
+    ranked = _rank_capabilities(installed, args.use_case)
     print(f"Recommended installed backends for {args.use_case}")
     if not ranked:
         print("No installed execution backends found.")
-        return 1
     for index, capability in enumerate(ranked, start=1):
         reasons = _recommendation_reasons(capability, args.use_case)
         print(f"{index}. {capability.name}: {', '.join(reasons)}")
+
+    missing = [capability for capability in execution_capabilities if not capability.installed]
+    if missing:
+        print("\nOther execution backends")
+        for capability in sorted(missing, key=lambda item: item.name):
+            reasons = _missing_reasons(capability)
+            print(f"- {capability.name}: {', '.join(reasons)}")
+    return 0 if ranked else 1
+
+
+def _compatibility_command(args: argparse.Namespace) -> int:
+    del args
+    print(format_compatibility_report())
+    return 0
+
+
+def _bundle_command(args: argparse.Namespace) -> int:
+    paths = create_result_bundle(
+        args.results,
+        args.output,
+        title=args.title,
+        include_plots=not args.no_plots,
+    )
+    print(f"Created bundle at {args.output}")
+    for key, path in sorted(paths.items()):
+        print(f"  {key}: {path}")
     return 0
 
 
@@ -359,6 +401,21 @@ def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object
         return (-value, getattr(capability, "name"))
 
     return sorted(capabilities, key=score)
+
+
+def _missing_reasons(capability: object) -> list[str]:
+    reasons = [
+        f"not installed; install quantum-backend-bench[{getattr(capability, 'install_extra')}]"
+    ]
+    if getattr(capability, "external_process"):
+        reasons.append("requires external local runtime")
+    if not getattr(capability, "local_only"):
+        reasons.append("outside credential-free local execution scope")
+    if getattr(capability, "includes_transpilation_time"):
+        reasons.append("runtime includes transpilation")
+    if getattr(capability, "noise_support") != "not injected":
+        reasons.append(f"noise={getattr(capability, 'noise_support')}")
+    return reasons
 
 
 def _recommendation_reasons(capability: object, use_case: str) -> list[str]:

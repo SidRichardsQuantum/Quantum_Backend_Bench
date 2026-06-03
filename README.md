@@ -1,10 +1,11 @@
 # Quantum Backend Bench
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.7-green.svg)](./CHANGELOG.md)
+[![CI](https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/actions/workflows/ci.yml/badge.svg)](https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/actions/workflows/ci.yml)
+[![Pages](https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/actions/workflows/pages.yml/badge.svg)](https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/actions/workflows/pages.yml)
+[![PyPI](https://img.shields.io/pypi/v/quantum-backend-bench.svg)](https://pypi.org/project/quantum-backend-bench/)
+[![Python](https://img.shields.io/pypi/pyversions/quantum-backend-bench.svg)](https://pypi.org/project/quantum-backend-bench/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
-[![Backends](https://img.shields.io/badge/backends-Cirq%20%7C%20PennyLane%20%7C%20Braket%20%7C%20Qiskit%20%7C%20CUDA--Q-purple.svg)](./USAGE.md)
-[![Analysis](https://img.shields.io/badge/analysis-pytket-orange.svg)](./README.md#backend-support)
+[![Backends](https://img.shields.io/badge/backends-local%20simulators-purple.svg)](./COMPATIBILITY.md)
 
 PyPI: [https://pypi.org/project/quantum-backend-bench/](https://pypi.org/project/quantum-backend-bench/)
 
@@ -13,13 +14,15 @@ Website: [https://sidrichardsquantum.github.io/Quantum_Backend_Bench/](https://s
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across local simulator adapters such as Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
 See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
-For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [RESULTS.md](./RESULTS.md), [SCHEMA.md](./SCHEMA.md), and [LIMITATIONS.md](./LIMITATIONS.md).
+For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [RESULTS.md](./RESULTS.md), [SCHEMA.md](./SCHEMA.md), [COMPATIBILITY.md](./COMPATIBILITY.md), and [LIMITATIONS.md](./LIMITATIONS.md).
 
 ## Table of Contents
 
 - [Features](#features)
 - [Backend Support](#backend-support)
 - [Installation](#installation)
+- [Compatibility](#compatibility)
+- [Two-Minute First Run](#two-minute-first-run)
 - [GitHub Codespaces](#github-codespaces)
 - [Quickstart](#quickstart)
 - [Benchmark Suite](#benchmark-suite)
@@ -34,6 +37,8 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
   - [QAOA MaxCut](#qaoa-maxcut)
   - [Noise Sensitivity](#noise-sensitivity)
 - [Python API](#python-api)
+- [Result Bundles and DataFrames](#result-bundles-and-dataframes)
+- [Tutorial Notebooks](#tutorial-notebooks)
 - [Project Layout](#project-layout)
 - [Development](#development)
 - [Notes](#notes)
@@ -67,6 +72,18 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
 | pytket | Analysis only | Used for depth and gate metrics, not execution |
 | qBraid | Discovery only | Optional interop/runtime SDK; not used as a local execution backend |
 | Q# / QDK | Discovery only | Optional language/runtime SDK; not used as a circuit backend |
+
+The core execution path is intentionally free, local, and credential-free. Backends
+that require cloud accounts, provider billing, remote queues, or private services
+should stay outside the default workflow unless they are added as clearly optional
+provider adapters. The default recommendation is to keep new-user benchmarking
+instantly accessible through local simulators.
+
+## Compatibility
+
+See [COMPATIBILITY.md](./COMPATIBILITY.md) for the supported Python versions,
+optional SDK extras, local runtime requirements, and CI coverage status for each
+integration.
 
 ## Installation
 
@@ -124,6 +141,21 @@ python -m pip install -e ".[full,dev]"
 The pyQuil execution test also requires local `qvm` and `quilc` executables on `PATH`.
 Those are external Rigetti runtime tools and are not installed by pip extras.
 
+## Two-Minute First Run
+
+For the shortest public path, install the Cirq extra and run the smoke workflow:
+
+```bash
+python -m pip install "quantum-backend-bench[cirq]"
+quantum-bench run ghz --backend cirq --n-qubits 3 --shots 128 --summary
+quantum-bench suite smoke --backends cirq --shots 128 --summary
+```
+
+Expected output is a compact table with runtime, depth, gate counts, and benchmark
+quality metrics, followed by summary rankings. A saved reference bundle for this
+workflow is available under
+[`examples/reference_results/cirq_smoke_2026-06-03/`](./examples/reference_results/cirq_smoke_2026-06-03/).
+
 ## GitHub Codespaces
 
 The repository includes a Codespaces-ready [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) using a Python 3.11 base image. On container creation it installs the package in editable mode with development dependencies.
@@ -137,6 +169,7 @@ quantum-bench list
 quantum-bench info
 quantum-bench doctor
 quantum-bench recommend --use-case research
+quantum-bench compatibility
 quantum-bench validate
 ```
 
@@ -234,6 +267,7 @@ Compare saved results and fail on regressions:
 
 ```bash
 quantum-bench diff artifacts/baseline.json artifacts/current.json --relative-threshold 0.05 --fail-on-regression
+quantum-bench bundle artifacts/current.json --output artifacts/current_bundle
 quantum-bench diff artifacts/baseline.csv artifacts/current.csv --metric runtime_seconds
 ```
 
@@ -329,6 +363,38 @@ suite_results = [
 summary = summarize_results(suite_results)
 ```
 
+## Result Bundles and DataFrames
+
+Create a shareable result bundle from any saved JSON or CSV result file:
+
+```bash
+quantum-bench bundle artifacts/results.json --output artifacts/results_bundle
+```
+
+The bundle contains normalized JSON/CSV outputs, flattened records, a Markdown
+report, plots when matplotlib is available, environment metadata when present, and
+a README for interpretation. Python users can also flatten results directly:
+
+```python
+from quantum_backend_bench import results_to_dataframe
+
+frame = results_to_dataframe("artifacts/results.json")
+```
+
+## Tutorial Notebooks
+
+The [`notebooks/`](./notebooks/) directory contains succinct package-client tutorials:
+
+- [`01_quickstart_cirq.ipynb`](./notebooks/01_quickstart_cirq.ipynb): GHZ and smoke-suite workflow on the free local Cirq simulator.
+- [`02_compare_local_simulators.ipynb`](./notebooks/02_compare_local_simulators.ipynb): installed local simulator comparison for GHZ and QFT.
+- [`03_hamiltonian_simulation_case_study.ipynb`](./notebooks/03_hamiltonian_simulation_case_study.ipynb): small Ising-style Hamiltonian simulation scaling study.
+
+Install notebook helpers with:
+
+```bash
+python -m pip install -e ".[cirq,plot,notebooks]"
+```
+
 ## Project Layout
 
 ```text
@@ -364,7 +430,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, build, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.1.3` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, build, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.0` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## Notes
 

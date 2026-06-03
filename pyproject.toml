@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.1.7"
+version = "0.2.0"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,6 +13,37 @@ license-files = ["LICENSE"]
 authors = [
   { name = "Sid Richards" },
 ]
+keywords = [
+  "benchmark",
+  "cirq",
+  "pennylane",
+  "qiskit",
+  "quantum-computing",
+  "quantum-simulation",
+  "reproducibility",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/"
+Repository = "https://github.com/SidRichardsQuantum/Quantum_Backend_Bench"
+Issues = "https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/issues"
+Changelog = "https://github.com/SidRichardsQuantum/Quantum_Backend_Bench/blob/main/CHANGELOG.md"
+Documentation = "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/usage.html"
 [project.optional-dependencies]
 braket = [
   "amazon-braket-sdk",
@@ -29,6 +60,11 @@ dev = [
   "pytest",
   "ruff",
   "twine",
+]
+notebooks = [
+  "ipykernel",
+  "matplotlib",
+  "pandas",
 ]
 pennylane = [
   "pennylane",

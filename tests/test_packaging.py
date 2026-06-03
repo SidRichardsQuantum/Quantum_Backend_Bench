@@ -13,6 +13,7 @@ REQUIRED_SDIST_DOCS = {
     "LIMITATIONS.md",
     "USAGE.md",
     "PROBLEM.md",
+    "COMPATIBILITY.md",
 }
 
 
@@ -28,6 +29,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
     assert extras["pyquil"] == ["pyquil"]
+    assert extras["notebooks"] == ["ipykernel", "matplotlib", "pandas"]
     assert extras["qutip"] == ["qutip"]
     assert extras["qbraid"] == ["qbraid"]
     assert extras["qsharp"] == ["qsharp"]

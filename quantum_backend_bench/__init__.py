@@ -6,6 +6,13 @@ from quantum_backend_bench.core.benchmark_spec import (
     CircuitOperation,
     InternalCircuit,
 )
+from quantum_backend_bench.core.bundle import create_result_bundle
+from quantum_backend_bench.core.compatibility import (
+    compatibility_rows,
+    format_compatibility_report,
+    python_compatibility,
+)
+from quantum_backend_bench.core.dataframe import results_to_dataframe, results_to_records
 from quantum_backend_bench.core.discovery import (
     BENCHMARK_INFOS,
     BackendCapability,
@@ -64,12 +71,15 @@ __all__ = [
     "backend_capabilities",
     "build_benchmark_from_config",
     "build_suite",
+    "compatibility_rows",
     "compare_result_sets",
     "capture_environment",
+    "create_result_bundle",
     "diff_passed",
     "doctor_checks",
     "doctor_passed",
     "draw_benchmark",
+    "format_compatibility_report",
     "format_diff_table",
     "format_doctor_table",
     "format_summary",
@@ -79,6 +89,9 @@ __all__ = [
     "load_preset",
     "load_report_input",
     "format_markdown_report",
+    "python_compatibility",
+    "results_to_dataframe",
+    "results_to_records",
     "run_benchmark",
     "run_experiment_manifest",
     "save_markdown_report",
