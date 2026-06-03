@@ -7,12 +7,13 @@ on:
     paths:
       - README.md
       - USAGE.md
-      - RESULTS.md
-      - THEORY.md
-      - METHODOLOGY.md
-      - PROBLEM.md
-      - SCHEMA.md
-      - LIMITATIONS.md
+      - docs/RESULTS.md
+      - docs/THEORY.md
+      - docs/METHODOLOGY.md
+      - docs/PROBLEM.md
+      - docs/SCHEMA.md
+      - docs/LIMITATIONS.md
+      - docs/COMPATIBILITY.md
       - CHANGELOG.md
       - docs/pages/**
       - .github/workflows/pages.yml
@@ -44,7 +45,7 @@ jobs:
       - name: Install documentation tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install markdown pymdown-extensions
+          python -m pip install markdown matplotlib pymdown-extensions
 
       - name: Build documentation site
         run: python docs/pages/build_site.py

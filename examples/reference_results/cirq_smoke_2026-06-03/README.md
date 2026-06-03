@@ -5,7 +5,9 @@ Generated on 2026-06-03 in a Linux Codespaces-style environment with Python 3.11
 These files are small reference artifacts for the fastest public onboarding path:
 install the package with the Cirq extra, run one GHZ benchmark, then run the smoke
 suite. They are examples of the JSON and CSV schema, not stable performance
-claims.
+claims. Volatile runtime, compile-time, package-version, git, and environment
+fields are scrubbed before commit so reference diffs stay focused on result shape
+and benchmark behavior.
 
 ## Commands
 
@@ -24,6 +26,7 @@ quantum-bench suite smoke \
   --summary \
   --save-json examples/reference_results/cirq_smoke_2026-06-03/smoke_suite_cirq.json \
   --save-csv examples/reference_results/cirq_smoke_2026-06-03/smoke_suite_cirq.csv
+python examples/reference_results/scrub_reference_results.py
 ```
 
 ## Files
@@ -35,5 +38,7 @@ quantum-bench suite smoke \
 ## Interpretation
 
 Runtime values depend on the local machine, installed SDK versions, Python version,
-and current system load. Use these files to inspect result shape and metadata. For
-fresh comparisons, regenerate the bundle in the target environment.
+and current system load, so committed reference artifacts intentionally leave runtime
+and compile-time fields blank or `null`. Use these files to inspect result shape,
+parameters, counts, support states, and stable quality metrics. For fresh performance
+comparisons, regenerate unscreened artifacts in the target environment.

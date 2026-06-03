@@ -7,13 +7,14 @@ from pathlib import Path
 
 REQUIRED_SDIST_DOCS = {
     "README.md",
-    "THEORY.md",
-    "METHODOLOGY.md",
-    "SCHEMA.md",
-    "LIMITATIONS.md",
+    "docs/RESULTS.md",
+    "docs/THEORY.md",
+    "docs/METHODOLOGY.md",
+    "docs/SCHEMA.md",
+    "docs/LIMITATIONS.md",
     "USAGE.md",
-    "PROBLEM.md",
-    "COMPATIBILITY.md",
+    "docs/PROBLEM.md",
+    "docs/COMPATIBILITY.md",
 }
 
 
@@ -28,7 +29,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["braket"] == ["amazon-braket-sdk"]
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
-    assert extras["docs"] == ["markdown", "pymdown-extensions"]
+    assert extras["docs"] == ["markdown", "matplotlib", "pymdown-extensions"]
     assert extras["pyquil"] == ["pyquil"]
     assert extras["notebooks"] == ["ipykernel", "matplotlib", "pandas"]
     assert extras["qutip"] == ["qutip"]
@@ -50,3 +51,9 @@ def test_required_docs_are_included_in_sdist_manifest() -> None:
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     for document in REQUIRED_SDIST_DOCS:
         assert f"include {document}" in manifest
+
+
+def test_notebook_result_assets_are_included_in_sdist_manifest() -> None:
+    manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
+    for extension in ("csv", "json", "png"):
+        assert f"recursive-include docs/pages *.{extension}" in manifest

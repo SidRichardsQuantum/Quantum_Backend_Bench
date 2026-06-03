@@ -7,6 +7,11 @@ from pathlib import Path
 
 import markdown
 
+try:
+    from . import build_notebook_results
+except ImportError:  # pragma: no cover - used when executed as a script.
+    import build_notebook_results
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "_site"
 SITE_URL = "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/"
@@ -20,26 +25,31 @@ DOCS = [
     ("Usage", ROOT / "USAGE.md", "usage.html", "CLI and Python API workflows."),
     (
         "Results",
-        ROOT / "RESULTS.md",
+        ROOT / "docs" / "RESULTS.md",
         "results.html",
         "Reference benchmark outputs, plots, and reproduction commands.",
     ),
-    ("Theory", ROOT / "THEORY.md", "theory.html", "Benchmark and simulator background."),
+    ("Theory", ROOT / "docs" / "THEORY.md", "theory.html", "Benchmark and simulator background."),
     (
         "Methodology",
-        ROOT / "METHODOLOGY.md",
+        ROOT / "docs" / "METHODOLOGY.md",
         "methodology.html",
         "Measurement design and interpretation.",
     ),
-    ("Problem", ROOT / "PROBLEM.md", "problem.html", "Research motivation and scope."),
-    ("Schema", ROOT / "SCHEMA.md", "schema.html", "Result and manifest schemas."),
+    ("Problem", ROOT / "docs" / "PROBLEM.md", "problem.html", "Research motivation and scope."),
+    ("Schema", ROOT / "docs" / "SCHEMA.md", "schema.html", "Result and manifest schemas."),
     (
         "Compatibility",
-        ROOT / "COMPATIBILITY.md",
+        ROOT / "docs" / "COMPATIBILITY.md",
         "compatibility.html",
         "Supported Python versions, SDK extras, and local runtime requirements.",
     ),
-    ("Limitations", ROOT / "LIMITATIONS.md", "limitations.html", "Known boundaries and caveats."),
+    (
+        "Limitations",
+        ROOT / "docs" / "LIMITATIONS.md",
+        "limitations.html",
+        "Known boundaries and caveats.",
+    ),
     ("Changelog", ROOT / "CHANGELOG.md", "changelog.html", "Release notes and project history."),
 ]
 DOC_OUTPUTS = {source.name: output for _, source, output, _ in DOCS}
@@ -81,7 +91,9 @@ def rewrite_links(fragment: str) -> str:
             return match.group(0)
         return f'href="{output}{anchor}"'
 
-    fragment = re.sub(r'href="(?:\./)?([A-Z0-9_-]+\.md)(#[^"]*)?"', replace, fragment)
+    fragment = re.sub(
+        r'href="(?:\.\./|\./)?(?:docs/)?([A-Z0-9_-]+\.md)(#[^"]*)?"', replace, fragment
+    )
     return fragment.replace('href="http', 'target="_blank" rel="noopener noreferrer" href="http')
 
 
@@ -335,6 +347,7 @@ def documentation_page(label: str, source: Path) -> str:
 
 
 def main() -> None:
+    build_notebook_results.main()
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
@@ -342,7 +355,7 @@ def main() -> None:
     shutil.copyfile(ROOT / "LICENSE", OUT / "LICENSE")
     assets = ROOT / "docs/pages/assets"
     if assets.exists():
-        shutil.copytree(assets, OUT / "docs/pages/assets")
+        shutil.copytree(assets, OUT / "pages/assets")
     for directory_name in ("examples", "notebooks", ".devcontainer", ".github"):
         directory = ROOT / directory_name
         if directory.exists():

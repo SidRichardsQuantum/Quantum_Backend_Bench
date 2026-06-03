@@ -3,8 +3,8 @@
     "backend": "cirq",
     "benchmark": "ghz",
     "counts": {
-      "000": 57,
-      "111": 71
+      "000": 61,
+      "111": 67
     },
     "metadata": {
       "analysis": {
@@ -19,10 +19,14 @@
         "two_qubit_gate_count": 2
       },
       "backend_noise_support": "preset models",
-      "backend_package_versions": {},
+      "backend_package_versions": {
+        "cirq": "1.6.1"
+      },
       "benchmark_family": "entanglement",
       "case_label": "ghz n=3",
-      "compile_seconds_samples": [],
+      "compile_seconds_samples": [
+        0.0
+      ],
       "compile_toolchain": "cirq.Circuit",
       "compiled_basis_gates": {
         "CNOT": 2,
@@ -31,8 +35,38 @@
       },
       "depth": null,
       "environment": {
-        "note": "Volatile environment, package, git, runtime, and compile timing fields are scrubbed.",
-        "reference_result": true
+        "captured_at": "2026-06-03T14:01:57.975951+00:00",
+        "git": {
+          "branch": "main",
+          "commit": "e535f9dae72688a8af096e8584f73c313ecbd82c",
+          "dirty": true
+        },
+        "packages": {
+          "amazon-braket-sdk": "1.117.3",
+          "cirq": "1.6.1",
+          "cudaq": null,
+          "matplotlib": "3.10.9",
+          "numpy": "2.4.6",
+          "pennylane": "0.45.0",
+          "pyquil": null,
+          "pytket": "2.18.0",
+          "qbraid": "0.12.1",
+          "qiskit": "2.4.1",
+          "qiskit-aer": "0.17.2",
+          "qsharp": "1.11.1",
+          "qutip": "5.3.0"
+        },
+        "platform": {
+          "machine": "x86_64",
+          "processor": "",
+          "release": "6.8.0-1052-azure",
+          "system": "Linux"
+        },
+        "python": {
+          "executable": "/usr/local/bin/python",
+          "implementation": "CPython",
+          "version": "3.11.13"
+        }
       },
       "exact_statevector": false,
       "external_process": false,
@@ -44,7 +78,9 @@
       "oracle_type": null,
       "repeats": 1,
       "runtime_includes_transpilation": false,
-      "runtime_seconds_samples": [],
+      "runtime_seconds_samples": [
+        0.0026266029999533202
+      ],
       "seed": null,
       "seed_applied": false,
       "seed_supported": true,
@@ -53,24 +89,24 @@
       "total_shots": 128
     },
     "metrics": {
-      "compile_seconds": null,
-      "compile_seconds_stddev": null,
+      "compile_seconds": 0.0,
+      "compile_seconds_stddev": 0.0,
       "compiled_depth": 4,
       "compiled_gate_count": 4,
       "compiled_two_qubit_gate_count": 2,
       "depth": 4,
       "gate_count": 3,
       "measurement_distribution": {
-        "000": 0.4453125,
-        "111": 0.5546875
+        "000": 0.4765625,
+        "111": 0.5234375
       },
-      "runtime_seconds": null,
-      "runtime_seconds_max": null,
-      "runtime_seconds_mean": null,
-      "runtime_seconds_min": null,
-      "runtime_seconds_stddev": null,
+      "runtime_seconds": 0.0026266029999533202,
+      "runtime_seconds_max": 0.0026266029999533202,
+      "runtime_seconds_mean": 0.0026266029999533202,
+      "runtime_seconds_min": 0.0026266029999533202,
+      "runtime_seconds_stddev": 0.0,
       "success_probability": null,
-      "total_variation_distance": 0.0546875,
+      "total_variation_distance": 0.0234375,
       "two_qubit_gate_count": 2
     },
     "n_qubits": 3,

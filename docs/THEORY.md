@@ -223,8 +223,8 @@ Avoid statements like:
 
 ## Related Project Documents
 
-- [README.md](./README.md): project overview and quickstart
-- [USAGE.md](./USAGE.md): CLI and Python workflows
+- [README.md](../README.md): project overview and quickstart
+- [USAGE.md](../USAGE.md): CLI and Python workflows
 - [METHODOLOGY.md](./METHODOLOGY.md): measurement methodology and research workflow
 - [SCHEMA.md](./SCHEMA.md): JSON and CSV result fields
 - [LIMITATIONS.md](./LIMITATIONS.md): known boundaries and caveats
@@ -240,4 +240,4 @@ Sid Richards
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](../LICENSE).

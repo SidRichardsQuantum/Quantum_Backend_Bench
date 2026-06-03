@@ -35,7 +35,7 @@ python examples/backend_capability_matrix.py
    - `artifacts/manifests/generated_smoke.json`
    - `artifacts/manifests/generated_noise.json`
 
-3. Run bundled research studies:
+3. Run bundled research studies. This is a heavier step because noisy simulation is materially slower than noiseless smoke examples:
 
    ```bash
    python examples/research_studies.py
@@ -107,7 +107,7 @@ Bundled manifests:
 - `oracle_benchmarks.py`: run Bernstein-Vazirani and Deutsch-Jozsa examples.
 - `quantum_volume_demo.py`: run a quantum-volume-style workload.
 - `circuit_diagrams.py`: export circuit diagrams.
-- `plot_gallery.py`: generate multiple plot types.
+- `plot_gallery.py`: generate multiple plot types; this is a heavier run because it uses larger circuits, multiple backends, and noise sweeps.
 
 ## Dependency Notes
 

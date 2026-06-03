@@ -7,7 +7,7 @@
 
 The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP are supported as execution backends, while `pytket` is used for structural analysis.
 
-For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./THEORY.md).
+For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./docs/THEORY.md).
 
 ## Table of Contents
 
@@ -17,11 +17,11 @@ For the theoretical background behind shots, distributions, success probability,
   - [Diagnose Local Readiness](#diagnose-local-readiness)
   - [Choosing Backends](#choosing-backends)
   - [Compatibility Matrix](#compatibility-matrix)
+  - [Run Presets, Reports, and Bundles](#run-presets-reports-and-bundles)
   - [Run One Benchmark on One Backend](#run-one-benchmark-on-one-backend)
   - [Compare Backends](#compare-backends)
   - [Run a Noise Sweep](#run-a-noise-sweep)
   - [Run Benchmark Suites](#run-benchmark-suites)
-  - [Run Presets, Reports, and Bundles](#run-presets-reports-and-bundles)
   - [Draw Circuits](#draw-circuits)
   - [Run Experiment Manifests](#run-experiment-manifests)
 - [CLI Output](#cli-output)
@@ -45,6 +45,7 @@ For the theoretical background behind shots, distributions, success probability,
 - [Practical Notes](#practical-notes)
 - [Examples](#examples)
 - [Development Workflow](#development-workflow)
+- [SDK Utility Workflows](#sdk-utility-workflows)
 - [Author](#author)
 - [License](#license)
 
@@ -444,7 +445,7 @@ Result JSON includes standardized metadata fields such as `benchmark_family`, `c
 
 Use `quantum-bench diff` to compare saved result files from two runs. It matches results by benchmark, backend, qubit count, and benchmark parameters, then reports metric deltas. By default it compares `runtime_seconds`, `success_probability`, and `total_variation_distance`. Use repeated `--metric` flags to choose metrics, `--absolute-threshold` or `--relative-threshold` to tolerate expected noise, and `--fail-on-regression` for CI-style gating.
 
-When `--repeats` is greater than 1, `runtime_seconds` is the mean runtime. Raw samples and environment metadata are stored in result metadata. See [SCHEMA.md](./SCHEMA.md) and [METHODOLOGY.md](./METHODOLOGY.md).
+When `--repeats` is greater than 1, `runtime_seconds` is the mean runtime. Raw samples and environment metadata are stored in result metadata. See [SCHEMA.md](./docs/SCHEMA.md) and [METHODOLOGY.md](./docs/METHODOLOGY.md).
 
 Additional image outputs:
 
@@ -655,19 +656,6 @@ python -m build
 python -m twine check dist/*
 ```
 
----
-
-## Author
-
-Sid Richards
-
-- LinkedIn: [sid-richards-21374b30b](https://www.linkedin.com/in/sid-richards-21374b30b/)
-- GitHub: [SidRichardsQuantum](https://github.com/SidRichardsQuantum)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
 ## SDK Utility Workflows
 
 The CLI includes SDK-facing workflows beyond local benchmark execution:
@@ -685,5 +673,17 @@ quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa
 quantum-bench recommend --needs-noise --no-external-runtime
 ```
 
-Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/03_sdk_cirq_workflow.ipynb` through `notebooks/07_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
 
+---
+
+## Author
+
+Sid Richards
+
+- LinkedIn: [sid-richards-21374b30b](https://www.linkedin.com/in/sid-richards-21374b30b/)
+- GitHub: [SidRichardsQuantum](https://github.com/SidRichardsQuantum)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

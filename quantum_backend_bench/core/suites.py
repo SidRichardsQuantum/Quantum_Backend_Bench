@@ -39,7 +39,7 @@ SUITES: dict[str, list[SuiteCase]] = {
         SuiteCase(
             "grover",
             "Small target-state success check",
-            lambda: grover.build_benchmark(n_qubits=2, marked_state="11"),
+            lambda: grover.build_benchmark(n_qubits=2, marked_state="11", iterations=1),
         ),
     ],
     "standard": [

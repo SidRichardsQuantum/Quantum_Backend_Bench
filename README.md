@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/quantum-backend-bench.svg)](https://pypi.org/project/quantum-backend-bench/)
 [![Python](https://img.shields.io/pypi/pyversions/quantum-backend-bench.svg)](https://pypi.org/project/quantum-backend-bench/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
-[![Backends](https://img.shields.io/badge/backends-local%20simulators-purple.svg)](./COMPATIBILITY.md)
+[![Backends](https://img.shields.io/badge/backends-local%20simulators-purple.svg)](./docs/COMPATIBILITY.md)
 
 PyPI: [https://pypi.org/project/quantum-backend-bench/](https://pypi.org/project/quantum-backend-bench/)
 
@@ -14,14 +14,14 @@ Website: [https://sidrichardsquantum.github.io/Quantum_Backend_Bench/](https://s
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across local simulator adapters such as Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
 See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
-For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEORY.md](./THEORY.md), [METHODOLOGY.md](./METHODOLOGY.md), [RESULTS.md](./RESULTS.md), [SCHEMA.md](./SCHEMA.md), [COMPATIBILITY.md](./COMPATIBILITY.md), and [LIMITATIONS.md](./LIMITATIONS.md).
+For research workflows and interpretation, see [PROBLEM.md](./docs/PROBLEM.md), [THEORY.md](./docs/THEORY.md), [METHODOLOGY.md](./docs/METHODOLOGY.md), [RESULTS.md](./docs/RESULTS.md), [SCHEMA.md](./docs/SCHEMA.md), [COMPATIBILITY.md](./docs/COMPATIBILITY.md), and [LIMITATIONS.md](./docs/LIMITATIONS.md).
 
 ## Table of Contents
 
 - [Features](#features)
 - [Backend Support](#backend-support)
-- [Installation](#installation)
 - [Compatibility](#compatibility)
+- [Installation](#installation)
 - [Two-Minute First Run](#two-minute-first-run)
 - [GitHub Codespaces](#github-codespaces)
 - [Quickstart](#quickstart)
@@ -41,6 +41,7 @@ For research workflows and interpretation, see [PROBLEM.md](./PROBLEM.md), [THEO
 - [Tutorial Notebooks](#tutorial-notebooks)
 - [Project Layout](#project-layout)
 - [Development](#development)
+- [SDK Utility Workflows](#sdk-utility-workflows)
 - [Notes](#notes)
 - [Author](#author)
 - [License](#license)
@@ -81,7 +82,7 @@ instantly accessible through local simulators.
 
 ## Compatibility
 
-See [COMPATIBILITY.md](./COMPATIBILITY.md) for the supported Python versions,
+See [COMPATIBILITY.md](./docs/COMPATIBILITY.md) for the supported Python versions,
 optional SDK extras, local runtime requirements, and CI coverage status for each
 integration.
 
@@ -388,7 +389,7 @@ The [`notebooks/`](./notebooks/) directory contains succinct package-client tuto
 - [`01_quickstart_cirq.ipynb`](./notebooks/01_quickstart_cirq.ipynb): GHZ and smoke-suite workflow on the free local Cirq simulator.
 - [`02_compare_local_simulators.ipynb`](./notebooks/02_compare_local_simulators.ipynb): installed local simulator comparison for GHZ and QFT.
 - [`03_hamiltonian_simulation_case_study.ipynb`](./notebooks/03_hamiltonian_simulation_case_study.ipynb): small Ising-style Hamiltonian simulation scaling study.
-- [`03_sdk_cirq_workflow.ipynb`](./notebooks/03_sdk_cirq_workflow.ipynb) through [`07_sdk_qutip_workflow.ipynb`](./notebooks/07_sdk_qutip_workflow.ipynb): compact SDK export, execution, plotting, artifact, and verification workflows for Cirq, Qiskit Aer, PennyLane, Braket LocalSimulator, and QuTiP.
+- [`04_sdk_cirq_workflow.ipynb`](./notebooks/04_sdk_cirq_workflow.ipynb) through [`08_sdk_qutip_workflow.ipynb`](./notebooks/08_sdk_qutip_workflow.ipynb): compact SDK export, execution, plotting, artifact, and verification workflows for Cirq, Qiskit Aer, PennyLane, Braket LocalSimulator, and QuTiP.
 
 Install notebook helpers with:
 
@@ -438,7 +439,26 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.2` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.3` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+
+## SDK Utility Workflows
+
+The CLI includes SDK-facing workflows beyond local benchmark execution:
+
+```bash
+quantum-bench export ghz --n-qubits 3 --format openqasm
+quantum-bench export ghz --n-qubits 3 --format openqasm3
+quantum-bench export ghz --n-qubits 3 --format native --backend cirq
+quantum-bench import-qasm artifacts/ghz.qasm3 --name imported_ghz
+quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
+quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
+quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
+quantum-bench diagnose artifacts/ghz.json
+quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa --provider ibm --qasm-version openqasm3 --backend-hint provider-device
+quantum-bench recommend --needs-noise --no-external-runtime
+```
+
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
 
 ## Notes
 
@@ -458,23 +478,3 @@ Sid Richards
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## SDK Utility Workflows
-
-The CLI includes SDK-facing workflows beyond local benchmark execution:
-
-```bash
-quantum-bench export ghz --n-qubits 3 --format openqasm
-quantum-bench export ghz --n-qubits 3 --format openqasm3
-quantum-bench export ghz --n-qubits 3 --format native --backend cirq
-quantum-bench import-qasm artifacts/ghz.qasm3 --name imported_ghz
-quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
-quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
-quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
-quantum-bench diagnose artifacts/ghz.json
-quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa --provider ibm --qasm-version openqasm3 --backend-hint provider-device
-quantum-bench recommend --needs-noise --no-external-runtime
-```
-
-Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/03_sdk_cirq_workflow.ipynb` through `notebooks/07_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
-

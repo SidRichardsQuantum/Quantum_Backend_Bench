@@ -6,6 +6,29 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-03
+
+### Added
+
+- Shared notebook utility helpers for artifact paths, result summaries, top-state tables, measurement-series extraction, and tutorial verification checks.
+- Generated notebook-results documentation pipeline that rebuilds `docs/RESULTS.md`, JSON/CSV assets, and PNG plots from executed notebook artifacts.
+- CI stale-result checks for notebook-generated results and documentation assets.
+- Packaging tests that keep moved docs and generated notebook result assets included in source distributions.
+
+### Changed
+
+- Moved long-form project documentation from the repository root into `docs/` and updated README, usage, Pages, packaging, and link validation paths.
+- Renumbered SDK workflow notebooks to keep tutorial notebook ordering unique and contiguous.
+- Refactored tutorial notebooks to use the shared notebook helpers and keep committed notebooks output-free with standard Python kernel metadata.
+- Updated the generated site build so `results.html` is rendered from notebook-derived tables, plots, and raw artifacts.
+- Scrubbed reference-result bundles to remove volatile runtime, package, environment, and git metadata while preserving deterministic structural and quality metrics.
+- Expanded CI and Pages workflows to lint docs scripts, install documentation plotting dependencies, watch moved docs paths, and validate generated notebook result freshness.
+
+### Fixed
+
+- Adjusted the smoke-suite Grover case to use a valid single marked-state amplification iteration for the configured qubit count.
+- Fixed documentation site imports so the Pages builder works both as a direct script and as an imported test module.
+
 ## [0.2.2] - 2026-06-03
 
 ### Added

@@ -56,4 +56,4 @@ quantum-bench suite smoke --backends cirq --shots 128 --summary
 ```
 
 For reproducible example artifacts from the Cirq smoke path, see
-[`examples/reference_results/cirq_smoke_2026-06-03/`](./examples/reference_results/cirq_smoke_2026-06-03/).
+[`examples/reference_results/cirq_smoke_2026-06-03/`](../examples/reference_results/cirq_smoke_2026-06-03/).

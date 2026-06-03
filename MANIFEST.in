@@ -1,14 +1,14 @@
 include LICENSE
 include README.md
-include RESULTS.md
-include THEORY.md
+include docs/RESULTS.md
+include docs/THEORY.md
 include CHANGELOG.md
-include COMPATIBILITY.md
+include docs/COMPATIBILITY.md
 include CITATION.cff
-include LIMITATIONS.md
-include METHODOLOGY.md
-include PROBLEM.md
-include SCHEMA.md
+include docs/LIMITATIONS.md
+include docs/METHODOLOGY.md
+include docs/PROBLEM.md
+include docs/SCHEMA.md
 include USAGE.md
 include pyproject.toml
 

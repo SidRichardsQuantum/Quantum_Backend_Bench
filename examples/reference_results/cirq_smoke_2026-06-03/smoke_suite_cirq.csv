@@ -1,4 +1,4 @@
 benchmark,backend,case_label,benchmark_family,n_qubits,shots,repeats,total_shots,parameters,runtime_seconds,runtime_seconds_stddev,depth,gate_count,two_qubit_gate_count,success_probability,total_variation_distance,counts
-ghz,cirq,ghz n=3,entanglement,3,128,1,128,"{""n_qubits"": 3}",0.006393914999989647,0.0,4,3,2,,0.0390625,"{""000"": 69, ""111"": 59}"
-bernstein_vazirani,cirq,bernstein_vazirani s=|101>,oracle,4,128,1,128,"{""n_qubits"": 4, ""secret_string"": ""101""}",0.009522393999759515,0.0,6,10,2,1.0,0.0,"{""101"": 128}"
-grover,cirq,grover target=|11>,search,2,128,1,128,"{""iterations"": 2, ""marked_state"": ""11"", ""n_qubits"": 2}",0.0068703130000358215,0.0,14,22,4,0.21875,,"{""00"": 26, ""01"": 31, ""10"": 43, ""11"": 28}"
+ghz,cirq,ghz n=3,entanglement,3,128,1,128,"{""n_qubits"": 3}",,,4,3,2,,0.015625,"{""000"": 66, ""111"": 62}"
+bernstein_vazirani,cirq,bernstein_vazirani s=|101>,oracle,4,128,1,128,"{""n_qubits"": 4, ""secret_string"": ""101""}",,,6,10,2,1.0,0.0,"{""101"": 128}"
+grover,cirq,grover target=|11>,search,2,128,1,128,"{""iterations"": 1, ""marked_state"": ""11"", ""n_qubits"": 2}",,,8,12,2,1.0,,"{""11"": 128}"

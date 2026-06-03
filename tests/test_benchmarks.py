@@ -140,6 +140,7 @@ def test_qaoa_maxcut_rejects_invalid_graph() -> None:
 def test_named_suite_builds_benchmark_specs() -> None:
     suite = build_suite("smoke")
     assert [benchmark.name for benchmark in suite] == ["ghz", "bernstein_vazirani", "grover"]
+    assert suite[2].parameters["iterations"] == 1
 
 
 def test_noise_suite_preserves_base_metadata_and_parameters() -> None:
