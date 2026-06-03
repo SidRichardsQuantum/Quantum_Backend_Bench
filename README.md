@@ -383,11 +383,12 @@ frame = results_to_dataframe("artifacts/results.json")
 
 ## Tutorial Notebooks
 
-The [`notebooks/`](./notebooks/) directory contains succinct package-client tutorials:
+The [`notebooks/`](./notebooks/) directory contains succinct package-client tutorials. Each notebook starts with problem context, quantum-advantage scope, and parameter definitions, then uses readable tables, plots where useful, saved artifacts, and verification checks.
 
 - [`01_quickstart_cirq.ipynb`](./notebooks/01_quickstart_cirq.ipynb): GHZ and smoke-suite workflow on the free local Cirq simulator.
 - [`02_compare_local_simulators.ipynb`](./notebooks/02_compare_local_simulators.ipynb): installed local simulator comparison for GHZ and QFT.
 - [`03_hamiltonian_simulation_case_study.ipynb`](./notebooks/03_hamiltonian_simulation_case_study.ipynb): small Ising-style Hamiltonian simulation scaling study.
+- [`03_sdk_cirq_workflow.ipynb`](./notebooks/03_sdk_cirq_workflow.ipynb) through [`07_sdk_qutip_workflow.ipynb`](./notebooks/07_sdk_qutip_workflow.ipynb): compact SDK export, execution, plotting, artifact, and verification workflows for Cirq, Qiskit Aer, PennyLane, Braket LocalSimulator, and QuTiP.
 
 Install notebook helpers with:
 
@@ -437,7 +438,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.1` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.2` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## Notes
 
@@ -457,3 +458,23 @@ Sid Richards
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## SDK Utility Workflows
+
+The CLI includes SDK-facing workflows beyond local benchmark execution:
+
+```bash
+quantum-bench export ghz --n-qubits 3 --format openqasm
+quantum-bench export ghz --n-qubits 3 --format openqasm3
+quantum-bench export ghz --n-qubits 3 --format native --backend cirq
+quantum-bench import-qasm artifacts/ghz.qasm3 --name imported_ghz
+quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
+quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
+quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
+quantum-bench diagnose artifacts/ghz.json
+quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa --provider ibm --qasm-version openqasm3 --backend-hint provider-device
+quantum-bench recommend --needs-noise --no-external-runtime
+```
+
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/03_sdk_cirq_workflow.ipynb` through `notebooks/07_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
+

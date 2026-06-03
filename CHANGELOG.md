@@ -6,6 +6,25 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-03
+
+### Added
+
+- SDK utility CLI commands for circuit export, OpenQASM import, exact probability/amplitude inspection, result-parity diagnosis, and hardware-preparation artifact generation.
+- Applied workload builders for `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`.
+- Parameter-sweep support for `quantum-bench run`, `quantum-bench compare`, and experiment manifests.
+- Noise model selection for `quantum-bench noise-sweep`, including bit-flip, phase-flip, amplitude-damping, and readout-error modes where supported by backend adapters.
+- SDK workflow notebooks for Cirq, Qiskit Aer, PennyLane, Braket LocalSimulator, and QuTiP/statevector usage.
+- Notebook result cells with readable benchmark tables, key metric summaries, top-state probability plots, saved artifacts, and verification checks.
+
+### Changed
+
+- Result tables, CSV records, and Markdown reports now include compile/transpile metadata when backends provide it.
+- `quantum-bench recommend` now supports constraint filters for noise support, exact statevectors, external runtimes, maximum qubits, and Python version notes.
+- Cirq, PennyLane, and Qiskit adapters now report richer compile metadata for supported executions.
+- README and usage documentation now include the SDK utility workflows and new applied workloads.
+- Tutorial notebooks now open with problem context, quantum-advantage notes, SDK/backend rationale, and variable/parameter definitions.
+
 ## [0.2.1] - 2026-06-03
 
 ### Added

@@ -76,8 +76,8 @@ def _results_table(results: list[dict[str, Any]]) -> list[str]:
     if not results:
         return ["No results found."]
     lines = [
-        "| case | backend | repeats | shots | runtime mean | runtime stddev | depth | success | TVD |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| case | backend | repeats | shots | runtime mean | compile mean | depth | compiled depth | success | TVD |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in results:
         metrics = result.get("metrics", {})
@@ -90,8 +90,9 @@ def _results_table(results: list[dict[str, Any]]) -> list[str]:
                     str(result.get("repeats", "")),
                     str(result.get("shots", "")),
                     _fmt(metrics.get("runtime_seconds")),
-                    _fmt(metrics.get("runtime_seconds_stddev")),
+                    _fmt(metrics.get("compile_seconds")),
                     _fmt(metrics.get("depth")),
+                    _fmt(metrics.get("compiled_depth")),
                     _fmt(metrics.get("success_probability")),
                     _fmt(metrics.get("total_variation_distance")),
                 ]
@@ -114,13 +115,14 @@ def _backend_caveats(results: list[dict[str, Any]]) -> list[str]:
                 "external": metadata.get("external_process"),
                 "local": metadata.get("local_only"),
                 "packages": metadata.get("backend_package_versions") or {},
+                "compile_toolchain": metadata.get("compile_toolchain"),
             },
         )
     if not caveats:
         return ["No backend metadata found."]
     lines = [
-        "| backend | noise support | includes transpilation | external process | local only | packages |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| backend | noise support | includes transpilation | compile toolchain | external process | local only | packages |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for backend, values in sorted(caveats.items()):
         packages = ", ".join(
@@ -133,6 +135,7 @@ def _backend_caveats(results: list[dict[str, Any]]) -> list[str]:
                     _escape(backend),
                     _escape(str(values["noise"])),
                     _escape(str(values["transpilation"])),
+                    _escape(str(values["compile_toolchain"])),
                     _escape(str(values["external"])),
                     _escape(str(values["local"])),
                     _escape(packages or "n/a"),

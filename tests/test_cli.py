@@ -473,3 +473,132 @@ def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         == 0
     )
     assert quality_path.exists()
+
+
+def test_cli_export_openqasm3(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["export", "ghz", "--n-qubits", "2", "--format", "openqasm3"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "OPENQASM 3.0;" in captured.out
+    assert "qubit[2] q;" in captured.out
+
+
+def test_cli_import_qasm_round_trip(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    qasm_path = tmp_path / "ghz.qasm"
+    qasm_path.write_text(
+        'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(["import-qasm", str(qasm_path), "--name", "roundtrip"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"benchmark": "roundtrip"' in captured.out
+    assert '"gate": "CNOT"' in captured.out
+
+
+def test_cli_exact_top_k_amplitudes_and_observable(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(
+        ["exact", "ghz", "--n-qubits", "2", "--top-k", "1", "--amplitudes", "--observable", "ZZ"]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert len(payload["probabilities"]) == 1
+    assert "amplitudes" in payload
+    assert payload["expectation"]["ZZ"] == pytest.approx(1.0)
+
+
+def test_cli_hardware_provider_artifacts(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    exit_code = main(
+        [
+            "hardware",
+            "ghz",
+            "--n-qubits",
+            "2",
+            "--output",
+            str(tmp_path),
+            "--provider",
+            "ibm",
+            "--qasm-version",
+            "openqasm3",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Created hardware artifacts" in captured.out
+    assert (tmp_path / "ghz.qasm3").exists()
+    assert "provider: `ibm`" in (tmp_path / "README.md").read_text(encoding="utf-8")
+
+
+def test_cli_run_sweep_uses_all_cases(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
+
+    exit_code = main(
+        [
+            "run",
+            "random-circuit",
+            "--backend",
+            "cirq",
+            "--sweep",
+            "n-qubits=2:3",
+            "--shots",
+            "8",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "random_circuit n=2" in captured.out
+    assert "random_circuit n=3" in captured.out
+
+
+def test_cli_noise_sweep_accepts_noise_type(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_cli_run_benchmark(monkeypatch)
+
+    exit_code = main(
+        [
+            "noise-sweep",
+            "ghz",
+            "--backend",
+            "cirq",
+            "--noise-type",
+            "phase_flip",
+            "--noise-levels",
+            "0",
+            "0.01",
+            "--shots",
+            "8",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "phase_flip" in captured.out or "ghz_noise" in captured.out
+
+
+def test_cli_diagnose_reports_findings(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    results_path = tmp_path / "results.json"
+    results_path.write_text(
+        json.dumps(
+            [
+                {"benchmark": "demo", "backend": "left", "counts": {"01": 1}, "metadata": {}},
+                {"benchmark": "demo", "backend": "right", "counts": {"10": 1}, "metadata": {}},
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["diagnose", str(results_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "endian" in captured.out

@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 from quantum_backend_bench.backends import BACKEND_REGISTRY
 from quantum_backend_bench.benchmarks import noise_sensitivity
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec
 from quantum_backend_bench.core.bundle import create_result_bundle
+from quantum_backend_bench.core.circuit_export import (
+    EXPORT_FORMATS,
+    export_benchmark_circuit,
+    import_openqasm_circuit,
+)
 from quantum_backend_bench.core.compatibility import format_compatibility_report
 from quantum_backend_bench.core.diff import (
     DEFAULT_DIFF_METRICS,
@@ -17,10 +23,17 @@ from quantum_backend_bench.core.diff import (
     format_diff_table,
     load_result_file,
 )
+from quantum_backend_bench.core.diagnostics import diagnose_result_parity
 from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabilities
 from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.draw import draw_benchmark
+from quantum_backend_bench.core.exact import (
+    exact_amplitudes,
+    exact_probabilities,
+    pauli_z_expectation,
+)
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
+from quantum_backend_bench.core.hardware import PROVIDERS, write_hardware_artifacts
 from quantum_backend_bench.core.presets import list_presets, load_preset, write_preset
 from quantum_backend_bench.core.report import (
     format_markdown_report,
@@ -29,6 +42,7 @@ from quantum_backend_bench.core.report import (
 )
 from quantum_backend_bench.core.runner import run_benchmark
 from quantum_backend_bench.core.suites import SUITES, build_suite
+from quantum_backend_bench.core.sweeps import expand_benchmark_sweep, parse_sweep_specs
 from quantum_backend_bench.core.summary import format_summary, summarize_results
 from quantum_backend_bench.utils.formatting import format_results_table
 from quantum_backend_bench.utils.io import save_csv, save_json
@@ -78,6 +92,11 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["portable", "teaching", "noise", "performance", "research"],
         default="research",
     )
+    recommend_parser.add_argument("--needs-noise", action="store_true")
+    recommend_parser.add_argument("--needs-statevector", action="store_true")
+    recommend_parser.add_argument("--no-external-runtime", action="store_true")
+    recommend_parser.add_argument("--max-qubits", type=_positive_int)
+    recommend_parser.add_argument("--python-version")
     recommend_parser.set_defaults(func=_recommend_command)
 
     compatibility_parser = subparsers.add_parser(
@@ -144,6 +163,52 @@ def _build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--title", default="Quantum Backend Benchmark Report")
     report_parser.set_defaults(func=_report_command)
 
+    diagnose_parser = subparsers.add_parser(
+        "diagnose", help="Explain likely causes of SDK result disagreement."
+    )
+    diagnose_parser.add_argument("results")
+    diagnose_parser.set_defaults(func=_diagnose_command)
+
+    export_parser = subparsers.add_parser(
+        "export", help="Export a benchmark circuit as internal JSON, OpenQASM, or native SDK text."
+    )
+    _add_benchmark_arguments(export_parser)
+    export_parser.add_argument("--format", choices=EXPORT_FORMATS, default="openqasm")
+    export_parser.add_argument("--backend", choices=sorted(BACKEND_REGISTRY))
+    export_parser.add_argument("--save-path")
+    export_parser.set_defaults(func=_export_command)
+
+    import_qasm_parser = subparsers.add_parser(
+        "import-qasm", help="Import a supported OpenQASM subset and print internal JSON."
+    )
+    import_qasm_parser.add_argument("source")
+    import_qasm_parser.add_argument("--name", default="imported_openqasm")
+    import_qasm_parser.add_argument("--save-json")
+    import_qasm_parser.set_defaults(func=_import_qasm_command)
+
+    exact_parser = subparsers.add_parser(
+        "exact", help="Print exact measurement probabilities for an internal benchmark circuit."
+    )
+    _add_benchmark_arguments(exact_parser)
+    exact_parser.add_argument("--save-json")
+    exact_parser.add_argument("--top-k", type=_positive_int)
+    exact_parser.add_argument("--amplitudes", action="store_true")
+    exact_parser.add_argument("--observable", help="Pauli I/Z observable, e.g. ZZI.")
+    exact_parser.set_defaults(func=_exact_command)
+
+    hardware_parser = subparsers.add_parser(
+        "hardware", help="Write hardware-preparation artifacts without submitting cloud jobs."
+    )
+    _add_benchmark_arguments(hardware_parser)
+    hardware_parser.add_argument("--output", "-o", required=True)
+    hardware_parser.add_argument("--backend-hint")
+    hardware_parser.add_argument("--provider", choices=PROVIDERS, default="generic")
+    hardware_parser.add_argument(
+        "--qasm-version", choices=["openqasm", "openqasm2", "openqasm3"], default="openqasm"
+    )
+    hardware_parser.add_argument("--shots", type=_positive_int, default=1024)
+    hardware_parser.set_defaults(func=_hardware_command)
+
     experiment_parser = subparsers.add_parser(
         "experiment", help="Run benchmark cases from a JSON or YAML manifest."
     )
@@ -179,6 +244,9 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Run a single benchmark on one backend.")
     _add_benchmark_arguments(run_parser)
     run_parser.add_argument("--backend", required=True, choices=sorted(BACKEND_REGISTRY))
+    run_parser.add_argument(
+        "--sweep", action="append", help="Parameter sweep, e.g. n-qubits=2:6 or depth=4,8."
+    )
     run_parser.set_defaults(func=_run_command)
 
     compare_parser = subparsers.add_parser(
@@ -188,11 +256,19 @@ def _build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument(
         "--backends", nargs="+", required=True, choices=sorted(BACKEND_REGISTRY)
     )
+    compare_parser.add_argument(
+        "--sweep", action="append", help="Parameter sweep, e.g. n-qubits=2:6 or depth=4,8."
+    )
     compare_parser.set_defaults(func=_compare_command)
 
     noise_parser = subparsers.add_parser("noise-sweep", help="Run a depolarizing noise sweep.")
     _add_benchmark_arguments(noise_parser)
     noise_parser.add_argument("--backend", required=True, choices=sorted(BACKEND_REGISTRY))
+    noise_parser.add_argument(
+        "--noise-type",
+        choices=["depolarizing", "bit_flip", "phase_flip", "amplitude_damping", "readout_error"],
+        default="depolarizing",
+    )
     noise_parser.add_argument(
         "--noise-levels",
         nargs="+",
@@ -285,8 +361,17 @@ def _recommend_command(args: argparse.Namespace) -> int:
         capability for capability in backend_capabilities() if capability.role == "execution"
     ]
     installed = [capability for capability in execution_capabilities if capability.installed]
+    installed = _filter_recommendations(installed, args)
     ranked = _rank_capabilities(installed, args.use_case)
     print(f"Recommended installed backends for {args.use_case}")
+    if args.max_qubits is not None:
+        print(
+            f"Constraint: max_qubits={args.max_qubits} (local simulators are not hard-limited by metadata; validate memory locally)."
+        )
+    if args.python_version:
+        print(
+            f"Constraint: python_version={args.python_version} (use compatibility for package-version details)."
+        )
     if not ranked:
         print("No installed execution backends found.")
     for index, capability in enumerate(ranked, start=1):
@@ -380,6 +465,79 @@ def _report_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _diagnose_command(args: argparse.Namespace) -> int:
+    bundle = load_report_input(args.results)
+    for finding in diagnose_result_parity(list(bundle.get("results", []))):
+        print(f"- {finding}")
+    return 0
+
+
+def _export_command(args: argparse.Namespace) -> int:
+    benchmark = _build_benchmark_from_args(args)
+    output = export_benchmark_circuit(
+        benchmark, args.format, backend=args.backend, save_path=args.save_path
+    )
+    print(output)
+    if args.save_path:
+        print(f"Saved circuit export to {args.save_path}")
+    return 0
+
+
+def _import_qasm_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    benchmark = import_openqasm_circuit(source, name=args.name)
+    output = export_benchmark_circuit(benchmark, "internal-json", save_path=args.save_json)
+    print(output)
+    if args.save_json:
+        print(f"Saved imported circuit JSON to {args.save_json}")
+    return 0
+
+
+def _exact_command(args: argparse.Namespace) -> int:
+    benchmark = _build_benchmark_from_args(args)
+    payload: dict[str, object] = {
+        "probabilities": exact_probabilities(benchmark, top_k=args.top_k),
+    }
+    if args.amplitudes:
+        payload["amplitudes"] = exact_amplitudes(benchmark, top_k=args.top_k)
+    if args.observable:
+        payload["expectation"] = {args.observable: pauli_z_expectation(benchmark, args.observable)}
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    if args.save_json:
+        save_json(payload, args.save_json)
+        print(f"Saved exact results to {args.save_json}")
+    return 0
+
+
+def _hardware_command(args: argparse.Namespace) -> int:
+    benchmark = _build_benchmark_from_args(args)
+    paths = write_hardware_artifacts(
+        benchmark,
+        args.output,
+        backend_hint=args.backend_hint,
+        shots=args.shots,
+        provider=args.provider,
+        qasm_version=args.qasm_version,
+    )
+    print(f"Created hardware artifacts at {args.output}")
+    for key, path in sorted(paths.items()):
+        print(f"  {key}: {path}")
+    return 0
+
+
+def _filter_recommendations(capabilities: list[object], args: argparse.Namespace) -> list[object]:
+    filtered = []
+    for capability in capabilities:
+        if args.needs_noise and getattr(capability, "noise_support") in {"not injected", "n/a"}:
+            continue
+        if args.needs_statevector and not getattr(capability, "exact_statevector"):
+            continue
+        if args.no_external_runtime and getattr(capability, "external_process"):
+            continue
+        filtered.append(capability)
+    return filtered
+
+
 def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object]:
     def score(capability: object) -> tuple[int, str]:
         value = 0
@@ -413,7 +571,7 @@ def _missing_reasons(capability: object) -> list[str]:
         reasons.append("outside credential-free local execution scope")
     if getattr(capability, "includes_transpilation_time"):
         reasons.append("runtime includes transpilation")
-    if getattr(capability, "noise_support") != "not injected":
+    if getattr(capability, "noise_support") not in {"not injected", "n/a"}:
         reasons.append(f"noise={getattr(capability, 'noise_support')}")
     return reasons
 
@@ -424,7 +582,7 @@ def _recommendation_reasons(capability: object, use_case: str) -> list[str]:
         reasons.append("local")
     if getattr(capability, "shot_sampling"):
         reasons.append("shot sampling")
-    if getattr(capability, "noise_support") != "not injected":
+    if getattr(capability, "noise_support") not in {"not injected", "n/a"}:
         reasons.append(f"noise={getattr(capability, 'noise_support')}")
     if getattr(capability, "exact_statevector"):
         reasons.append("exact statevector")
@@ -453,6 +611,10 @@ def _add_benchmark_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--gamma", type=float, default=0.8)
     parser.add_argument("--beta", type=float, default=0.4)
     parser.add_argument("--graph", choices=["line", "ring"], default="ring")
+    parser.add_argument("--theta", type=float, default=0.3)
+    parser.add_argument("--phase", type=float, default=0.25)
+    parser.add_argument("--probability", type=_probability, default=0.25)
+    parser.add_argument("--feature-scale", type=float, default=0.7)
 
 
 def _positive_int(value: str) -> int:
@@ -469,7 +631,7 @@ def _probability(value: str) -> float:
     return parsed
 
 
-def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:
+def _benchmark_config_from_args(args: argparse.Namespace) -> dict[str, object]:
     config: dict[str, object] = {"benchmark": args.benchmark}
     for key in (
         "n_qubits",
@@ -486,28 +648,48 @@ def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:
         "gamma",
         "beta",
         "graph",
+        "theta",
+        "phase",
+        "probability",
+        "feature_scale",
     ):
         value = getattr(args, key, None)
         if value is not None:
             config[key] = value
-    return build_benchmark_from_config(config)
+    return config
+
+
+def _build_benchmark_from_args(args: argparse.Namespace) -> BenchmarkSpec:
+    return build_benchmark_from_config(_benchmark_config_from_args(args))
+
+
+def _swept_benchmarks_from_args(args: argparse.Namespace) -> list[BenchmarkSpec]:
+    return expand_benchmark_sweep(_benchmark_config_from_args(args), parse_sweep_specs(args.sweep))
 
 
 def _run_command(args: argparse.Namespace) -> int:
-    benchmark = _build_benchmark_from_args(args)
-    results = run_benchmark(benchmark, [args.backend], shots=args.shots, repeats=args.repeats)
+    results = []
+    for benchmark in _swept_benchmarks_from_args(args):
+        results.extend(
+            run_benchmark(benchmark, [args.backend], shots=args.shots, repeats=args.repeats)
+        )
     return _render_and_save(results, args)
 
 
 def _compare_command(args: argparse.Namespace) -> int:
-    benchmark = _build_benchmark_from_args(args)
-    results = run_benchmark(benchmark, list(args.backends), shots=args.shots, repeats=args.repeats)
+    results = []
+    for benchmark in _swept_benchmarks_from_args(args):
+        results.extend(
+            run_benchmark(benchmark, list(args.backends), shots=args.shots, repeats=args.repeats)
+        )
     return _render_and_save(results, args)
 
 
 def _noise_command(args: argparse.Namespace) -> int:
     benchmark = _build_benchmark_from_args(args)
-    noisy_specs = noise_sensitivity.build_benchmark(benchmark, noise_levels=args.noise_levels)
+    noisy_specs = noise_sensitivity.build_benchmark(
+        benchmark, noise_type=args.noise_type, noise_levels=args.noise_levels
+    )
     results = []
     for spec in noisy_specs:
         results.extend(run_benchmark(spec, [args.backend], shots=args.shots, repeats=args.repeats))

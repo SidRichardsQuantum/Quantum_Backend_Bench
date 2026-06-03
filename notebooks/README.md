@@ -1,8 +1,9 @@
 # Tutorial Notebooks
 
 These notebooks are succinct package-client examples. They use the public package
-API to run local, credential-free quantum simulator benchmarks and print readable
-verification tables.
+API to run local, credential-free quantum simulator benchmarks. Each notebook opens
+with the problem, quantum-advantage scope, and variable definitions, then uses
+readable tables, useful plots, saved artifacts, and verification checks.
 
 ## Notebooks
 
@@ -11,6 +12,8 @@ verification tables.
   GHZ and QFT.
 - `03_hamiltonian_simulation_case_study.ipynb`: vary qubits, evolution time,
   and Trotter steps for a small Ising-style Hamiltonian simulation study.
+- `03_sdk_cirq_workflow.ipynb` through `07_sdk_qutip_workflow.ipynb`: compact
+  SDK export, execution, plotting, artifact, and verification workflows.
 
 ## Suggested Install
 
@@ -24,3 +27,12 @@ to compare, for example:
 ```bash
 python -m pip install -e ".[all,notebooks]"
 ```
+
+## SDK Workflows
+
+- `03_sdk_cirq_workflow.ipynb`: circuit export and local Cirq execution workflow.
+- `04_sdk_qiskit_workflow.ipynb`: circuit export and Qiskit Aer execution workflow.
+- `05_sdk_pennylane_workflow.ipynb`: circuit export and PennyLane execution workflow.
+- `06_sdk_braket_workflow.ipynb`: circuit export and Braket LocalSimulator workflow.
+- `07_sdk_qutip_workflow.ipynb`: exact-probability workflow using the internal statevector path.
+

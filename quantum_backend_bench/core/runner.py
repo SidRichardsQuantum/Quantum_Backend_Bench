@@ -25,6 +25,10 @@ DEFAULT_METRICS = [
     "gate_count",
     "two_qubit_gate_count",
     "runtime_seconds",
+    "compile_seconds",
+    "compiled_depth",
+    "compiled_gate_count",
+    "compiled_two_qubit_gate_count",
     "measurement_distribution",
     "success_probability",
     "total_variation_distance",
@@ -75,6 +79,18 @@ def run_benchmark(
             metric_values["runtime_seconds_stddev"] = runtime_stats["stddev"]
             metric_values["runtime_seconds_min"] = runtime_stats["min"]
             metric_values["runtime_seconds_max"] = runtime_stats["max"]
+        compile_stats = _numeric_execution_stats(executions, "compile_seconds")
+        if "compile_seconds" in selected_metrics:
+            metric_values["compile_seconds"] = compile_stats["mean"]
+            metric_values["compile_seconds_stddev"] = compile_stats["stddev"]
+        if "compiled_depth" in selected_metrics:
+            metric_values["compiled_depth"] = execution.get("compiled_depth")
+        if "compiled_gate_count" in selected_metrics:
+            metric_values["compiled_gate_count"] = execution.get("compiled_gate_count")
+        if "compiled_two_qubit_gate_count" in selected_metrics:
+            metric_values["compiled_two_qubit_gate_count"] = execution.get(
+                "compiled_two_qubit_gate_count"
+            )
         if "measurement_distribution" in selected_metrics:
             metric_values["measurement_distribution"] = distribution
         if "success_probability" in selected_metrics:
@@ -122,6 +138,9 @@ def run_benchmark(
                 "shots_per_repeat": shots,
                 "total_shots": total_shots,
                 "runtime_seconds_samples": runtime_stats["samples"],
+                "compile_seconds_samples": compile_stats["samples"],
+                "compile_toolchain": execution.get("compile_toolchain"),
+                "compiled_basis_gates": execution.get("compiled_basis_gates"),
                 "environment": environment,
                 **backend_runtime_metadata(backend.name),
                 **{
@@ -135,6 +154,12 @@ def run_benchmark(
                         "noise_applied",
                         "seed_supported",
                         "seed_applied",
+                        "compile_seconds",
+                        "compiled_depth",
+                        "compiled_gate_count",
+                        "compiled_two_qubit_gate_count",
+                        "compiled_basis_gates",
+                        "compile_toolchain",
                     }
                 },
             },
@@ -148,6 +173,19 @@ def _merge_counts(executions: list[dict[str, Any]]) -> dict[str, int]:
     for execution in executions:
         merged.update(execution.get("counts", {}))
     return dict(merged)
+
+
+def _numeric_execution_stats(executions: list[dict[str, Any]], key: str) -> dict[str, Any]:
+    samples = [float(execution[key]) for execution in executions if execution.get(key) is not None]
+    if not samples:
+        return {"samples": [], "mean": None, "stddev": None, "min": None, "max": None}
+    return {
+        "samples": samples,
+        "mean": statistics.fmean(samples),
+        "stddev": statistics.stdev(samples) if len(samples) > 1 else 0.0,
+        "min": min(samples),
+        "max": max(samples),
+    }
 
 
 def _runtime_stats(executions: list[dict[str, Any]]) -> dict[str, Any]:

@@ -6,6 +6,18 @@ from quantum_backend_bench.core.benchmark_spec import (
     CircuitOperation,
     InternalCircuit,
 )
+from quantum_backend_bench.core.circuit_export import (
+    export_benchmark_circuit,
+    import_openqasm_circuit,
+)
+from quantum_backend_bench.core.diagnostics import diagnose_result_parity
+from quantum_backend_bench.core.exact import (
+    exact_amplitudes,
+    exact_probabilities,
+    pauli_z_expectation,
+)
+from quantum_backend_bench.core.hardware import write_hardware_artifacts
+from quantum_backend_bench.core.sweeps import expand_benchmark_sweep, parse_sweep_specs
 from quantum_backend_bench.core.bundle import create_result_bundle
 from quantum_backend_bench.core.compatibility import (
     compatibility_rows,
@@ -60,6 +72,15 @@ def run_experiment_manifest(path):  # type: ignore[no-untyped-def]
 
 
 __all__ = [
+    "pauli_z_expectation",
+    "import_openqasm_circuit",
+    "exact_amplitudes",
+    "write_hardware_artifacts",
+    "parse_sweep_specs",
+    "export_benchmark_circuit",
+    "expand_benchmark_sweep",
+    "exact_probabilities",
+    "diagnose_result_parity",
     "BenchmarkSpec",
     "BENCHMARK_BUILDERS",
     "BENCHMARK_INFOS",

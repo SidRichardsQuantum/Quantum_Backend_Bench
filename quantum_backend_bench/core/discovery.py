@@ -39,6 +39,13 @@ class BackendCapability:
 
 
 BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
+    "amplitude-estimation": BenchmarkInfo(
+        cli_name="amplitude-estimation",
+        result_name="amplitude_estimation",
+        family="estimation",
+        description="Run a compact amplitude amplification workload.",
+        key_parameters=("n_qubits", "probability", "iterations"),
+    ),
     "bernstein-vazirani": BenchmarkInfo(
         cli_name="bernstein-vazirani",
         result_name="bernstein_vazirani",
@@ -74,6 +81,13 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         description="Run first-order Trotterized Ising-style evolution.",
         key_parameters=("n_qubits", "time", "trotter_steps"),
     ),
+    "phase-estimation": BenchmarkInfo(
+        cli_name="phase-estimation",
+        result_name="phase_estimation",
+        family="estimation",
+        description="Run a small phase-kickback and inverse-QFT-style workload.",
+        key_parameters=("n_qubits", "phase"),
+    ),
     "qft": BenchmarkInfo(
         cli_name="qft",
         result_name="qft",
@@ -87,6 +101,13 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         family="optimization",
         description="Run a single-layer QAOA MaxCut workload on a line or ring graph.",
         key_parameters=("n_qubits", "gamma", "beta", "graph"),
+    ),
+    "quantum-kernel": BenchmarkInfo(
+        cli_name="quantum-kernel",
+        result_name="quantum_kernel",
+        family="machine_learning",
+        description="Run a repeated feature-map circuit for kernel-method examples.",
+        key_parameters=("n_qubits", "depth", "feature_scale"),
     ),
     "quantum-volume": BenchmarkInfo(
         cli_name="quantum-volume",
@@ -102,6 +123,13 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         description="Build a reproducible random circuit with fixed gate choices.",
         key_parameters=("n_qubits", "depth", "seed"),
     ),
+    "vqe-ansatz": BenchmarkInfo(
+        cli_name="vqe-ansatz",
+        result_name="vqe_ansatz",
+        family="chemistry",
+        description="Run a hardware-efficient ansatz used in VQE-style workflows.",
+        key_parameters=("n_qubits", "depth", "theta"),
+    ),
 }
 
 
@@ -114,7 +142,7 @@ def backend_capabilities() -> list[BackendCapability]:
             role="execution",
             installed=_is_module_installed("cirq"),
             install_extra="cirq",
-            noise_support="depolarizing",
+            noise_support="preset models",
             shot_sampling=True,
             exact_statevector=False,
             external_process=False,
@@ -127,7 +155,7 @@ def backend_capabilities() -> list[BackendCapability]:
             role="execution",
             installed=_is_module_installed("pennylane"),
             install_extra="pennylane",
-            noise_support="depolarizing",
+            noise_support="preset models",
             shot_sampling=True,
             exact_statevector=False,
             external_process=False,
@@ -153,7 +181,7 @@ def backend_capabilities() -> list[BackendCapability]:
             role="execution",
             installed=_is_module_installed("qiskit") and _is_module_installed("qiskit_aer"),
             install_extra="qiskit",
-            noise_support="depolarizing",
+            noise_support="preset models",
             shot_sampling=True,
             exact_statevector=False,
             external_process=False,

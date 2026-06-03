@@ -37,10 +37,12 @@ class CirqBackend(BaseBackend):
             circuit.append(_to_cirq_operation(cirq, operation, qubits))
 
         noise_metadata = benchmark.metadata or {}
-        if noise_metadata.get("noise_type") == "depolarizing":
-            probability = float(noise_metadata.get("noise_level", 0.0))
-            if probability > 0:
-                circuit = circuit.with_noise(cirq.depolarize(probability))
+        probability = float(noise_metadata.get("noise_level", 0.0))
+        noise_type = noise_metadata.get("noise_type")
+        if probability > 0:
+            noise = _cirq_noise(cirq, str(noise_type), probability)
+            if noise is not None:
+                circuit = circuit.with_noise(noise)
 
         if circuit_data.measurements:
             circuit.append(
@@ -51,15 +53,19 @@ class CirqBackend(BaseBackend):
 
     def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
         circuit = self.build_native_circuit(benchmark)
+        import cirq
+
         noise_metadata = benchmark.metadata or {}
         noise_applied = (
-            noise_metadata.get("noise_type") == "depolarizing"
-            and float(noise_metadata.get("noise_level", 0.0)) > 0
+            _cirq_noise(
+                cirq,
+                str(noise_metadata.get("noise_type")),
+                float(noise_metadata.get("noise_level", 0.0)),
+            )
+            is not None
         )
 
         start = time.perf_counter()
-        import cirq
-
         seed = benchmark.parameters.get("seed")
         simulator = cirq.Simulator(seed=seed) if seed is not None else cirq.Simulator()
         result = simulator.run(circuit, repetitions=shots)
@@ -75,7 +81,37 @@ class CirqBackend(BaseBackend):
             "noise_applied": noise_applied,
             "seed_supported": True,
             "seed_applied": seed is not None,
+            "compile_seconds": 0.0,
+            "compiled_depth": len(circuit),
+            "compiled_gate_count": sum(1 for _ in circuit.all_operations()),
+            "compiled_two_qubit_gate_count": sum(
+                1 for operation in circuit.all_operations() if len(operation.qubits) == 2
+            ),
+            "compiled_basis_gates": _cirq_gate_counts(circuit),
+            "compile_toolchain": "cirq.Circuit",
         }
+
+
+def _cirq_gate_counts(circuit: Any) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for operation in circuit.all_operations():
+        name = str(operation.gate).split("(", 1)[0]
+        counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
+def _cirq_noise(cirq_module: Any, noise_type: str, probability: float) -> Any | None:
+    if probability <= 0:
+        return None
+    if noise_type == "depolarizing":
+        return cirq_module.depolarize(probability)
+    if noise_type in {"bit_flip", "readout_error"}:
+        return cirq_module.bit_flip(probability)
+    if noise_type == "phase_flip":
+        return cirq_module.phase_flip(probability)
+    if noise_type == "amplitude_damping":
+        return cirq_module.amplitude_damp(probability)
+    return None
 
 
 def _to_cirq_operation(cirq_module: Any, operation: CircuitOperation, qubits: list[Any]) -> Any:

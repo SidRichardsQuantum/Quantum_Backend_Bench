@@ -33,7 +33,11 @@ class PennyLaneBackend(BaseBackend):
 
         metadata = benchmark.metadata or {}
         noise_level = float(metadata.get("noise_level", 0.0))
-        use_mixed = metadata.get("noise_type") == "depolarizing" and noise_level > 0
+        use_mixed = (
+            metadata.get("noise_type")
+            in {"depolarizing", "bit_flip", "phase_flip", "amplitude_damping", "readout_error"}
+            and noise_level > 0
+        )
         device_name = "default.mixed" if use_mixed else "default.qubit"
         seed = benchmark.parameters.get("seed")
         dev, seed_applied = _make_device(qml, device_name, wires=circuit_data.n_qubits, seed=seed)
@@ -41,7 +45,12 @@ class PennyLaneBackend(BaseBackend):
         @qml.qnode(dev)
         def circuit() -> Any:
             for operation in circuit_data.operations:
-                _apply_pennylane_op(qml, operation, noise_level=noise_level if use_mixed else 0.0)
+                _apply_pennylane_op(
+                    qml,
+                    operation,
+                    noise_level=noise_level if use_mixed else 0.0,
+                    noise_type=str(metadata.get("noise_type", "depolarizing")),
+                )
             return qml.sample(wires=circuit_data.measurements or list(range(circuit_data.n_qubits)))
 
         try:
@@ -66,7 +75,11 @@ class PennyLaneBackend(BaseBackend):
         circuit = self.build_native_circuit(benchmark)
         metadata = benchmark.metadata or {}
         noise_level = float(metadata.get("noise_level", 0.0))
-        use_mixed = metadata.get("noise_type") == "depolarizing" and noise_level > 0
+        use_mixed = (
+            metadata.get("noise_type")
+            in {"depolarizing", "bit_flip", "phase_flip", "amplitude_damping", "readout_error"}
+            and noise_level > 0
+        )
 
         start = time.perf_counter()
         sampled_circuit = qml.set_shots(circuit, shots=shots)
@@ -86,7 +99,12 @@ class PennyLaneBackend(BaseBackend):
         }
 
 
-def _apply_pennylane_op(qml: Any, operation: CircuitOperation, noise_level: float = 0.0) -> None:
+def _apply_pennylane_op(
+    qml: Any,
+    operation: CircuitOperation,
+    noise_level: float = 0.0,
+    noise_type: str = "depolarizing",
+) -> None:
     gate = operation.gate
     q = list(operation.qubits)
     params = operation.params
@@ -122,7 +140,14 @@ def _apply_pennylane_op(qml: Any, operation: CircuitOperation, noise_level: floa
 
     if noise_level > 0:
         for wire in q:
-            qml.DepolarizingChannel(noise_level, wires=wire)
+            if noise_type in {"bit_flip", "readout_error"}:
+                qml.BitFlip(noise_level, wires=wire)
+            elif noise_type == "phase_flip":
+                qml.PhaseFlip(noise_level, wires=wire)
+            elif noise_type == "amplitude_damping":
+                qml.AmplitudeDamping(noise_level, wires=wire)
+            else:
+                qml.DepolarizingChannel(noise_level, wires=wire)
 
 
 def _unwrap_noise_benchmark(benchmark: BenchmarkSpec) -> Any:

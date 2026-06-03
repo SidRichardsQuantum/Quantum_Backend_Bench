@@ -30,6 +30,11 @@ def results_to_records(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "runtime_seconds_stddev": metrics.get("runtime_seconds_stddev"),
             "runtime_seconds_min": metrics.get("runtime_seconds_min"),
             "runtime_seconds_max": metrics.get("runtime_seconds_max"),
+            "compile_seconds": metrics.get("compile_seconds"),
+            "compile_seconds_stddev": metrics.get("compile_seconds_stddev"),
+            "compiled_depth": metrics.get("compiled_depth"),
+            "compiled_gate_count": metrics.get("compiled_gate_count"),
+            "compiled_two_qubit_gate_count": metrics.get("compiled_two_qubit_gate_count"),
             "depth": metrics.get("depth"),
             "gate_count": metrics.get("gate_count"),
             "two_qubit_gate_count": metrics.get("two_qubit_gate_count"),
@@ -41,6 +46,10 @@ def results_to_records(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "noise_applied": metadata.get("noise_applied"),
             "seed": metadata.get("seed"),
             "runtime_includes_transpilation": metadata.get("runtime_includes_transpilation"),
+            "compile_toolchain": metadata.get("compile_toolchain"),
+            "compiled_basis_gates": json.dumps(
+                metadata.get("compiled_basis_gates") or {}, sort_keys=True
+            ),
             "external_process": metadata.get("external_process"),
             "local_only": metadata.get("local_only"),
             "parameters": json.dumps(result.get("parameters", {}) or {}, sort_keys=True),

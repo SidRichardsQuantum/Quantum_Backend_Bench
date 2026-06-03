@@ -667,3 +667,23 @@ Sid Richards
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## SDK Utility Workflows
+
+The CLI includes SDK-facing workflows beyond local benchmark execution:
+
+```bash
+quantum-bench export ghz --n-qubits 3 --format openqasm
+quantum-bench export ghz --n-qubits 3 --format openqasm3
+quantum-bench export ghz --n-qubits 3 --format native --backend cirq
+quantum-bench import-qasm artifacts/ghz.qasm3 --name imported_ghz
+quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
+quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
+quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
+quantum-bench diagnose artifacts/ghz.json
+quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa --provider ibm --qasm-version openqasm3 --backend-hint provider-device
+quantum-bench recommend --needs-noise --no-external-runtime
+```
+
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/03_sdk_cirq_workflow.ipynb` through `notebooks/07_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
+

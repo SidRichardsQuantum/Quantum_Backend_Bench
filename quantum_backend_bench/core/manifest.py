@@ -13,6 +13,7 @@ from quantum_backend_bench.core.environment import capture_environment
 from quantum_backend_bench.core.factory import build_benchmark_from_config
 from quantum_backend_bench.core.report import save_markdown_report
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench.core.sweeps import expand_benchmark_sweep, parse_sweep_specs
 from quantum_backend_bench.utils.io import save_csv, save_json
 from quantum_backend_bench.utils.plotting import save_suite_runtime_plot
 
@@ -67,14 +68,24 @@ def run_experiment(
     for case in cases:
         if not isinstance(case, dict):
             raise ValueError("Each benchmark case must be an object.")
-        benchmark = build_benchmark_from_config(case)
-        benchmarks = [benchmark]
-        if case.get("noise_levels") is not None:
-            benchmarks = build_noise_benchmarks(
-                benchmark,
-                noise_type=str(case.get("noise_type", "depolarizing")),
-                noise_levels=case["noise_levels"],
-            )
+        sweep = case.get("sweep")
+        base_benchmarks = (
+            expand_benchmark_sweep(case, parse_sweep_specs(sweep))
+            if sweep is not None
+            else [build_benchmark_from_config(case)]
+        )
+        benchmarks = []
+        for benchmark in base_benchmarks:
+            if case.get("noise_levels") is not None:
+                benchmarks.extend(
+                    build_noise_benchmarks(
+                        benchmark,
+                        noise_type=str(case.get("noise_type", "depolarizing")),
+                        noise_levels=case["noise_levels"],
+                    )
+                )
+            else:
+                benchmarks.append(benchmark)
         case_backends = case.get("backends", backends)
         case_shots = int(case.get("shots", shots))
         case_repeats = int(case.get("repeats", repeats))
