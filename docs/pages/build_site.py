@@ -45,6 +45,12 @@ DOCS = [
         "Supported Python versions, SDK extras, and local runtime requirements.",
     ),
     (
+        "Translation",
+        ROOT / "docs" / "CIRCUIT_TRANSLATION.md",
+        "translation.html",
+        "Circuit translation, verification, reports, and SDK migration caveats.",
+    ),
+    (
         "Limitations",
         ROOT / "docs" / "LIMITATIONS.md",
         "limitations.html",
@@ -117,6 +123,7 @@ def nav(current: str | None) -> str:
         ("Results", "results.html"),
         ("Theory", "theory.html"),
         ("Compatibility", "compatibility.html"),
+        ("Translation", "translation.html"),
         ("Portfolio", PORTFOLIO_URL),
         ("GitHub", REPO_URL),
     ]

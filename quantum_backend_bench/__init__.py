@@ -10,6 +10,22 @@ from quantum_backend_bench.core.circuit_export import (
     export_benchmark_circuit,
     import_openqasm_circuit,
 )
+from quantum_backend_bench.core.circuit_translate import (
+    TRANSLATION_INPUT_FORMATS,
+    TRANSLATION_OUTPUT_FORMATS,
+    TRANSLATION_VERIFY_MODES,
+    TranslationDiagnostic,
+    TranslationError,
+    TranslationResult,
+    TranslationVerification,
+    emit_circuit_source,
+    import_circuit_source,
+    translate_circuit_source,
+    translation_check_report,
+    translation_error_report,
+    translation_result_report,
+    verify_translation,
+)
 from quantum_backend_bench.core.diagnostics import diagnose_result_parity
 from quantum_backend_bench.core.exact import (
     exact_amplitudes,
@@ -118,6 +134,20 @@ __all__ = [
     "save_markdown_report",
     "summarize_results",
     "validate_backends",
+    "TRANSLATION_INPUT_FORMATS",
+    "TRANSLATION_OUTPUT_FORMATS",
+    "TRANSLATION_VERIFY_MODES",
+    "TranslationDiagnostic",
+    "TranslationError",
+    "TranslationResult",
+    "TranslationVerification",
+    "emit_circuit_source",
+    "import_circuit_source",
+    "translate_circuit_source",
+    "translation_check_report",
+    "translation_error_report",
+    "translation_result_report",
+    "verify_translation",
     "validation_passed",
     "write_preset",
 ]

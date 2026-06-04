@@ -46,6 +46,7 @@ For the theoretical background behind shots, distributions, success probability,
 - [Examples](#examples)
 - [Development Workflow](#development-workflow)
 - [SDK Utility Workflows](#sdk-utility-workflows)
+- [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md)
 - [Author](#author)
 - [License](#license)
 
@@ -665,6 +666,11 @@ quantum-bench export ghz --n-qubits 3 --format openqasm
 quantum-bench export ghz --n-qubits 3 --format openqasm3
 quantum-bench export ghz --n-qubits 3 --format native --backend cirq
 quantum-bench import-qasm artifacts/ghz.qasm3 --name imported_ghz
+quantum-bench translate artifacts/ghz.qasm --from-format openqasm --to-format cirq --verify exact --output artifacts/ghz_cirq.py
+quantum-bench translate examples/qiskit_circuit.py --from-format qiskit --to-format pennylane --verify exact --output artifacts/circuit_pennylane.py
+quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit
+quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit --json
+quantum-bench translate examples/translation/ghz.qasm --from-format openqasm --to-format cirq --verify exact --save-report artifacts/translation_report.json
 quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
 quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
 quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
@@ -673,7 +679,9 @@ quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa
 quantum-bench recommend --needs-noise --no-external-runtime
 ```
 
-Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks.
+`translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. SDK output is limited to free local Python SDK APIs for now: Cirq, Qiskit, PennyLane, and Braket LocalSimulator. Unsupported dynamic Python constructs are rejected instead of rewritten approximately. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) for supported gates, static Python patterns, diagnostics, runnable-script output, report artifacts, examples, caveats, and verification modes.
+
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks. `notebooks/09_circuit_translation_workflow.ipynb` covers all-target local SDK circuit translation, SDK-native diagram comparison, reports, runner output, and diagnostics.
 
 ---
 

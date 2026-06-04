@@ -15,6 +15,17 @@ from quantum_backend_bench.core.circuit_export import (
     export_benchmark_circuit,
     import_openqasm_circuit,
 )
+from quantum_backend_bench.core.circuit_translate import (
+    TRANSLATION_INPUT_FORMATS,
+    TRANSLATION_OUTPUT_FORMATS,
+    TRANSLATION_VERIFY_MODES,
+    TranslationError,
+    import_circuit_source,
+    translate_circuit_source,
+    translation_check_report,
+    translation_error_report,
+    translation_result_report,
+)
 from quantum_backend_bench.core.compatibility import format_compatibility_report
 from quantum_backend_bench.core.diff import (
     DEFAULT_DIFF_METRICS,
@@ -185,6 +196,74 @@ def _build_parser() -> argparse.ArgumentParser:
     import_qasm_parser.add_argument("--name", default="imported_openqasm")
     import_qasm_parser.add_argument("--save-json")
     import_qasm_parser.set_defaults(func=_import_qasm_command)
+
+    translate_parser = subparsers.add_parser(
+        "translate",
+        help="Translate supported OpenQASM, internal JSON, or static SDK circuits.",
+    )
+    translate_parser.add_argument("source")
+    translate_parser.add_argument(
+        "--from-format",
+        choices=TRANSLATION_INPUT_FORMATS,
+        default="auto",
+        help="Input circuit format. Auto-detection supports OpenQASM, internal JSON, and static SDK snippets.",
+    )
+    translate_parser.add_argument(
+        "--to-format",
+        required=True,
+        choices=TRANSLATION_OUTPUT_FORMATS,
+        help="Output format. SDK outputs are limited to free local Python SDKs.",
+    )
+    translate_parser.add_argument("--output", "-o")
+    translate_parser.add_argument("--save-report")
+    translate_parser.add_argument("--name", default="translated_circuit")
+    translate_parser.add_argument(
+        "--include-runner",
+        action="store_true",
+        help="Emit a runnable script that executes the translated circuit locally.",
+    )
+    translate_parser.add_argument(
+        "--runner-shots",
+        type=_positive_int,
+        default=1024,
+        help="Shot count baked into --include-runner output.",
+    )
+    translate_parser.add_argument(
+        "--verify",
+        choices=TRANSLATION_VERIFY_MODES,
+        default="none",
+        help="Compare source and translated circuit semantics through the neutral simulator.",
+    )
+    translate_parser.add_argument(
+        "--verify-tolerance",
+        type=float,
+        default=1e-9,
+        help="Maximum allowed total variation distance for semantic verification.",
+    )
+    translate_parser.add_argument(
+        "--sample-shots",
+        type=_positive_int,
+        default=2048,
+        help="Shot count used by --verify samples.",
+    )
+    translate_parser.set_defaults(func=_translate_command)
+
+    translate_check_parser = subparsers.add_parser(
+        "translate-check",
+        help="Inspect whether a circuit source can be translated without writing output.",
+    )
+    translate_check_parser.add_argument("source")
+    translate_check_parser.add_argument(
+        "--from-format", choices=TRANSLATION_INPUT_FORMATS, default="auto"
+    )
+    translate_check_parser.add_argument("--save-report")
+    translate_check_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the translation-check report as JSON to stdout.",
+    )
+    translate_check_parser.add_argument("--name", default="checked_circuit")
+    translate_check_parser.set_defaults(func=_translate_check_command)
 
     exact_parser = subparsers.add_parser(
         "exact", help="Print exact measurement probabilities for an internal benchmark circuit."
@@ -491,6 +570,98 @@ def _import_qasm_command(args: argparse.Namespace) -> int:
     if args.save_json:
         print(f"Saved imported circuit JSON to {args.save_json}")
     return 0
+
+
+def _translate_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        result = translate_circuit_source(
+            source,
+            from_format=args.from_format,
+            to_format=args.to_format,
+            name=args.name,
+            verify=args.verify,
+            verification_tolerance=args.verify_tolerance,
+            sample_shots=args.sample_shots,
+            include_runner=args.include_runner,
+            runner_shots=args.runner_shots,
+        )
+    except TranslationError as exc:
+        print("Translation failed")
+        for diagnostic in exc.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        if args.save_report:
+            _write_translation_report(
+                args.save_report,
+                translation_error_report(
+                    exc, source_path=args.source, from_format=args.from_format
+                ),
+            )
+        return 1
+    if args.output:
+        Path(args.output).write_text(result.source, encoding="utf-8")
+        print(f"Saved translated circuit to {args.output}")
+        for note in result.notes:
+            print(f"  {note}")
+        for diagnostic in result.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+    else:
+        print(result.source)
+        if result.verification is not None:
+            print(f"# {result.verification.details}")
+    if args.save_report:
+        _write_translation_report(
+            args.save_report,
+            translation_result_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format=args.to_format,
+            ),
+        )
+    return 0 if result.verification is None or result.verification.passed else 1
+
+
+def _translate_check_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        benchmark, detected_format = import_circuit_source(
+            source, from_format=args.from_format, name=args.name
+        )
+    except TranslationError as exc:
+        report = translation_error_report(
+            exc, source_path=args.source, from_format=args.from_format
+        )
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            print("Translation check failed")
+            for diagnostic in exc.diagnostics:
+                print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        if args.save_report:
+            _write_translation_report(args.save_report, report)
+        return 1
+
+    report = translation_check_report(benchmark, detected_format, source_path=args.source)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print("Translation check")
+        print(f"  input_format: {report['input_format']}")
+        print(f"  n_qubits: {report['n_qubits']}")
+        print(f"  operations: {report['operation_count']}")
+        print(f"  measurements: {report['measurements']}")
+        print(f"  gates: {json.dumps(report['gate_counts'], sort_keys=True)}")
+        print("  verification_available: yes")
+        print("  supported_outputs: " + ", ".join(TRANSLATION_OUTPUT_FORMATS))
+    if args.save_report:
+        _write_translation_report(args.save_report, report)
+    return 0
+
+
+def _write_translation_report(path: str, report: dict[str, object]) -> None:
+    Path(path).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"Saved translation report to {path}")
 
 
 def _exact_command(args: argparse.Namespace) -> int:

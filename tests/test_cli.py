@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
 from quantum_backend_bench.cli import main
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _has_module(name: str) -> bool:
@@ -497,6 +502,191 @@ def test_cli_import_qasm_round_trip(capsys: pytest.CaptureFixture[str], tmp_path
     assert exit_code == 0
     assert '"benchmark": "roundtrip"' in captured.out
     assert '"gate": "CNOT"' in captured.out
+
+
+def test_cli_translate_qasm_to_sdk_file(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    qasm_path = tmp_path / "ghz.qasm"
+    output_path = tmp_path / "ghz_cirq.py"
+    qasm_path.write_text(
+        'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate",
+            str(qasm_path),
+            "--from-format",
+            "openqasm",
+            "--to-format",
+            "cirq",
+            "--output",
+            str(output_path),
+            "--verify",
+            "exact",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Saved translated circuit" in captured.out
+    assert "input_format=openqasm" in captured.out
+    assert "verification=passed" in captured.out
+    translated = output_path.read_text(encoding="utf-8")
+    assert "import cirq" in translated
+    assert "cirq.CNOT(qubits[0], qubits[1])" in translated
+
+
+def test_cli_translate_check_reports_supported_source(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    source_path = tmp_path / "registers.py"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["translate-check", str(source_path), "--from-format", "qiskit"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Translation check" in captured.out
+    assert "input_format: qiskit" in captured.out
+    assert "verification_available: yes" in captured.out
+    assert '"CNOT": 1' in captured.out
+
+
+def test_cli_translate_save_report(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    qasm_path = tmp_path / "ghz.qasm"
+    report_path = tmp_path / "translate_report.json"
+    qasm_path.write_text(
+        'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate",
+            str(qasm_path),
+            "--from-format",
+            "openqasm",
+            "--to-format",
+            "cirq",
+            "--verify",
+            "exact",
+            "--save-report",
+            str(report_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert "Saved translation report" in captured.out
+    assert report["to_format"] == "cirq"
+    assert report["verification"]["passed"] is True
+    assert any(
+        item["code"] == "translation.caveat.measurement_order" for item in report["diagnostics"]
+    )
+
+
+def test_cli_translate_check_json_stdout(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    source_path = tmp_path / "registers.py"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["translate-check", str(source_path), "--from-format", "qiskit", "--json"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert report["input_format"] == "qiskit"
+    assert report["gate_counts"] == {"CNOT": 1, "H": 1}
+    assert "Translation check" not in captured.out
+
+
+def test_cli_translate_check_save_report(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    source_path = tmp_path / "registers.py"
+    report_path = tmp_path / "check_report.json"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-check",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--save-report",
+            str(report_path),
+        ]
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert report["input_format"] == "qiskit"
+    assert report["gate_counts"] == {"CNOT": 1, "H": 1}
+    assert report["verification_available"] is True
+
+
+def test_cli_translate_include_runner(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    qasm_path = tmp_path / "ghz.qasm"
+    output_path = tmp_path / "ghz_runner.py"
+    qasm_path.write_text(
+        'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\n',
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate",
+            str(qasm_path),
+            "--from-format",
+            "openqasm",
+            "--to-format",
+            "cirq",
+            "--include-runner",
+            "--runner-shots",
+            "16",
+            "--output",
+            str(output_path),
+            "--verify",
+            "exact",
+        ]
+    )
+
+    assert exit_code == 0
+    assert 'if __name__ == "__main__":' in output_path.read_text(encoding="utf-8")
+    assert "repetitions=16" in output_path.read_text(encoding="utf-8")
+
+
+def test_translation_update_expected_check_script() -> None:
+    result = subprocess.run(
+        [sys.executable, "examples/translation/update_expected.py", "--check"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "translation expected outputs are current" in result.stdout
 
 
 def test_cli_exact_top_k_amplitudes_and_observable(capsys: pytest.CaptureFixture[str]) -> None:

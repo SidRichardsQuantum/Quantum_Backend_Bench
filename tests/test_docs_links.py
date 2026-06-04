@@ -20,8 +20,10 @@ DOCS = [
     ROOT / "docs" / "SCHEMA.md",
     ROOT / "docs" / "COMPATIBILITY.md",
     ROOT / "docs" / "LIMITATIONS.md",
+    ROOT / "docs" / "CIRCUIT_TRANSLATION.md",
     ROOT / "CHANGELOG.md",
     ROOT / "examples" / "README.md",
+    ROOT / "examples" / "translation" / "README.md",
     ROOT / "notebooks" / "README.md",
 ]
 
@@ -91,3 +93,16 @@ def _slug(value: str) -> str:
     value = re.sub(r"<[^>]+>", "", value)
     value = re.sub(r"[^\w\- ]+", "", value)
     return re.sub(r"[-\s]+", "-", value).strip("-")
+
+
+def test_generated_site_includes_circuit_translation_page() -> None:
+    pytest.importorskip("markdown")
+
+    from docs.pages import build_site
+
+    build_site.main()
+    page = ROOT / "_site" / "translation.html"
+    assert page.exists()
+    text = page.read_text(encoding="utf-8")
+    assert "Circuit Translation" in text
+    assert "translate-check" in text

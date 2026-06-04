@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -31,6 +32,18 @@ def test_notebooks_are_clean_and_use_standard_kernel() -> None:
                 continue
             assert cell.get("execution_count") is None, path.name
             assert cell.get("outputs", []) == [], path.name
+
+
+def test_notebook_code_cells_parse() -> None:
+    for path in sorted(NOTEBOOK_DIR.glob("*.ipynb")):
+        notebook = _load_notebook(path)
+        for index, cell in enumerate(notebook.get("cells", []), start=1):
+            if cell.get("cell_type") != "code":
+                continue
+            ast.parse(
+                "".join(cell.get("source", [])),
+                filename=f"{path.name}:cell-{index}",
+            )
 
 
 def test_sdk_notebooks_use_shared_notebook_helpers() -> None:
@@ -78,3 +91,18 @@ def _code_source(notebook: dict) -> str:
         for cell in notebook.get("cells", [])
         if cell.get("cell_type") == "code"
     )
+
+
+def test_translation_notebook_uses_translation_helpers() -> None:
+    path = NOTEBOOK_DIR / "09_circuit_translation_workflow.ipynb"
+    notebook = _load_notebook(path)
+    source = _code_source(notebook)
+
+    assert "translate_circuit_source" in source
+    assert "translation_check_report" in source
+    assert "translation_result_report" in source
+    assert "translation_error_report" in source
+    assert "verification_frame" in source
+    assert "draw_benchmark" in source
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
+        assert target in source

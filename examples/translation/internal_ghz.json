@@ -1,0 +1,8 @@
+{
+  "n_qubits": 2,
+  "operations": [
+    {"gate": "H", "qubits": [0], "params": {}},
+    {"gate": "CNOT", "qubits": [0, 1], "params": {}}
+  ],
+  "measurements": [0, 1]
+}

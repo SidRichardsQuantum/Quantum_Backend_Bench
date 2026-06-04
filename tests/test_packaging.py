@@ -15,6 +15,7 @@ REQUIRED_SDIST_DOCS = {
     "USAGE.md",
     "docs/PROBLEM.md",
     "docs/COMPATIBILITY.md",
+    "docs/CIRCUIT_TRANSLATION.md",
 }
 
 
@@ -57,3 +58,12 @@ def test_notebook_result_assets_are_included_in_sdist_manifest() -> None:
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     for extension in ("csv", "json", "png"):
         assert f"recursive-include docs/pages *.{extension}" in manifest
+
+
+def test_translation_examples_are_included_in_sdist_manifest() -> None:
+    manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
+
+    assert "recursive-include examples *.py" in manifest
+    assert "recursive-include examples *.json" in manifest
+    assert "recursive-include examples *.md" in manifest
+    assert "recursive-include examples/translation *.qasm" in manifest

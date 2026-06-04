@@ -40,6 +40,11 @@ jobs:
       - name: Run tests
         run: pytest
 
+      - name: Verify circuit translation examples
+        run: |
+          python examples/translation/verify_examples.py
+          python examples/translation/update_expected.py --check
+
       - name: Build docs and validate local links
         run: pytest tests/test_docs_links.py -m "docs or not docs"
 

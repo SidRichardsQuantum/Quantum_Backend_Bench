@@ -16,6 +16,7 @@ artifact, ket-formatting, top-state, and verification code stays consistent.
   and Trotter steps for a small Ising-style Hamiltonian simulation study.
 - `04_sdk_cirq_workflow.ipynb` through `08_sdk_qutip_workflow.ipynb`: compact
   SDK export, execution, plotting, artifact, and verification workflows.
+- `09_circuit_translation_workflow.ipynb`: all-target local SDK circuit translation with native diagram comparison, reports, runner output, and diagnostics.
 
 ## Suggested Install
 
@@ -37,4 +38,4 @@ python -m pip install -e ".[all,notebooks]"
 - `06_sdk_pennylane_workflow.ipynb`: circuit export and PennyLane execution workflow.
 - `07_sdk_braket_workflow.ipynb`: circuit export and Braket LocalSimulator workflow.
 - `08_sdk_qutip_workflow.ipynb`: exact-probability workflow using the internal statevector path.
-
+- `09_circuit_translation_workflow.ipynb`: translate supported static circuits to Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, compare native diagrams, save reports, emit runnable scripts, and inspect unsupported diagnostics.

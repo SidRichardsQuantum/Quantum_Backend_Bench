@@ -4,6 +4,7 @@ include docs/RESULTS.md
 include docs/THEORY.md
 include CHANGELOG.md
 include docs/COMPATIBILITY.md
+include docs/CIRCUIT_TRANSLATION.md
 include CITATION.cff
 include docs/LIMITATIONS.md
 include docs/METHODOLOGY.md
@@ -18,6 +19,7 @@ recursive-include tests *.py
 recursive-include examples *.py
 recursive-include examples *.json
 recursive-include examples *.md
+recursive-include examples/translation *.qasm
 recursive-include examples/reference_results *.csv
 recursive-include examples/reference_results *.json
 recursive-include examples/reference_results *.md

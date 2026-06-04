@@ -1,0 +1,49 @@
+{
+  "diagnostics": [
+    {
+      "code": "translation.scope",
+      "message": "Static circuit translation preserves supported gates and measurements only.",
+      "severity": "info"
+    },
+    {
+      "code": "translation.caveat.measurement_order",
+      "message": "SDKs may display measurement bitstrings with different endian conventions; verification compares neutral measurement probabilities.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.braket_probability",
+      "message": "Braket output emits probability targets for circuit construction; --include-runner uses LocalSimulator measurement counts.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.pennylane_sampling",
+      "message": "PennyLane output is a QNode returning qml.sample; runner output wraps it with qml.set_shots.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.controlled_phase",
+      "message": "Controlled-phase operations are mapped through each SDK's closest native phase convention and should be verified for nontrivial angles.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.verify.passed",
+      "message": "Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.",
+      "severity": "info"
+    }
+  ],
+  "from_format": "qiskit",
+  "notes": [
+    "input_format=qiskit",
+    "output_format=cirq",
+    "verification=passed"
+  ],
+  "source_path": "inline:qiskit_source",
+  "to_format": "cirq",
+  "verification": {
+    "details": "Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.",
+    "mode": "exact",
+    "passed": true,
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  }
+}

@@ -6,6 +6,21 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-06-04
+
+### Added
+
+- `quantum-bench translate` for converting supported OpenQASM, internal JSON, and static SDK circuit snippets through the neutral circuit model into Cirq, Qiskit, PennyLane, Braket LocalSimulator, OpenQASM, or internal JSON outputs.
+- `quantum-bench translate-check` for preflight inspection of translatable circuit sources, including `--json` stdout reports and `--save-report` artifacts for CI workflows.
+- Exact and sample-based translation verification with total-variation-distance reporting, backend caveat diagnostics, runnable translated script output, and structured translation report helpers in the public Python API.
+- Translation example corpus with expected outputs, rejected unsupported-construct fixtures, semantic verification, and golden-output maintenance scripts.
+- Circuit translation documentation, generated-site page, and tutorial notebook covering supported SDK patterns, all-target local SDK translation, SDK-native visual circuit comparison, report artifacts, verification modes, caveats, and maintenance workflows.
+
+### Changed
+
+- CI now verifies translation examples and checks generated expected outputs for drift.
+- Source distributions now include circuit translation docs and translation example fixtures, including OpenQASM examples.
+
 ## [0.2.3] - 2026-06-03
 
 ### Added

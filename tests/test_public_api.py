@@ -11,6 +11,8 @@ from quantum_backend_bench import (
     format_summary,
     results_to_records,
     summarize_results,
+    translate_circuit_source,
+    translation_check_report,
 )
 
 
@@ -47,3 +49,18 @@ def test_suite_and_summary_helpers_are_public() -> None:
         )[0]["backend"]
         == "cirq"
     )
+
+
+def test_translation_helpers_are_public() -> None:
+    source = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+creg c[1];
+h q[0];
+measure q[0] -> c[0];
+"""
+
+    result = translate_circuit_source(source, from_format="openqasm", to_format="cirq")
+
+    assert "cirq.H" in result.source
+    assert callable(translation_check_report)

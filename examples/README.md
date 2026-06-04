@@ -11,6 +11,7 @@ python examples/backend_capability_matrix.py
 - [Recommended Research Flow](#recommended-research-flow)
 - [CLI Manifest Examples](#cli-manifest-examples)
 - [Basic Usage Examples](#basic-usage-examples)
+- [Circuit Translation Examples](#circuit-translation-examples)
 - [Dependency Notes](#dependency-notes)
 
 ## Recommended Research Flow
@@ -108,6 +109,15 @@ Bundled manifests:
 - `quantum_volume_demo.py`: run a quantum-volume-style workload.
 - `circuit_diagrams.py`: export circuit diagrams.
 - `plot_gallery.py`: generate multiple plot types; this is a heavier run because it uses larger circuits, multiple backends, and noise sweeps.
+
+## Circuit Translation Examples
+
+Translation fixtures live in [`examples/translation/`](./translation/). They cover OpenQASM, internal JSON, and static snippets for Qiskit, Cirq, PennyLane, and Braket LocalSimulator. Run the corpus with exact verification:
+
+```bash
+python examples/translation/verify_examples.py
+python examples/translation/update_expected.py --check
+```
 
 ## Dependency Notes
 
