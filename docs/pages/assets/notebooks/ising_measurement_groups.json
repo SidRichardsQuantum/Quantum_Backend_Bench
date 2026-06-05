@@ -1,0 +1,69 @@
+{
+  "group_count": 2,
+  "groups": [
+    {
+      "canonical": [
+        2,
+        [
+          [
+            0.5,
+            [
+              [
+                0,
+                "Z"
+              ],
+              [
+                1,
+                "Z"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "hamiltonian": {
+        "n_qubits": 2,
+        "terms": [
+          {
+            "coefficient": 0.5,
+            "paulis": {
+              "0": "Z",
+              "1": "Z"
+            }
+          }
+        ]
+      },
+      "index": 0,
+      "term_count": 1
+    },
+    {
+      "canonical": [
+        2,
+        [
+          [
+            -1.25,
+            [
+              [
+                0,
+                "X"
+              ]
+            ]
+          ]
+        ]
+      ],
+      "hamiltonian": {
+        "n_qubits": 2,
+        "terms": [
+          {
+            "coefficient": -1.25,
+            "paulis": {
+              "0": "X"
+            }
+          }
+        ]
+      },
+      "index": 1,
+      "term_count": 1
+    }
+  ],
+  "strategy": "qubit-wise"
+}

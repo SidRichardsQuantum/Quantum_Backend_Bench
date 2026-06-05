@@ -136,3 +136,9 @@ python -m pip install -e ".[yaml]"
 ```
 
 JSON manifests do not need extra parser dependencies.
+
+- `translation/ising_hamiltonian.json`: neutral weighted Pauli Hamiltonian fixture for observable/Hamiltonian SDK translation.
+- `translation/parameterized_workflow.json`: neutral parameterized workflow fixture covering parameter bindings, measurement requests, execution wrappers, result extraction, and Pauli expectations.
+- `translation/*_result.json`: SDK-shaped result fixtures for `translate-result` normalization examples.
+- `translation/expected/parameterized_workflow_to_*.py`: golden workflow outputs for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator.
+- `translation/qiskit_hamiltonian.py`, `translation/cirq_hamiltonian.py`, `translation/pennylane_hamiltonian.py`, and `translation/braket_hamiltonian.py`: SDK-format weighted Pauli Hamiltonian fixtures for translation verification.

@@ -1,0 +1,16 @@
+{
+  "counts": {
+    "00": 3,
+    "11": 1
+  },
+  "expectations": {},
+  "metadata": {
+    "backend": "qiskit_aer",
+    "source_format": "qiskit-counts-json"
+  },
+  "probabilities": {
+    "00": 0.75,
+    "11": 0.25
+  },
+  "shots": 4
+}

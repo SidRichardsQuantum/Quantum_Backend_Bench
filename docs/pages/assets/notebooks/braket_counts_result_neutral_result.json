@@ -1,0 +1,16 @@
+{
+  "counts": {
+    "01": 5,
+    "10": 5
+  },
+  "expectations": {},
+  "metadata": {
+    "result_type": "measurement_counts",
+    "source_format": "braket-counts-json"
+  },
+  "probabilities": {
+    "01": 0.5,
+    "10": 0.5
+  },
+  "shots": 10
+}

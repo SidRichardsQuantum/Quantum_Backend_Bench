@@ -1,0 +1,15 @@
+{
+  "counts": {
+    "00": 1,
+    "11": 2
+  },
+  "expectations": {},
+  "metadata": {
+    "source_format": "pennylane-samples-json"
+  },
+  "probabilities": {
+    "00": 0.3333333333333333,
+    "11": 0.6666666666666666
+  },
+  "shots": 3
+}

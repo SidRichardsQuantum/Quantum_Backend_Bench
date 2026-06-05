@@ -68,6 +68,24 @@ def test_sdk_notebooks_use_shared_notebook_helpers() -> None:
         assert "verification_frame" in source
 
 
+def test_notebooks_define_variables_and_parameters_near_top() -> None:
+    for path in sorted(NOTEBOOK_DIR.glob("*.ipynb")):
+        notebook = _load_notebook(path)
+        markdown_sources = [
+            "".join(cell.get("source", []))
+            for cell in notebook.get("cells", [])
+            if cell.get("cell_type") == "markdown"
+        ]
+        matching_indexes = [
+            index
+            for index, source in enumerate(markdown_sources)
+            if "## Variables and Parameters" in source
+        ]
+
+        assert matching_indexes, f"{path.name} is missing Variables and Parameters"
+        assert matching_indexes[0] <= 3, f"{path.name} should define variables near the top"
+
+
 def test_notebook_readme_links_existing_notebooks() -> None:
     readme = NOTEBOOK_DIR / "README.md"
     text = readme.read_text(encoding="utf-8")
@@ -104,5 +122,37 @@ def test_translation_notebook_uses_translation_helpers() -> None:
     assert "translation_error_report" in source
     assert "verification_frame" in source
     assert "draw_benchmark" in source
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
+        assert target in source
+
+
+def test_hamiltonian_translation_notebook_uses_translation_helpers() -> None:
+    path = NOTEBOOK_DIR / "10_observable_hamiltonian_translation_workflow.ipynb"
+    notebook = _load_notebook(path)
+    source = _code_source(notebook)
+
+    assert "translate_hamiltonian_source" in source
+    assert "hamiltonian_check_report" in source
+    assert "hamiltonian_translation_report" in source
+    assert "translation_capability_rows" in source
+    assert "verification_frame" in source
+    assert "import matplotlib.pyplot as plt" in source
+    assert "Pauli Hamiltonian coefficients" in source
+    assert "${pauli}_{wire}$" in source
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local", "pauli-json"):
+        assert target in source
+
+
+def test_workflow_translation_notebook_uses_workflow_helpers() -> None:
+    path = NOTEBOOK_DIR / "11_parameterized_workflow_translation.ipynb"
+    notebook = _load_notebook(path)
+    source = _code_source(notebook)
+
+    assert "translate_workflow_source" in source
+    assert "verify_workflow_translation" in source
+    assert "workflow_translation_report" in source
+    assert "normalize_result_source" in source
+    assert "group_pauli_terms_source" in source
+    assert "verification_frame" in source
     for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
         assert target in source

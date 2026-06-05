@@ -96,6 +96,86 @@ quantum-bench translate examples/translation/ghz.qasm \
 
 `notebooks/09_circuit_translation_workflow.ipynb` provides the end-to-end local workflow: import one static Qiskit circuit, preflight it, draw SDK-native diagrams for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, translate to all four local SDK targets, verify exact probabilities, save per-target source artifacts and a combined report, emit a runnable Cirq script, and inspect unsupported diagnostics.
 
+## Observable and Hamiltonian Translation
+
+`translate-hamiltonian` and `translate-observable` extend SDK translation beyond circuits for the first safe semantic layer: weighted sums of Pauli `I`, `X`, `Y`, and `Z` products. Observables are represented as the single-term case of the same neutral model.
+
+Supported inputs:
+
+- `pauli-json`: neutral weighted Pauli terms
+- `qiskit`: static `SparsePauliOp.from_list(...)` snippets
+- `cirq`: static sums of `cirq.X/Y/Z(qubits[i])` products
+- `pennylane`: static `qml.Hamiltonian([...], [...])` snippets
+- `braket`: static `hamiltonian_terms = [(coefficient, Observable..., targets)]` snippets
+
+Supported outputs:
+
+- `qiskit_aer`: Qiskit `SparsePauliOp`
+- `cirq`: Cirq Pauli-string expression
+- `pennylane`: PennyLane `qml.Hamiltonian`
+- `braket_local`: Braket observable terms with explicit targets
+- `pauli-json`: neutral JSON
+
+Examples:
+
+```bash
+quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json \
+  --from-format pauli-json \
+  --to-format pennylane \
+  --output artifacts/ising_pennylane.py \
+  --save-report artifacts/ising_translation_report.json
+
+quantum-bench translate-observable examples/translation/ising_hamiltonian.json \
+  --from-format pauli-json \
+  --to-format qiskit_aer
+
+quantum-bench translation-audit
+quantum-bench translation-audit --from-format qiskit --to-format qiskit_aer --json
+```
+
+Verification supports two modes. `canonical` reimports generated SDK source and compares neutral qubit-indexed Pauli terms. `matrix` additionally compares dense matrices for small Hamiltonians up to 6 qubits, which is useful for stronger confidence during SDK migration. Non-Pauli operator algebra, symbolic coefficients, and noise models remain future work.
+
+## Workflow-Level Translation
+
+`translate-workflow` covers the next semantic layer around circuits. It accepts neutral `workflow-json` plus a first-pass static subset of Qiskit, Cirq, PennyLane, and Braket parameterized workflow snippets, then emits free local SDK Python for Qiskit Aer, Cirq, PennyLane, or Braket LocalSimulator. The workflow JSON can include:
+
+- parameterized circuits using `H`, `X`, `Y`, `Z`, `RX`, `RY`, `RZ`, and `CNOT`/`CX`
+- symbolic parameter names and numeric parameter bindings
+- counts, samples, probabilities, and Pauli expectation requests
+- local shot-count execution wrappers and result extraction snippets
+
+Example:
+
+```bash
+quantum-bench translate-workflow examples/translation/parameterized_workflow.json \
+  --to-format qiskit_aer \
+  --verify canonical \
+  --output artifacts/parameterized_workflow_qiskit.py
+```
+
+Generated workflow scripts define `neutral_result` and print it as JSON with `counts`, `shots`, `probabilities`, `expectations`, and `metadata`. They also embed `workflow_spec`, which lets the verifier reimport generated snippets and compare canonical workflow semantics. Golden workflow outputs live in `examples/translation/expected/parameterized_workflow_to_*.py`.
+
+`translate-result` normalizes SDK-shaped result JSON into the same portable result object with `counts`, `shots`, `probabilities`, optional `expectations`, and `metadata`:
+
+```bash
+quantum-bench translate-result examples/translation/qiskit_counts_result.json \
+  --from-format qiskit-counts-json \
+  --output artifacts/neutral_result.json
+
+quantum-bench translate-result examples/translation/pennylane_samples_result.json \
+  --from-format pennylane-samples-json
+```
+
+`group-pauli-terms` groups weighted Pauli Hamiltonian terms into qubit-wise commuting measurement sets:
+
+```bash
+quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json \
+  --from-format pauli-json \
+  --output artifacts/ising_measurement_groups.json
+```
+
+This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, and Braket `FreeParameter`. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
+
 ## Supported Gates
 
 The first supported gate set matches the existing internal circuit model:
@@ -144,5 +224,13 @@ python examples/translation/update_expected.py
 Check that committed expected outputs are current:
 
 ```bash
+python examples/translation/update_expected.py --check
+```
+
+
+Hamiltonian golden outputs live alongside circuit golden outputs in `examples/translation/expected/`. The maintenance scripts cover both circuit and Hamiltonian examples:
+
+```bash
+python examples/translation/verify_examples.py
 python examples/translation/update_expected.py --check
 ```

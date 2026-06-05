@@ -9,9 +9,14 @@ from quantum_backend_bench import (
     format_compatibility_report,
     format_doctor_table,
     format_summary,
+    group_pauli_terms,
+    normalize_result_source,
     results_to_records,
     summarize_results,
     translate_circuit_source,
+    translate_hamiltonian_source,
+    translate_workflow_source,
+    translation_capability_rows,
     translation_check_report,
 )
 
@@ -64,3 +69,46 @@ measure q[0] -> c[0];
 
     assert "cirq.H" in result.source
     assert callable(translation_check_report)
+
+
+def test_hamiltonian_translation_helpers_are_public() -> None:
+    source = """{
+  "n_qubits": 1,
+  "terms": [{"coefficient": 1.0, "paulis": {"0": "Z"}}]
+}
+"""
+
+    result = translate_hamiltonian_source(
+        source,
+        from_format="pauli-json",
+        to_format="cirq",
+    )
+
+    assert "cirq.Z" in result.source
+    assert translation_capability_rows()[0]["pauli_hamiltonians"] is True
+
+
+def test_workflow_translation_helpers_are_public() -> None:
+    workflow = """{
+  "n_qubits": 1,
+  "parameters": ["theta"],
+  "parameter_bindings": {"theta": 0.5},
+  "operations": [{"gate": "RX", "targets": [0], "parameter": "theta"}],
+  "measurements": [{"type": "counts", "targets": [0]}]
+}
+"""
+    hamiltonian = """{
+  "n_qubits": 1,
+  "terms": [{"coefficient": 1.0, "paulis": {"0": "Z"}}]
+}
+"""
+
+    workflow_result = translate_workflow_source(workflow, to_format="qiskit_aer")
+    result_object = normalize_result_source(
+        '{"counts": {"0": 1, "1": 1}, "shots": 2}',
+        from_format="qiskit-counts-json",
+    )
+
+    assert 'Parameter("theta")' in workflow_result.source
+    assert '"probabilities"' in result_object.source
+    assert len(group_pauli_terms(hamiltonian, from_format="pauli-json")) == 1

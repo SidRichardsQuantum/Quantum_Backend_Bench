@@ -1,0 +1,8 @@
+{
+  "measurement_counts": {
+    "01": 5,
+    "10": 5
+  },
+  "result_type": "measurement_counts",
+  "shots": 10
+}

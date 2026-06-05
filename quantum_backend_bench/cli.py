@@ -45,6 +45,26 @@ from quantum_backend_bench.core.exact import (
 )
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
 from quantum_backend_bench.core.hardware import PROVIDERS, write_hardware_artifacts
+from quantum_backend_bench.core.observable_translate import (
+    HAMILTONIAN_INPUT_FORMATS,
+    HAMILTONIAN_OUTPUT_FORMATS,
+    HAMILTONIAN_VERIFY_MODES,
+    hamiltonian_translation_report,
+    translate_hamiltonian_source,
+    translation_capability_rows,
+)
+from quantum_backend_bench.core.workflow_translate import (
+    GROUPING_STRATEGIES,
+    RESULT_INPUT_FORMATS,
+    RESULT_OUTPUT_FORMATS,
+    WORKFLOW_INPUT_FORMATS,
+    WORKFLOW_OUTPUT_FORMATS,
+    WORKFLOW_VERIFY_MODES,
+    group_pauli_terms_source,
+    normalize_result_source,
+    translate_workflow_source,
+    workflow_translation_report,
+)
 from quantum_backend_bench.core.presets import list_presets, load_preset, write_preset
 from quantum_backend_bench.core.report import (
     format_markdown_report,
@@ -265,6 +285,114 @@ def _build_parser() -> argparse.ArgumentParser:
     translate_check_parser.add_argument("--name", default="checked_circuit")
     translate_check_parser.set_defaults(func=_translate_check_command)
 
+    translate_hamiltonian_parser = subparsers.add_parser(
+        "translate-hamiltonian",
+        help="Translate supported weighted Pauli Hamiltonians across local SDKs.",
+    )
+    _add_hamiltonian_translation_arguments(translate_hamiltonian_parser)
+    translate_hamiltonian_parser.set_defaults(func=_translate_hamiltonian_command)
+
+    translate_observable_parser = subparsers.add_parser(
+        "translate-observable",
+        help="Translate a supported single- or multi-term Pauli observable across local SDKs.",
+    )
+    _add_hamiltonian_translation_arguments(translate_observable_parser)
+    translate_observable_parser.set_defaults(func=_translate_hamiltonian_command)
+
+    workflow_parser = subparsers.add_parser(
+        "translate-workflow",
+        help="Translate parameterized workflow JSON into local SDK execution code.",
+    )
+    workflow_parser.add_argument("source")
+    workflow_parser.add_argument(
+        "--from-format",
+        choices=WORKFLOW_INPUT_FORMATS,
+        default="workflow-json",
+        help="Input workflow format.",
+    )
+    workflow_parser.add_argument(
+        "--to-format",
+        required=True,
+        choices=WORKFLOW_OUTPUT_FORMATS,
+        help="Output workflow format. SDK outputs are limited to free local Python SDKs.",
+    )
+    workflow_parser.add_argument("--output", "-o")
+    workflow_parser.add_argument("--save-report")
+    workflow_parser.add_argument(
+        "--verify",
+        choices=WORKFLOW_VERIFY_MODES,
+        default="canonical",
+        help="Reimport generated workflow source and compare canonical workflow semantics.",
+    )
+    workflow_parser.set_defaults(func=_translate_workflow_command)
+
+    result_parser = subparsers.add_parser(
+        "translate-result",
+        help="Normalize supported SDK-shaped result JSON into portable result JSON.",
+    )
+    result_parser.add_argument("source")
+    result_parser.add_argument(
+        "--from-format",
+        choices=RESULT_INPUT_FORMATS,
+        default="result-json",
+        help="Input result shape.",
+    )
+    result_parser.add_argument(
+        "--to-format",
+        choices=RESULT_OUTPUT_FORMATS,
+        default="result-json",
+        help="Output result shape.",
+    )
+    result_parser.add_argument("--output", "-o")
+    result_parser.add_argument("--save-report")
+    result_parser.set_defaults(func=_translate_result_command)
+
+    group_parser = subparsers.add_parser(
+        "group-pauli-terms",
+        help="Group Pauli Hamiltonian terms into jointly measurable sets.",
+    )
+    group_parser.add_argument("source")
+    group_parser.add_argument(
+        "--from-format",
+        choices=HAMILTONIAN_INPUT_FORMATS,
+        default="auto",
+        help="Input Hamiltonian format.",
+    )
+    group_parser.add_argument(
+        "--strategy",
+        choices=GROUPING_STRATEGIES,
+        default="qubit-wise",
+        help="Measurement grouping strategy.",
+    )
+    group_parser.add_argument("--output", "-o")
+    group_parser.add_argument("--save-report")
+    group_parser.set_defaults(func=_group_pauli_terms_command)
+
+    audit_parser = subparsers.add_parser(
+        "translation-audit",
+        help="Show current SDK translation capability coverage.",
+    )
+    audit_parser.add_argument("--json", action="store_true", help="Print audit rows as JSON.")
+    audit_parser.add_argument("--sdk", choices=HAMILTONIAN_OUTPUT_FORMATS[:-1])
+    audit_parser.add_argument("--from-format", choices=HAMILTONIAN_INPUT_FORMATS)
+    audit_parser.add_argument("--to-format", choices=HAMILTONIAN_OUTPUT_FORMATS)
+    audit_parser.add_argument(
+        "--layer",
+        choices=[
+            "circuits",
+            "pauli_hamiltonians",
+            "observables",
+            "noise_models",
+            "execution_wrappers",
+            "result_objects",
+            "parameterized_circuits",
+            "parameter_bindings",
+            "measurement_requests",
+            "measurement_grouping",
+        ],
+    )
+    audit_parser.set_defaults(func=_translation_audit_command)
+
     exact_parser = subparsers.add_parser(
         "exact", help="Print exact measurement probabilities for an internal benchmark circuit."
     )
@@ -394,6 +522,30 @@ def _build_parser() -> argparse.ArgumentParser:
         command_parser.add_argument("--summary", action="store_true")
 
     return parser
+
+
+def _add_hamiltonian_translation_arguments(command_parser: argparse.ArgumentParser) -> None:
+    command_parser.add_argument("source")
+    command_parser.add_argument(
+        "--from-format",
+        choices=HAMILTONIAN_INPUT_FORMATS,
+        default="auto",
+        help="Input Hamiltonian format. Auto-detection supports pauli-json and static SDK snippets.",
+    )
+    command_parser.add_argument(
+        "--to-format",
+        required=True,
+        choices=HAMILTONIAN_OUTPUT_FORMATS,
+        help="Output Hamiltonian format. SDK outputs are limited to free local Python SDKs.",
+    )
+    command_parser.add_argument("--output", "-o")
+    command_parser.add_argument("--save-report")
+    command_parser.add_argument(
+        "--verify",
+        choices=HAMILTONIAN_VERIFY_MODES,
+        default="canonical",
+        help="Reimport generated source and compare canonical Pauli terms.",
+    )
 
 
 def _list_command(args: argparse.Namespace) -> int:
@@ -657,6 +809,205 @@ def _translate_check_command(args: argparse.Namespace) -> int:
     if args.save_report:
         _write_translation_report(args.save_report, report)
     return 0
+
+
+def _translate_hamiltonian_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        result = translate_hamiltonian_source(
+            source,
+            from_format=args.from_format,
+            to_format=args.to_format,
+            verify=args.verify,
+        )
+    except TranslationError as exc:
+        print("Hamiltonian translation failed")
+        for diagnostic in exc.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        if args.save_report:
+            _write_translation_report(
+                args.save_report,
+                {
+                    "source_path": args.source,
+                    "from_format": args.from_format,
+                    "status": "failed",
+                    "diagnostics": [
+                        {
+                            "severity": diagnostic.severity,
+                            "code": diagnostic.code,
+                            "message": diagnostic.message,
+                        }
+                        for diagnostic in exc.diagnostics
+                    ],
+                },
+            )
+        return 1
+
+    if args.output:
+        Path(args.output).write_text(result.source, encoding="utf-8")
+        print(f"Saved translated Hamiltonian to {args.output}")
+        for note in result.notes:
+            print(f"  {note}")
+    else:
+        print(result.source)
+        if result.verification is not None:
+            print(f"# {result.verification.details}")
+    if args.save_report:
+        _write_translation_report(
+            args.save_report,
+            hamiltonian_translation_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format=args.to_format,
+            ),
+        )
+    return 0 if result.verification is None or result.verification.passed else 1
+
+
+def _translate_workflow_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        result = translate_workflow_source(
+            source,
+            from_format=args.from_format,
+            to_format=args.to_format,
+            verify=args.verify,
+        )
+    except TranslationError as exc:
+        print("Workflow translation failed")
+        for diagnostic in exc.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        return 1
+
+    if args.output:
+        Path(args.output).write_text(result.source, encoding="utf-8")
+        print(f"Saved translated workflow to {args.output}")
+        for note in result.notes:
+            print(f"  {note}")
+    else:
+        print(result.source)
+    if args.save_report:
+        _write_translation_report(
+            args.save_report,
+            workflow_translation_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format=args.to_format,
+            ),
+        )
+    return 0 if result.verification is None or result.verification.passed else 1
+
+
+def _translate_result_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        result = normalize_result_source(
+            source,
+            from_format=args.from_format,
+            to_format=args.to_format,
+        )
+    except TranslationError as exc:
+        print("Result translation failed")
+        for diagnostic in exc.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        return 1
+
+    if args.output:
+        Path(args.output).write_text(result.source, encoding="utf-8")
+        print(f"Saved translated result to {args.output}")
+        for note in result.notes:
+            print(f"  {note}")
+    else:
+        print(result.source)
+    if args.save_report:
+        _write_translation_report(
+            args.save_report,
+            workflow_translation_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format=args.to_format,
+            ),
+        )
+    return 0
+
+
+def _group_pauli_terms_command(args: argparse.Namespace) -> int:
+    source = Path(args.source).read_text(encoding="utf-8")
+    try:
+        result = group_pauli_terms_source(
+            source,
+            from_format=args.from_format,
+            strategy=args.strategy,
+        )
+    except TranslationError as exc:
+        print("Pauli-term grouping failed")
+        for diagnostic in exc.diagnostics:
+            print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        return 1
+
+    if args.output:
+        Path(args.output).write_text(result.source, encoding="utf-8")
+        print(f"Saved Pauli-term groups to {args.output}")
+        for note in result.notes:
+            print(f"  {note}")
+    else:
+        print(result.source)
+    if args.save_report:
+        _write_translation_report(
+            args.save_report,
+            workflow_translation_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format="measurement-groups",
+            ),
+        )
+    return 0
+
+
+def _translation_audit_command(args: argparse.Namespace) -> int:
+    rows = _filter_translation_audit_rows(translation_capability_rows(), args)
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+        return 0
+    print("SDK Translation Capability Audit")
+    print(
+        "sdk           circuits  pauli_hamiltonians  params  bindings  measurements  grouping  execution  results  verification"
+    )
+    for row in rows:
+        print(
+            f"{row['sdk']:<13} {_yes_no(row['circuits']):<8} "
+            f"{_yes_no(row['pauli_hamiltonians']):<19} "
+            f"{_yes_no(row['parameterized_circuits']):<7} "
+            f"{_yes_no(row['parameter_bindings']):<9} "
+            f"{_yes_no(row['measurement_requests']):<13} "
+            f"{_yes_no(row['measurement_grouping']):<9} "
+            f"{_yes_no(row['execution_wrappers']):<9} "
+            f"{_yes_no(row['result_objects']):<7} {', '.join(row['verification_modes'])}"
+        )
+    return 0
+
+
+def _filter_translation_audit_rows(
+    rows: list[dict[str, object]], args: argparse.Namespace
+) -> list[dict[str, object]]:
+    selected = rows
+    if args.sdk:
+        selected = [row for row in selected if row["sdk"] == args.sdk]
+    if args.to_format:
+        selected = [row for row in selected if args.to_format in row["output_formats"]]
+    if args.from_format:
+        selected = [row for row in selected if args.from_format in row["input_formats"]]
+    if args.layer:
+        selected = [row for row in selected if row[args.layer]]
+    return selected
+
+
+def _yes_no(value: object) -> str:
+    return "yes" if value else "no"
 
 
 def _write_translation_report(path: str, report: dict[str, object]) -> None:

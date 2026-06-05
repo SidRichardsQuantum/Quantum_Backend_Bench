@@ -1,0 +1,130 @@
+[
+  {
+    "diagnostics": [
+      {
+        "code": "translation.scope.workflow",
+        "message": "Workflow translation preserves supported gates, symbolic parameters, bindings, measurements, local execution settings, and neutral result extraction snippets.",
+        "severity": "info"
+      },
+      {
+        "code": "translation.caveat.workflow_static_import",
+        "message": "Workflow-layer static SDK import supports generated snippets and a small native parameterized subset.",
+        "severity": "warning"
+      },
+      {
+        "code": "translation.verify.passed",
+        "message": "Canonical workflow verification passed.",
+        "severity": "info"
+      }
+    ],
+    "from_format": "workflow-json",
+    "notes": [
+      "input_format=workflow-json",
+      "output_format=qiskit_aer",
+      "verification=passed"
+    ],
+    "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/parameterized_workflow.json",
+    "to_format": "qiskit_aer",
+    "verification": {
+      "details": "Canonical workflow verification passed.",
+      "mode": "canonical",
+      "passed": true
+    }
+  },
+  {
+    "diagnostics": [
+      {
+        "code": "translation.scope.workflow",
+        "message": "Workflow translation preserves supported gates, symbolic parameters, bindings, measurements, local execution settings, and neutral result extraction snippets.",
+        "severity": "info"
+      },
+      {
+        "code": "translation.caveat.workflow_static_import",
+        "message": "Workflow-layer static SDK import supports generated snippets and a small native parameterized subset.",
+        "severity": "warning"
+      },
+      {
+        "code": "translation.verify.passed",
+        "message": "Canonical workflow verification passed.",
+        "severity": "info"
+      }
+    ],
+    "from_format": "workflow-json",
+    "notes": [
+      "input_format=workflow-json",
+      "output_format=cirq",
+      "verification=passed"
+    ],
+    "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/parameterized_workflow.json",
+    "to_format": "cirq",
+    "verification": {
+      "details": "Canonical workflow verification passed.",
+      "mode": "canonical",
+      "passed": true
+    }
+  },
+  {
+    "diagnostics": [
+      {
+        "code": "translation.scope.workflow",
+        "message": "Workflow translation preserves supported gates, symbolic parameters, bindings, measurements, local execution settings, and neutral result extraction snippets.",
+        "severity": "info"
+      },
+      {
+        "code": "translation.caveat.workflow_static_import",
+        "message": "Workflow-layer static SDK import supports generated snippets and a small native parameterized subset.",
+        "severity": "warning"
+      },
+      {
+        "code": "translation.verify.passed",
+        "message": "Canonical workflow verification passed.",
+        "severity": "info"
+      }
+    ],
+    "from_format": "workflow-json",
+    "notes": [
+      "input_format=workflow-json",
+      "output_format=pennylane",
+      "verification=passed"
+    ],
+    "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/parameterized_workflow.json",
+    "to_format": "pennylane",
+    "verification": {
+      "details": "Canonical workflow verification passed.",
+      "mode": "canonical",
+      "passed": true
+    }
+  },
+  {
+    "diagnostics": [
+      {
+        "code": "translation.scope.workflow",
+        "message": "Workflow translation preserves supported gates, symbolic parameters, bindings, measurements, local execution settings, and neutral result extraction snippets.",
+        "severity": "info"
+      },
+      {
+        "code": "translation.caveat.workflow_static_import",
+        "message": "Workflow-layer static SDK import supports generated snippets and a small native parameterized subset.",
+        "severity": "warning"
+      },
+      {
+        "code": "translation.verify.passed",
+        "message": "Canonical workflow verification passed.",
+        "severity": "info"
+      }
+    ],
+    "from_format": "workflow-json",
+    "notes": [
+      "input_format=workflow-json",
+      "output_format=braket_local",
+      "verification=passed"
+    ],
+    "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/parameterized_workflow.json",
+    "to_format": "braket_local",
+    "verification": {
+      "details": "Canonical workflow verification passed.",
+      "mode": "canonical",
+      "passed": true
+    }
+  }
+]

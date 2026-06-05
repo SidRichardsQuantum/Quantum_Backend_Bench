@@ -6,6 +6,17 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-06-05
+
+### Added
+
+- Weighted Pauli observable and Hamiltonian translation across Qiskit Aer, Cirq, PennyLane, Braket LocalSimulator, and neutral `pauli-json` formats.
+- `quantum-bench translate-hamiltonian`, `quantum-bench translate-observable`, and `quantum-bench translation-audit` commands for SDK migration beyond circuit construction.
+- Canonical Pauli-term and small dense-matrix verification, JSON reports, public Python API helpers, SDK-format Hamiltonian fixtures, golden outputs, rejected diagnostics, audit filters, and a tutorial notebook for observable/Hamiltonian translation workflows.
+- Workflow-level translation for parameterized circuits, parameter bindings, measurement/expectation requests, local execution wrappers, neutral result-object normalization, and qubit-wise Pauli measurement grouping through `translate-workflow`, `translate-result`, and `group-pauli-terms`.
+- Canonical workflow verification, golden expected outputs for parameterized workflow translations, first-pass static parameterized workflow importers for Qiskit/Cirq/PennyLane/Braket snippets, result-normalization fixtures, generated scripts that emit neutral result JSON, and a parameterized workflow translation notebook.
+- Tutorial notebook polish for v0.2.5, including consistent Variables and Parameters blocks, clean standard Python 3 kernel metadata, a Hamiltonian coefficient plot with subscripted Pauli labels, result probability plots, and expanded translation fixture documentation.
+
 ## [0.2.4] - 2026-06-04
 
 ### Added

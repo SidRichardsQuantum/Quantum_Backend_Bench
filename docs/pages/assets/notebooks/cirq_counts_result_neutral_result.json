@@ -1,0 +1,16 @@
+{
+  "counts": {
+    "00": 2,
+    "10": 2
+  },
+  "expectations": {},
+  "metadata": {
+    "measurement_key": "m",
+    "source_format": "cirq-counts-json"
+  },
+  "probabilities": {
+    "00": 0.5,
+    "10": 0.5
+  },
+  "shots": 4
+}

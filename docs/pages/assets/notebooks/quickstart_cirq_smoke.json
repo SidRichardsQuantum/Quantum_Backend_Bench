@@ -3,8 +3,8 @@
     "backend": "cirq",
     "benchmark": "ghz",
     "counts": {
-      "000": 68,
-      "111": 60
+      "000": 64,
+      "111": 64
     },
     "metadata": {
       "analysis": {
@@ -35,20 +35,20 @@
       },
       "depth": null,
       "environment": {
-        "captured_at": "2026-06-03T14:01:49.880965+00:00",
+        "captured_at": "2026-06-05T01:26:21.415551+00:00",
         "git": {
           "branch": "main",
-          "commit": "e535f9dae72688a8af096e8584f73c313ecbd82c",
+          "commit": "029dc7320e079d4253a80304ffe39bde14e9eaba",
           "dirty": true
         },
         "packages": {
           "amazon-braket-sdk": "1.117.3",
           "cirq": "1.6.1",
-          "cudaq": null,
+          "cudaq": "0.14.2",
           "matplotlib": "3.10.9",
           "numpy": "2.4.6",
           "pennylane": "0.45.0",
-          "pyquil": null,
+          "pyquil": "4.17.0",
           "pytket": "2.18.0",
           "qbraid": "0.12.1",
           "qiskit": "2.4.1",
@@ -63,7 +63,7 @@
           "system": "Linux"
         },
         "python": {
-          "executable": "/usr/local/bin/python",
+          "executable": "/workspaces/Quantum_Backend_Bench/.venv/bin/python",
           "implementation": "CPython",
           "version": "3.11.13"
         }
@@ -79,7 +79,7 @@
       "repeats": 1,
       "runtime_includes_transpilation": false,
       "runtime_seconds_samples": [
-        0.002829101000315859
+        0.009788674999981595
       ],
       "seed": null,
       "seed_applied": false,
@@ -97,16 +97,16 @@
       "depth": 4,
       "gate_count": 3,
       "measurement_distribution": {
-        "000": 0.53125,
-        "111": 0.46875
+        "000": 0.5,
+        "111": 0.5
       },
-      "runtime_seconds": 0.002829101000315859,
-      "runtime_seconds_max": 0.002829101000315859,
-      "runtime_seconds_mean": 0.002829101000315859,
-      "runtime_seconds_min": 0.002829101000315859,
+      "runtime_seconds": 0.009788674999981595,
+      "runtime_seconds_max": 0.009788674999981595,
+      "runtime_seconds_mean": 0.009788674999981595,
+      "runtime_seconds_min": 0.009788674999981595,
       "runtime_seconds_stddev": 0.0,
       "success_probability": null,
-      "total_variation_distance": 0.03125,
+      "total_variation_distance": 0.0,
       "two_qubit_gate_count": 2
     },
     "n_qubits": 3,
@@ -154,20 +154,20 @@
       },
       "depth": null,
       "environment": {
-        "captured_at": "2026-06-03T14:01:49.918944+00:00",
+        "captured_at": "2026-06-05T01:26:21.493283+00:00",
         "git": {
           "branch": "main",
-          "commit": "e535f9dae72688a8af096e8584f73c313ecbd82c",
+          "commit": "029dc7320e079d4253a80304ffe39bde14e9eaba",
           "dirty": true
         },
         "packages": {
           "amazon-braket-sdk": "1.117.3",
           "cirq": "1.6.1",
-          "cudaq": null,
+          "cudaq": "0.14.2",
           "matplotlib": "3.10.9",
           "numpy": "2.4.6",
           "pennylane": "0.45.0",
-          "pyquil": null,
+          "pyquil": "4.17.0",
           "pytket": "2.18.0",
           "qbraid": "0.12.1",
           "qiskit": "2.4.1",
@@ -182,7 +182,7 @@
           "system": "Linux"
         },
         "python": {
-          "executable": "/usr/local/bin/python",
+          "executable": "/workspaces/Quantum_Backend_Bench/.venv/bin/python",
           "implementation": "CPython",
           "version": "3.11.13"
         }
@@ -198,7 +198,7 @@
       "repeats": 1,
       "runtime_includes_transpilation": false,
       "runtime_seconds_samples": [
-        0.006254854999497184
+        0.004837291000512778
       ],
       "seed": null,
       "seed_applied": false,
@@ -218,10 +218,10 @@
       "measurement_distribution": {
         "101": 1.0
       },
-      "runtime_seconds": 0.006254854999497184,
-      "runtime_seconds_max": 0.006254854999497184,
-      "runtime_seconds_mean": 0.006254854999497184,
-      "runtime_seconds_min": 0.006254854999497184,
+      "runtime_seconds": 0.004837291000512778,
+      "runtime_seconds_max": 0.004837291000512778,
+      "runtime_seconds_mean": 0.004837291000512778,
+      "runtime_seconds_min": 0.004837291000512778,
       "runtime_seconds_stddev": 0.0,
       "success_probability": 1.0,
       "total_variation_distance": 0.0,
@@ -273,20 +273,20 @@
       },
       "depth": null,
       "environment": {
-        "captured_at": "2026-06-03T14:01:49.970328+00:00",
+        "captured_at": "2026-06-05T01:26:21.541613+00:00",
         "git": {
           "branch": "main",
-          "commit": "e535f9dae72688a8af096e8584f73c313ecbd82c",
+          "commit": "029dc7320e079d4253a80304ffe39bde14e9eaba",
           "dirty": true
         },
         "packages": {
           "amazon-braket-sdk": "1.117.3",
           "cirq": "1.6.1",
-          "cudaq": null,
+          "cudaq": "0.14.2",
           "matplotlib": "3.10.9",
           "numpy": "2.4.6",
           "pennylane": "0.45.0",
-          "pyquil": null,
+          "pyquil": "4.17.0",
           "pytket": "2.18.0",
           "qbraid": "0.12.1",
           "qiskit": "2.4.1",
@@ -301,7 +301,7 @@
           "system": "Linux"
         },
         "python": {
-          "executable": "/usr/local/bin/python",
+          "executable": "/workspaces/Quantum_Backend_Bench/.venv/bin/python",
           "implementation": "CPython",
           "version": "3.11.13"
         }
@@ -317,7 +317,7 @@
       "repeats": 1,
       "runtime_includes_transpilation": false,
       "runtime_seconds_samples": [
-        0.0032518699999855016
+        0.003320472000268637
       ],
       "seed": null,
       "seed_applied": false,
@@ -337,10 +337,10 @@
       "measurement_distribution": {
         "11": 1.0
       },
-      "runtime_seconds": 0.0032518699999855016,
-      "runtime_seconds_max": 0.0032518699999855016,
-      "runtime_seconds_mean": 0.0032518699999855016,
-      "runtime_seconds_min": 0.0032518699999855016,
+      "runtime_seconds": 0.003320472000268637,
+      "runtime_seconds_max": 0.003320472000268637,
+      "runtime_seconds_mean": 0.003320472000268637,
+      "runtime_seconds_min": 0.003320472000268637,
       "runtime_seconds_stddev": 0.0,
       "success_probability": 1.0,
       "total_variation_distance": null,
