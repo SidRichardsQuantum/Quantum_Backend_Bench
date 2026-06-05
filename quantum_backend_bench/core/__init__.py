@@ -80,6 +80,21 @@ from quantum_backend_bench.core.diff import (
 from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench.core.sdk_audit import (
+    NOISE_MODELS,
+    audit_passed,
+    compile_audit,
+    format_audit_rows,
+    format_scorecard,
+    noise_model_matrix,
+    roundtrip_audit,
+    runnable_noise_audit,
+    save_audit_csv,
+    save_audit_json,
+    save_audit_report,
+    sdk_parity_scorecard,
+    semantic_audit,
+)
 
 __all__ = [
     "pauli_z_expectation",
@@ -151,5 +166,18 @@ __all__ = [
     "translation_error_report",
     "translation_result_report",
     "verify_translation",
+    "NOISE_MODELS",
+    "audit_passed",
+    "compile_audit",
+    "format_audit_rows",
+    "format_scorecard",
+    "noise_model_matrix",
+    "roundtrip_audit",
+    "runnable_noise_audit",
+    "save_audit_csv",
+    "save_audit_json",
+    "save_audit_report",
+    "sdk_parity_scorecard",
+    "semantic_audit",
     "run_benchmark",
 ]

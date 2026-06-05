@@ -8,6 +8,7 @@ on:
       - README.md
       - USAGE.md
       - docs/RESULTS.md
+      - docs/SDK_AUDITS.md
       - docs/THEORY.md
       - docs/METHODOLOGY.md
       - docs/PROBLEM.md
@@ -16,6 +17,7 @@ on:
       - docs/COMPATIBILITY.md
       - CHANGELOG.md
       - docs/pages/**
+      - examples/reference_results/sdk_audits_2026-06-05/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 

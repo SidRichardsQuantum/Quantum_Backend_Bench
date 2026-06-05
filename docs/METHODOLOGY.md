@@ -60,7 +60,7 @@ Every result captures package versions, Python version, platform metadata, and g
 
 ## Noise Benchmarks
 
-Depolarizing noise injection is currently implemented for Cirq, PennyLane, and Qiskit Aer adapters. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available.
+Noise injection is currently implemented for Cirq, PennyLane, and Qiskit Aer adapters for depolarizing, bit flip, phase flip, and amplitude damping models. Qiskit Aer also uses an explicit readout-error model; Cirq and PennyLane treat readout-error requests as bit-flip-style local channel injection. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available, and `quantum-bench noise-audit` reports the current support matrix.
 
 Noise comparisons should be treated as adapter-specific behavior, not a claim that two SDKs model identical physical channels.
 

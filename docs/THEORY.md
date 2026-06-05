@@ -138,7 +138,7 @@ For distribution-quality studies, increase `shots`. For timing stability studies
 
 ## Noise Models
 
-Noise models approximate ways real quantum states and operations can deviate from ideal behavior. This project currently focuses on depolarizing noise where supported.
+Noise models approximate ways real quantum states and operations can deviate from ideal behavior. This project supports local injected depolarizing, bit-flip, phase-flip, amplitude-damping, and selected readout-error workflows where adapters expose compatible APIs.
 
 Depolarizing noise replaces part of a quantum state with a more random state. As noise increases, target-state probability often decreases and TVD from the ideal distribution often increases.
 

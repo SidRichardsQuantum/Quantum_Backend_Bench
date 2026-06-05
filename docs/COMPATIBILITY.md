@@ -16,7 +16,7 @@ runtime expectations for the current package line.
 
 | Integration | Extra | Role | Account or payment required | Local runtime requirement | CI coverage |
 |---|---|---|---|---|---|
-| Cirq | `cirq` | Execution backend | No | Python package only | Main CI and smoke workflow |
+| Cirq | `cirq` | Execution backend | No | Python package only | Main CI and smoke workflow; auditable with `sdk-parity`, `semantic-audit`, `noise-audit`, `compile-audit`, and `roundtrip-audit` |
 | PennyLane | `pennylane` | Execution backend | No | Python package only | Optional backend smoke |
 | Amazon Braket SDK | `braket` | LocalSimulator execution backend | No for `LocalSimulator` | Python package only | Optional backend smoke |
 | Qiskit Aer | `qiskit` | Execution backend | No | Python package only | Optional backend smoke |
@@ -50,6 +50,12 @@ provider adapters if the local, free workflow remains the primary experience.
 
 ```bash
 quantum-bench doctor
+quantum-bench compatibility
+quantum-bench sdk-parity
+quantum-bench semantic-audit --backends cirq qiskit_aer
+quantum-bench compile-audit --backends cirq qiskit_aer
+quantum-bench roundtrip-audit --include-hamiltonian --include-workflow
+quantum-bench noise-audit
 quantum-bench validate
 quantum-bench run ghz --backend cirq --n-qubits 3 --shots 128 --summary
 quantum-bench suite smoke --backends cirq --shots 128 --summary

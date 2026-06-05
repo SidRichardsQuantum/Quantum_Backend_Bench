@@ -72,6 +72,21 @@ from quantum_backend_bench.core.report import (
     save_markdown_report,
 )
 from quantum_backend_bench.core.runner import run_benchmark
+from quantum_backend_bench.core.sdk_audit import (
+    NOISE_MODELS,
+    audit_passed,
+    compile_audit,
+    format_audit_rows,
+    format_scorecard,
+    noise_model_matrix,
+    roundtrip_audit,
+    runnable_noise_audit,
+    save_audit_csv,
+    save_audit_json,
+    save_audit_report,
+    sdk_parity_scorecard,
+    semantic_audit,
+)
 from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.sweeps import expand_benchmark_sweep, parse_sweep_specs
 from quantum_backend_bench.core.summary import format_summary, summarize_results
@@ -393,6 +408,84 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     audit_parser.set_defaults(func=_translation_audit_command)
 
+    parity_parser = subparsers.add_parser(
+        "sdk-parity",
+        help="Show free local SDK feature parity scorecards.",
+    )
+    parity_parser.add_argument("--json", action="store_true", help="Print scorecard as JSON.")
+    _add_audit_output_arguments(parity_parser)
+    parity_parser.set_defaults(func=_sdk_parity_command)
+
+    semantic_parser = subparsers.add_parser(
+        "semantic-audit",
+        help="Run compact cross-SDK semantic checks against neutral exact probabilities.",
+    )
+    semantic_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
+    semantic_parser.add_argument("--shots", type=_positive_int, default=512)
+    semantic_parser.add_argument("--tolerance", type=float, default=0.15)
+    semantic_parser.add_argument("--json", action="store_true", help="Print audit rows as JSON.")
+    _add_audit_output_arguments(semantic_parser)
+    semantic_parser.add_argument(
+        "--fail-on-error", action="store_true", help="Exit nonzero when an audit row fails."
+    )
+    semantic_parser.set_defaults(func=_semantic_audit_command)
+
+    noise_audit_parser = subparsers.add_parser(
+        "noise-audit",
+        help="Show or run local noise model support checks across SDKs.",
+    )
+    noise_audit_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
+    noise_audit_parser.add_argument("--noise-types", nargs="+", choices=NOISE_MODELS)
+    noise_audit_parser.add_argument("--noise-level", type=_probability, default=0.01)
+    noise_audit_parser.add_argument("--shots", type=_positive_int, default=256)
+    noise_audit_parser.add_argument(
+        "--run", action="store_true", help="Execute tiny noisy workloads."
+    )
+    noise_audit_parser.add_argument("--json", action="store_true", help="Print audit rows as JSON.")
+    _add_audit_output_arguments(noise_audit_parser)
+    noise_audit_parser.add_argument(
+        "--fail-on-error", action="store_true", help="Exit nonzero when an audit row fails."
+    )
+    noise_audit_parser.set_defaults(func=_noise_audit_command)
+
+    compile_audit_parser = subparsers.add_parser(
+        "compile-audit",
+        help="Run compact compilation/structure comparison checks across SDKs.",
+    )
+    compile_audit_parser.add_argument("--backends", nargs="+", choices=sorted(BACKEND_REGISTRY))
+    compile_audit_parser.add_argument("--shots", type=_positive_int, default=128)
+    compile_audit_parser.add_argument(
+        "--json", action="store_true", help="Print audit rows as JSON."
+    )
+    _add_audit_output_arguments(compile_audit_parser)
+    compile_audit_parser.add_argument(
+        "--fail-on-error", action="store_true", help="Exit nonzero when an audit row fails."
+    )
+    compile_audit_parser.set_defaults(func=_compile_audit_command)
+
+    roundtrip_parser = subparsers.add_parser(
+        "roundtrip-audit",
+        help="Verify neutral-to-SDK-to-neutral circuit translation round trips.",
+    )
+    roundtrip_parser.add_argument(
+        "--targets", nargs="+", choices=TRANSLATION_OUTPUT_FORMATS, help="Translation targets."
+    )
+    roundtrip_parser.add_argument("--tolerance", type=float, default=1e-9)
+    roundtrip_parser.add_argument(
+        "--include-hamiltonian", action="store_true", help="Include Pauli Hamiltonian round trips."
+    )
+    roundtrip_parser.add_argument(
+        "--include-workflow",
+        action="store_true",
+        help="Include parameterized workflow round trips.",
+    )
+    roundtrip_parser.add_argument("--json", action="store_true", help="Print audit rows as JSON.")
+    _add_audit_output_arguments(roundtrip_parser)
+    roundtrip_parser.add_argument(
+        "--fail-on-error", action="store_true", help="Exit nonzero when an audit row fails."
+    )
+    roundtrip_parser.set_defaults(func=_roundtrip_audit_command)
+
     exact_parser = subparsers.add_parser(
         "exact", help="Print exact measurement probabilities for an internal benchmark circuit."
     )
@@ -522,6 +615,12 @@ def _build_parser() -> argparse.ArgumentParser:
         command_parser.add_argument("--summary", action="store_true")
 
     return parser
+
+
+def _add_audit_output_arguments(command_parser: argparse.ArgumentParser) -> None:
+    command_parser.add_argument("--save-json", help="Save audit rows as JSON.")
+    command_parser.add_argument("--save-csv", help="Save audit rows as flattened CSV.")
+    command_parser.add_argument("--save-report", help="Save audit rows as a Markdown report.")
 
 
 def _add_hamiltonian_translation_arguments(command_parser: argparse.ArgumentParser) -> None:
@@ -1008,6 +1107,92 @@ def _filter_translation_audit_rows(
 
 def _yes_no(value: object) -> str:
     return "yes" if value else "no"
+
+
+def _sdk_parity_command(args: argparse.Namespace) -> int:
+    rows = sdk_parity_scorecard()
+    _save_audit_outputs(args, rows, title="SDK Parity Scorecard")
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print(format_scorecard(rows))
+    return 0
+
+
+def _semantic_audit_command(args: argparse.Namespace) -> int:
+    rows = semantic_audit(backends=args.backends, shots=args.shots, tolerance=args.tolerance)
+    _save_audit_outputs(args, rows, title="Semantic Audit")
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print(format_audit_rows("Semantic Audit", rows))
+    return 0 if not args.fail_on_error or audit_passed(rows) else 1
+
+
+def _noise_audit_command(args: argparse.Namespace) -> int:
+    if args.run:
+        rows = runnable_noise_audit(
+            backends=args.backends,
+            noise_models=args.noise_types,
+            noise_level=args.noise_level,
+            shots=args.shots,
+        )
+        title = "Noise Execution Audit"
+    else:
+        rows = noise_model_matrix()
+        if args.backends:
+            rows = [row for row in rows if row["backend"] in args.backends]
+        if args.noise_types:
+            rows = [
+                {**row, "models": {key: row["models"][key] for key in args.noise_types}}
+                for row in rows
+            ]
+        title = "Noise Model Matrix"
+    _save_audit_outputs(args, rows, title=title)
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print(format_audit_rows(title, rows))
+    return 0 if not args.fail_on_error or audit_passed(rows) else 1
+
+
+def _compile_audit_command(args: argparse.Namespace) -> int:
+    rows = compile_audit(backends=args.backends, shots=args.shots)
+    _save_audit_outputs(args, rows, title="Compile Audit")
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print(format_audit_rows("Compile Audit", rows))
+    return 0 if not args.fail_on_error or audit_passed(rows) else 1
+
+
+def _roundtrip_audit_command(args: argparse.Namespace) -> int:
+    rows = roundtrip_audit(
+        targets=args.targets,
+        tolerance=args.tolerance,
+        include_hamiltonian=args.include_hamiltonian,
+        include_workflow=args.include_workflow,
+    )
+    _save_audit_outputs(args, rows, title="Roundtrip Audit")
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print(format_audit_rows("Roundtrip Audit", rows))
+    return 0 if not args.fail_on_error or audit_passed(rows) else 1
+
+
+def _save_audit_outputs(
+    args: argparse.Namespace, rows: list[dict[str, object]], *, title: str
+) -> None:
+    if args.save_json:
+        save_audit_json(rows, args.save_json)
+        print(f"Saved audit JSON to {args.save_json}")
+    if args.save_csv:
+        save_audit_csv(rows, args.save_csv)
+        print(f"Saved audit CSV to {args.save_csv}")
+    if args.save_report:
+        save_audit_report(rows, args.save_report, title=title)
+        print(f"Saved audit report to {args.save_report}")
 
 
 def _write_translation_report(path: str, report: dict[str, object]) -> None:

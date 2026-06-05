@@ -125,6 +125,11 @@ Available subcommands:
 - `recommend`
 - `validate`
 - `compatibility`
+- `sdk-parity`
+- `semantic-audit`
+- `noise-audit`
+- `compile-audit`
+- `roundtrip-audit`
 - `diff`
 - `report`
 - `bundle`
@@ -196,6 +201,21 @@ Validate installed or selected backends with known-correct small circuits:
 quantum-bench validate
 quantum-bench validate --backends cirq pennylane --shots 128 --save-json artifacts/validation.json
 ```
+
+Audit free local SDK parity and interop behavior:
+
+```bash
+quantum-bench sdk-parity
+quantum-bench sdk-parity --json
+quantum-bench sdk-parity --save-json artifacts/sdk_parity.json --save-csv artifacts/sdk_parity.csv --save-report artifacts/sdk_parity.md
+quantum-bench semantic-audit --backends cirq qiskit_aer pennylane --shots 512
+quantum-bench compile-audit --backends cirq qiskit_aer
+quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local --include-hamiltonian --include-workflow
+quantum-bench noise-audit
+quantum-bench noise-audit --run --backends cirq qiskit_aer --noise-types depolarizing amplitude_damping readout_error
+```
+
+`semantic-audit` compares compact shared workloads against neutral exact probabilities. `compile-audit` reports structural deltas and compile/transpile metadata where adapters expose it. `roundtrip-audit` translates neutral circuits to supported local SDK source and back, and `--include-hamiltonian --include-workflow` extends the same check to Pauli Hamiltonians and parameterized local workflows. `noise-audit` prints the noise model matrix by default and executes tiny noisy workloads only with `--run`. Audit commands can write `--save-json`, `--save-csv`, and `--save-report` artifacts.
 
 Compare saved JSON or CSV result files:
 

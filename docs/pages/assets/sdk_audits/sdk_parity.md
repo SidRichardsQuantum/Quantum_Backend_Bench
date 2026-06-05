@@ -1,0 +1,12 @@
+# SDK Parity Scorecard
+
+- rows: `5`
+- passed: `True`
+
+| circuit_translation | exact_statevector | execution_backend | installed | local_only | measurement_grouping | noise_models | notes | pauli_hamiltonians | python_package_only | result_normalization | runtime_includes_transpilation | sdk | shot_sampling | unsupported_noise_models | workflow_translation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| True | False | True | True | True | True |  | Uses Amazon Braket LocalSimulator only. | True | True | True | False | braket_local | True | amplitude_damping=not injected,bit_flip=not injected,depolarizing=not injected,phase_flip=not injected,readout_error=not injected | True |
+| True | False | True | True | True | True | amplitude_damping=implemented,bit_flip=implemented,depolarizing=implemented,phase_flip=implemented,readout_error=implemented | Uses cirq.Simulator. | True | True | True | False | cirq | True |  | True |
+| True | False | True | True | True | True | amplitude_damping=implemented,bit_flip=implemented,depolarizing=implemented,phase_flip=implemented,readout_error=implemented | Uses default.qubit/default.mixed. | True | True | True | False | pennylane | True |  | True |
+| True | False | True | True | True | True | amplitude_damping=implemented,bit_flip=implemented,depolarizing=implemented,phase_flip=implemented,readout_error=implemented | Uses Qiskit AerSimulator locally. | True | True | True | True | qiskit_aer | True |  | True |
+| False | True | True | True | True | False |  | Uses a QuTiP-compatible local statevector simulation. | False | True | False | False | qutip | True | amplitude_damping=not injected,bit_flip=not injected,depolarizing=not injected,phase_flip=not injected,readout_error=not injected | False |

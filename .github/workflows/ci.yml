@@ -45,6 +45,18 @@ jobs:
           python examples/translation/verify_examples.py
           python examples/translation/update_expected.py --check
 
+      - name: Run SDK audit regression gates
+        run: |
+          quantum-bench sdk-parity --json
+          quantum-bench noise-audit --json
+          quantum-bench roundtrip-audit \
+            --targets cirq qiskit_aer pennylane braket_local \
+            --include-hamiltonian \
+            --include-workflow \
+            --fail-on-error
+          quantum-bench semantic-audit --backends cirq --shots 512 --fail-on-error
+          quantum-bench compile-audit --backends cirq --fail-on-error
+
       - name: Build docs and validate local links
         run: pytest tests/test_docs_links.py -m "docs or not docs"
 
@@ -52,6 +64,11 @@ jobs:
         run: |
           python docs/pages/build_notebook_results.py
           git diff --exit-code -- docs/RESULTS.md docs/pages/assets/notebooks
+
+      - name: Check generated SDK audit docs are current
+        run: |
+          python docs/pages/build_sdk_audits.py
+          git diff --exit-code -- docs/SDK_AUDITS.md docs/pages/assets/sdk_audits
 
       - name: Run Cirq smoke regression gate
         run: |

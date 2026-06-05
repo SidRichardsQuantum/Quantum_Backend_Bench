@@ -1,0 +1,238 @@
+[
+  {
+    "audit": "circuit_roundtrip",
+    "case": "ghz",
+    "detected_format": "cirq",
+    "operations": 3,
+    "status": "passed",
+    "target": "cirq",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "qft",
+    "detected_format": "cirq",
+    "operations": 4,
+    "status": "passed",
+    "target": "cirq",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "bernstein-vazirani",
+    "detected_format": "cirq",
+    "operations": 7,
+    "status": "passed",
+    "target": "cirq",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "gate-coverage",
+    "detected_format": "cirq",
+    "operations": 6,
+    "status": "passed",
+    "target": "cirq",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "ghz",
+    "detected_format": "qiskit",
+    "operations": 3,
+    "status": "passed",
+    "target": "qiskit_aer",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "qft",
+    "detected_format": "qiskit",
+    "operations": 7,
+    "status": "passed",
+    "target": "qiskit_aer",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "bernstein-vazirani",
+    "detected_format": "qiskit",
+    "operations": 7,
+    "status": "passed",
+    "target": "qiskit_aer",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "gate-coverage",
+    "detected_format": "qiskit",
+    "operations": 7,
+    "status": "passed",
+    "target": "qiskit_aer",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "ghz",
+    "detected_format": "pennylane",
+    "operations": 3,
+    "status": "passed",
+    "target": "pennylane",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "qft",
+    "detected_format": "pennylane",
+    "operations": 7,
+    "status": "passed",
+    "target": "pennylane",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "bernstein-vazirani",
+    "detected_format": "pennylane",
+    "operations": 7,
+    "status": "passed",
+    "target": "pennylane",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "gate-coverage",
+    "detected_format": "pennylane",
+    "operations": 7,
+    "status": "passed",
+    "target": "pennylane",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "ghz",
+    "detected_format": "braket",
+    "operations": 3,
+    "status": "passed",
+    "target": "braket_local",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "qft",
+    "detected_format": "braket",
+    "operations": 7,
+    "status": "passed",
+    "target": "braket_local",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "bernstein-vazirani",
+    "detected_format": "braket",
+    "operations": 7,
+    "status": "passed",
+    "target": "braket_local",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "case": "gate-coverage",
+    "detected_format": "braket",
+    "operations": 7,
+    "status": "passed",
+    "target": "braket_local",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0
+  },
+  {
+    "audit": "hamiltonian_roundtrip",
+    "case": "pauli_hamiltonian",
+    "details": "Canonical Pauli-term verification passed.",
+    "detected_format": "cirq",
+    "status": "passed",
+    "target": "cirq",
+    "terms": 3
+  },
+  {
+    "audit": "hamiltonian_roundtrip",
+    "case": "pauli_hamiltonian",
+    "details": "Canonical Pauli-term verification passed.",
+    "detected_format": "qiskit",
+    "status": "passed",
+    "target": "qiskit_aer",
+    "terms": 3
+  },
+  {
+    "audit": "hamiltonian_roundtrip",
+    "case": "pauli_hamiltonian",
+    "details": "Canonical Pauli-term verification passed.",
+    "detected_format": "pennylane",
+    "status": "passed",
+    "target": "pennylane",
+    "terms": 3
+  },
+  {
+    "audit": "hamiltonian_roundtrip",
+    "case": "pauli_hamiltonian",
+    "details": "Canonical Pauli-term verification passed.",
+    "detected_format": "braket",
+    "status": "passed",
+    "target": "braket_local",
+    "terms": 3
+  },
+  {
+    "audit": "workflow_roundtrip",
+    "case": "parameterized_expectation_workflow",
+    "details": "Canonical workflow verification passed.",
+    "detected_format": "cirq",
+    "measurements": 3,
+    "operations": 3,
+    "status": "passed",
+    "target": "cirq"
+  },
+  {
+    "audit": "workflow_roundtrip",
+    "case": "parameterized_expectation_workflow",
+    "details": "Canonical workflow verification passed.",
+    "detected_format": "qiskit",
+    "measurements": 3,
+    "operations": 3,
+    "status": "passed",
+    "target": "qiskit_aer"
+  },
+  {
+    "audit": "workflow_roundtrip",
+    "case": "parameterized_expectation_workflow",
+    "details": "Canonical workflow verification passed.",
+    "detected_format": "pennylane",
+    "measurements": 3,
+    "operations": 3,
+    "status": "passed",
+    "target": "pennylane"
+  },
+  {
+    "audit": "workflow_roundtrip",
+    "case": "parameterized_expectation_workflow",
+    "details": "Canonical workflow verification passed.",
+    "detected_format": "braket",
+    "measurements": 3,
+    "operations": 3,
+    "status": "passed",
+    "target": "braket_local"
+  }
+]

@@ -8,6 +8,7 @@ from pathlib import Path
 REQUIRED_SDIST_DOCS = {
     "README.md",
     "docs/RESULTS.md",
+    "docs/SDK_AUDITS.md",
     "docs/THEORY.md",
     "docs/METHODOLOGY.md",
     "docs/SCHEMA.md",

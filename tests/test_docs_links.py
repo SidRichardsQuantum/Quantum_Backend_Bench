@@ -14,6 +14,7 @@ DOCS = [
     ROOT / "README.md",
     ROOT / "USAGE.md",
     ROOT / "docs" / "RESULTS.md",
+    ROOT / "docs" / "SDK_AUDITS.md",
     ROOT / "docs" / "THEORY.md",
     ROOT / "docs" / "METHODOLOGY.md",
     ROOT / "docs" / "PROBLEM.md",
@@ -106,3 +107,16 @@ def test_generated_site_includes_circuit_translation_page() -> None:
     text = page.read_text(encoding="utf-8")
     assert "Circuit Translation" in text
     assert "translate-check" in text
+
+
+def test_generated_site_includes_sdk_audits_page() -> None:
+    pytest.importorskip("markdown")
+
+    from docs.pages import build_site
+
+    build_site.main()
+    page = ROOT / "_site" / "sdk-audits.html"
+    assert page.exists()
+    text = page.read_text(encoding="utf-8")
+    assert "SDK Audits" in text
+    assert "roundtrip-audit" in text

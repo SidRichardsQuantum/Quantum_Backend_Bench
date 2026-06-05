@@ -6,6 +6,19 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-06-05
+
+### Added
+
+- Free local SDK audit commands for parity scorecards, semantic checks, broader noise model matrices and smoke execution, compilation/structure comparisons, and neutral-to-SDK-to-neutral round-trip translation verification, with JSON, CSV, and Markdown artifact outputs.
+- Circuit audit coverage for rotation, CZ, SWAP, and controlled-phase gates, plus Hamiltonian and parameterized workflow round-trip audits.
+- Public audit helpers for SDK parity, semantic audits, noise model audits, compilation audits, round-trip translation audits, and audit artifact writers.
+- Generated SDK audit documentation page and committed reference audit artifacts.
+
+### Changed
+
+- Documentation now reflects the broader local noise model support across Cirq, PennyLane, and Qiskit Aer.
+
 ## [0.2.5] - 2026-06-05
 
 ### Added

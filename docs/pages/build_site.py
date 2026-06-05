@@ -8,9 +8,10 @@ from pathlib import Path
 import markdown
 
 try:
-    from . import build_notebook_results
+    from . import build_notebook_results, build_sdk_audits
 except ImportError:  # pragma: no cover - used when executed as a script.
     import build_notebook_results
+    import build_sdk_audits
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "_site"
@@ -28,6 +29,12 @@ DOCS = [
         ROOT / "docs" / "RESULTS.md",
         "results.html",
         "Reference benchmark outputs, plots, and reproduction commands.",
+    ),
+    (
+        "SDK Audits",
+        ROOT / "docs" / "SDK_AUDITS.md",
+        "sdk-audits.html",
+        "Generated SDK parity, noise, and round-trip audit artifacts.",
     ),
     ("Theory", ROOT / "docs" / "THEORY.md", "theory.html", "Benchmark and simulator background."),
     (
@@ -121,6 +128,7 @@ def nav(current: str | None) -> str:
         ("Docs", "overview.html"),
         ("Usage", "usage.html"),
         ("Results", "results.html"),
+        ("SDK Audits", "sdk-audits.html"),
         ("Theory", "theory.html"),
         ("Compatibility", "compatibility.html"),
         ("Translation", "translation.html"),
@@ -355,6 +363,7 @@ def documentation_page(label: str, source: Path) -> str:
 
 def main() -> None:
     build_notebook_results.main()
+    build_sdk_audits.main()
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)

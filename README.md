@@ -53,7 +53,7 @@ For research workflows and interpretation, see [PROBLEM.md](./docs/PROBLEM.md), 
 - Local-first execution backends with no cloud credentials required
 - Built-in benchmarks for GHZ, Bernstein-Vazirani, Deutsch-Jozsa, QFT, random circuits, quantum-volume-style circuits, Grover search, Hamiltonian simulation, QAOA MaxCut, and noise sweeps
 - Standardized metrics including depth, gate counts, runtime, success probability, and total variation distance
-- CLI commands for discovery, backend capability reporting, single runs, backend comparison, presets, reports, and noise sweeps
+- CLI commands for discovery, backend capability reporting, single runs, backend comparison, presets, reports, SDK parity scorecards, semantic audits, round-trip translation audits, compilation audits, and noise sweeps
 - Experiment manifests with environment capture and repeated runtime statistics
 - Named benchmark suites for smoke, standard, and scaling runs
 - Native circuit drawing through Cirq, PennyLane, Braket, and pytket renderers
@@ -172,6 +172,11 @@ quantum-bench info
 quantum-bench doctor
 quantum-bench recommend --use-case research
 quantum-bench compatibility
+quantum-bench sdk-parity
+quantum-bench semantic-audit --backends cirq qiskit_aer
+quantum-bench roundtrip-audit --include-hamiltonian --include-workflow
+quantum-bench compile-audit --backends cirq qiskit_aer
+quantum-bench noise-audit
 quantum-bench validate
 ```
 
@@ -228,6 +233,17 @@ Run a noise sweep:
 
 ```bash
 quantum-bench noise-sweep ghz --backend cirq --n-qubits 5
+```
+
+Run free local SDK audits:
+
+```bash
+quantum-bench sdk-parity --save-json artifacts/sdk_parity.json
+quantum-bench semantic-audit --backends cirq qiskit_aer pennylane
+quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local --include-hamiltonian --include-workflow
+quantum-bench compile-audit --backends cirq qiskit_aer
+quantum-bench noise-audit
+quantum-bench noise-audit --run --backends cirq qiskit_aer --noise-types depolarizing amplitude_damping readout_error
 ```
 
 Run a quantum-volume-style circuit:
@@ -443,7 +459,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.3` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.6` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## SDK Utility Workflows
 
