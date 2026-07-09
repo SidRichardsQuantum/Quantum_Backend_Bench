@@ -13,7 +13,7 @@ Website: [https://sidrichardsquantum.github.io/Quantum_Backend_Bench/](https://s
 
 Backend-agnostic benchmarking toolkit for local quantum circuit simulators. The package runs the same benchmark definitions across local simulator adapters such as Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
-See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
+See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, [ROADMAP.md](./ROADMAP.md) for planned interop and translation work, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
 For research workflows and interpretation, see [PROBLEM.md](./docs/PROBLEM.md), [THEORY.md](./docs/THEORY.md), [METHODOLOGY.md](./docs/METHODOLOGY.md), [RESULTS.md](./docs/RESULTS.md), [SCHEMA.md](./docs/SCHEMA.md), [COMPATIBILITY.md](./docs/COMPATIBILITY.md), and [LIMITATIONS.md](./docs/LIMITATIONS.md).
 
 ## Table of Contents
@@ -43,6 +43,7 @@ For research workflows and interpretation, see [PROBLEM.md](./docs/PROBLEM.md), 
 - [Development](#development)
 - [SDK Utility Workflows](#sdk-utility-workflows)
 - [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md)
+- [Roadmap](./ROADMAP.md)
 - [Notes](#notes)
 - [Author](#author)
 - [License](#license)
@@ -428,7 +429,7 @@ quantum_backend_bench/
 └── cli.py
 ```
 
-Example scripts live in [`examples/`](./examples), with a run order and expected outputs documented in [`examples/README.md`](./examples/README.md). They include backend comparison, GHZ execution, oracle benchmarks, quantum-volume-style execution, suite export, plot generation, circuit diagram export, research manifest generation, repeated-runtime analysis, schema inspection, Markdown report generation, backend capability inspection, and a Cirq noise sweep demo. The plot gallery example uses larger circuits, more shots, and multiple backends so the generated images show non-trivial distributions.
+Example scripts live in [`examples/`](./examples), with a run order and expected outputs documented in [`examples/README.md`](./examples/README.md). They include backend comparison, GHZ execution, oracle benchmarks, quantum-volume-style execution, suite export, plot generation, circuit diagram export, research manifest generation, repeated-runtime analysis, schema inspection, Markdown report generation, backend capability inspection, and a Cirq noise sweep demo. The plot gallery example uses compact workloads by default, but remains the heaviest basic example because it renders multiple plots and includes noisy simulation.
 
 ## Development
 
@@ -459,7 +460,7 @@ python -m build
 python -m twine check dist/*
 ```
 
-Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.6` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
+Continuous integration is handled by [`.github/workflows/ci.yml`](./.github/workflows/ci.yml), which runs formatting, linting, tests, documentation link validation, Cirq smoke regression checks, package builds, and distribution checks. Publishing is handled by [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) when a version tag such as `v0.2.7` is pushed. The workflow expects PyPI trusted publishing to be configured for this repository.
 
 ## SDK Utility Workflows
 

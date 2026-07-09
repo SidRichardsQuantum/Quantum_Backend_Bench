@@ -8,6 +8,7 @@ neutral result payloads, and Pauli-term measurement grouping.
 from __future__ import annotations
 
 import json
+import pprint
 from collections import Counter
 import ast
 from dataclasses import dataclass, field
@@ -791,8 +792,8 @@ def _neutral_result_lines(source_format: str) -> list[str]:
 
 
 def _workflow_spec_lines(workflow: ParameterizedWorkflow) -> list[str]:
-    payload = json.dumps(_workflow_payload(workflow), indent=2, sort_keys=True)
-    return ["", 'workflow_spec = json.loads("""', payload, '""")']
+    payload = pprint.pformat(_workflow_payload(workflow), sort_dicts=False, width=100)
+    return ["", *f"workflow_spec = {payload}".splitlines()]
 
 
 def _parameter_expr(value: str | float | None) -> str:

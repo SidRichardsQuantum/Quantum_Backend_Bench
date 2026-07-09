@@ -6,6 +6,20 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-07-09
+
+### Added
+
+- Project roadmap documenting the next SDK interop and translation stabilization track, including neutral schema versioning, translation coverage matrices, a planned `translate-all` workflow, conservative diagnostics, SDK adapter refactoring, and optional SDK compatibility hardening.
+- Generated documentation site entry and navigation link for the roadmap page.
+
+### Changed
+
+- README and usage documentation now link to the roadmap alongside release notes and translation docs.
+- Source distributions now include `ROADMAP.md`.
+- Test coverage now avoids redundant generated-site builds and expensive SDK rendering in CLI dispatch tests while preserving draw and plot artifact coverage.
+- Example scripts now use compact adaptive workloads and installed-backend selection for faster, more portable default runs.
+
 ## [0.2.6] - 2026-06-05
 
 ### Added

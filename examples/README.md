@@ -101,14 +101,14 @@ Bundled manifests:
 
 ## Basic Usage Examples
 
-- `basic_benchmark.py`: run GHZ across installed baseline backends.
-- `compare_backends.py`: compare QFT and save a runtime/depth plot.
+- `basic_benchmark.py`: run a small GHZ benchmark across installed local backends.
+- `compare_backends.py`: compare a compact QFT workload and save a runtime/depth plot.
 - `suite_export.py`: run the smoke suite and save JSON/CSV artifacts.
-- `noise_sweep_demo.py`: run a Cirq GHZ noise sweep.
-- `oracle_benchmarks.py`: run Bernstein-Vazirani and Deutsch-Jozsa examples.
-- `quantum_volume_demo.py`: run a quantum-volume-style workload.
-- `circuit_diagrams.py`: export circuit diagrams.
-- `plot_gallery.py`: generate multiple plot types; this is a heavier run because it uses larger circuits, multiple backends, and noise sweeps.
+- `noise_sweep_demo.py`: run a compact GHZ noise sweep on an installed noise-capable backend.
+- `oracle_benchmarks.py`: run Bernstein-Vazirani and Deutsch-Jozsa examples on installed local backends.
+- `quantum_volume_demo.py`: run a compact quantum-volume-style workload.
+- `circuit_diagrams.py`: export available backend-native circuit diagrams.
+- `plot_gallery.py`: generate multiple plot types from compact workloads; this is still a heavier run because it renders figures and includes noisy simulation.
 
 ## Circuit Translation Examples
 
@@ -127,7 +127,7 @@ The core examples work with the practical Python-only development stack:
 python -m pip install -e ".[all,dev]"
 ```
 
-Individual SDK adapters are optional. Use `python examples/backend_capability_matrix.py` or `quantum-bench info` to see which are installed. Some examples use only backends available in your current environment; generated manifests choose installed local execution backends automatically. CUDA-Q and pyQuil are intentionally outside `all`; use `.[full,dev]` only when you want every Python SDK extra. pyQuil execution still requires local `qvm` and `quilc` executables on `PATH`.
+Individual SDK adapters are optional. Use `python examples/backend_capability_matrix.py` or `quantum-bench info` to see which are installed. Most examples choose a small, stable subset of installed local backends automatically so first runs stay quick; generated manifests do the same. CUDA-Q and pyQuil are intentionally outside `all`; use `.[full,dev]` only when you want every Python SDK extra. pyQuil execution still requires local `qvm` and `quilc` executables on `PATH`.
 
 YAML experiment manifests require:
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
@@ -13,10 +12,6 @@ import pytest
 from quantum_backend_bench.cli import main
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def _has_module(name: str) -> bool:
-    return importlib.util.find_spec(name) is not None
 
 
 def _fake_result(benchmark, backend: str = "cirq", shots: int = 8) -> dict:
@@ -339,9 +334,20 @@ def test_cli_run_command(
     assert "case_label" in csv_text
 
 
-@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
-def test_cli_draw_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+def test_cli_draw_command_uses_requested_backend_and_save_path(
+    capsys: pytest.CaptureFixture[str], tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     output_path = tmp_path / "ghz_cirq.txt"
+    calls = []
+
+    def fake_draw_benchmark(benchmark, backend, save_path=None):  # type: ignore[no-untyped-def]
+        calls.append((benchmark.name, backend, save_path))
+        if save_path is not None:
+            Path(save_path).write_text("fake diagram\n", encoding="utf-8")
+        return "fake diagram"
+
+    monkeypatch.setattr("quantum_backend_bench.cli.draw_benchmark", fake_draw_benchmark)
+
     exit_code = main(
         [
             "draw",
@@ -356,8 +362,9 @@ def test_cli_draw_command(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
     )
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "H" in captured.out
-    assert output_path.exists()
+    assert "fake diagram" in captured.out
+    assert calls == [("ghz", "cirq", str(output_path))]
+    assert output_path.read_text(encoding="utf-8") == "fake diagram\n"
 
 
 def test_cli_suite_command(
@@ -409,8 +416,23 @@ def test_cli_new_oracle_benchmark(
     assert "1.000000" in captured.out
 
 
-def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_plot_artifacts_dispatch_to_plot_helpers(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _patch_cli_run_benchmark(monkeypatch)
+    calls = []
+
+    def fake_plot(results, path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        del args, kwargs
+        calls.append((Path(path).name, len(results)))
+        Path(path).write_text("plot placeholder\n", encoding="utf-8")
+        return Path(path)
+
+    monkeypatch.setattr("quantum_backend_bench.cli.save_distribution_plot", fake_plot)
+    monkeypatch.setattr("quantum_backend_bench.cli.save_counts_heatmap", fake_plot)
+    monkeypatch.setattr("quantum_backend_bench.cli.save_suite_runtime_plot", fake_plot)
+    monkeypatch.setattr("quantum_backend_bench.cli.save_noise_quality_plot", fake_plot)
+
     distribution_path = tmp_path / "distribution.png"
     heatmap_path = tmp_path / "heatmap.png"
     suite_path = tmp_path / "suite.png"
@@ -437,9 +459,6 @@ def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         )
         == 0
     )
-    assert distribution_path.exists()
-    assert heatmap_path.exists()
-
     assert (
         main(
             [
@@ -455,8 +474,6 @@ def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         )
         == 0
     )
-    assert suite_path.exists()
-
     assert (
         main(
             [
@@ -477,7 +494,15 @@ def test_cli_plot_artifacts(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         )
         == 0
     )
-    assert quality_path.exists()
+
+    assert calls == [
+        ("distribution.png", 1),
+        ("heatmap.png", 1),
+        ("suite.png", 3),
+        ("quality.png", 2),
+    ]
+    for path in (distribution_path, heatmap_path, suite_path, quality_path):
+        assert path.read_text(encoding="utf-8") == "plot placeholder\n"
 
 
 def test_cli_export_openqasm3(capsys: pytest.CaptureFixture[str]) -> None:

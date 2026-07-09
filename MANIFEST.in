@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+include ROADMAP.md
 include docs/RESULTS.md
 include docs/SDK_AUDITS.md
 include docs/THEORY.md

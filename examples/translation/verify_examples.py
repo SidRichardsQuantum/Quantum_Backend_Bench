@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
-
-from quantum_backend_bench.core.circuit_translate import translate_circuit_source
-from quantum_backend_bench.core.observable_translate import translate_hamiltonian_source
-from quantum_backend_bench.core.workflow_translate import translate_workflow_source
+import sys
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from quantum_backend_bench.core.circuit_translate import translate_circuit_source  # noqa: E402
+from quantum_backend_bench.core.observable_translate import (  # noqa: E402
+    translate_hamiltonian_source,
+)
+from quantum_backend_bench.core.workflow_translate import translate_workflow_source  # noqa: E402
+
 CIRCUIT_CASES = [
     ("qiskit_registers.py", "qiskit", "cirq"),
     ("cirq_nested.py", "cirq", "qiskit_aer"),

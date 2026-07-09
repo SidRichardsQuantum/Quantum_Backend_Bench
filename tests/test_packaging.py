@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import py_compile
 import tomllib
 from pathlib import Path
 
 REQUIRED_SDIST_DOCS = {
     "README.md",
+    "ROADMAP.md",
     "docs/RESULTS.md",
     "docs/SDK_AUDITS.md",
     "docs/THEORY.md",
@@ -68,3 +70,8 @@ def test_translation_examples_are_included_in_sdist_manifest() -> None:
     assert "recursive-include examples *.json" in manifest
     assert "recursive-include examples *.md" in manifest
     assert "recursive-include examples/translation *.qasm" in manifest
+
+
+def test_example_scripts_compile() -> None:
+    for path in sorted(Path("examples").rglob("*.py")):
+        py_compile.compile(path, doraise=True)

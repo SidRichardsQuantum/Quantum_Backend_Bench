@@ -7,7 +7,7 @@
 
 The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP are supported as execution backends, while `pytket` is used for structural analysis.
 
-For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./docs/THEORY.md).
+For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./docs/THEORY.md). For planned SDK interop and translation work, see [ROADMAP.md](./ROADMAP.md).
 
 ## Table of Contents
 
@@ -47,6 +47,7 @@ For the theoretical background behind shots, distributions, success probability,
 - [Development Workflow](#development-workflow)
 - [SDK Utility Workflows](#sdk-utility-workflows)
 - [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md)
+- [Roadmap](./ROADMAP.md)
 - [Author](#author)
 - [License](#license)
 
@@ -646,7 +647,7 @@ python examples/quantum_volume_demo.py
 python examples/suite_export.py
 ```
 
-`plot_gallery.py` intentionally uses larger shot counts, multiple backends, a 0% to 5% GHZ noise sweep, and larger circuits so the generated images contain non-trivial distributions and comparisons.
+`plot_gallery.py` uses compact workloads by default, but it is still the heaviest basic example because it renders multiple matplotlib figures and includes noisy simulation.
 
 ## Development Workflow
 

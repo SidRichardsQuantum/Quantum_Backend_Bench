@@ -9,6 +9,7 @@ import shutil
 import pytest
 
 from quantum_backend_bench.backends import get_backend
+from quantum_backend_bench.backends.base_backend import BaseBackend
 from quantum_backend_bench.backends.cirq_backend import CirqBackend
 from quantum_backend_bench.backends.cudaq_backend import CudaQBackend
 from quantum_backend_bench.backends.pyquil_backend import PyQuilQVMBackend
@@ -113,6 +114,25 @@ def test_qutip_ghz_counts_use_expected_bitstrings() -> None:
 def test_backend_structural_metrics_are_available() -> None:
     metrics = get_backend("cirq").structural_metrics(build_benchmark(n_qubits=3))
     assert "depth" in metrics
+
+
+def test_base_backend_draw_writes_text_diagram(tmp_path) -> None:
+    class FakeBackend(BaseBackend):
+        name = "fake"
+
+        def run(self, benchmark, shots=1024):  # type: ignore[no-untyped-def]
+            del benchmark, shots
+            return {}
+
+        def build_native_circuit(self, benchmark):  # type: ignore[no-untyped-def]
+            assert benchmark.name == "ghz"
+            return "fake native circuit"
+
+    output_path = tmp_path / "nested" / "diagram.txt"
+    diagram = FakeBackend().draw(build_benchmark(n_qubits=2), save_path=str(output_path))
+
+    assert diagram == "fake native circuit"
+    assert output_path.read_text(encoding="utf-8") == "fake native circuit\n"
 
 
 def test_missing_backend_dependency_error_mentions_extra(monkeypatch: pytest.MonkeyPatch) -> None:

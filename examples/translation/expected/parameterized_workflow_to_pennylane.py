@@ -31,80 +31,28 @@ neutral_result = {
 }
 print(json.dumps(neutral_result, indent=2, sort_keys=True))
 
-workflow_spec = json.loads("""
-{
-  "measurements": [
-    {
-      "targets": [
-        0,
-        1
-      ],
-      "type": "counts"
-    },
-    {
-      "targets": [
-        0,
-        1
-      ],
-      "type": "probabilities"
-    },
-    {
-      "observable": {
-        "n_qubits": 2,
-        "terms": [
-          {
-            "coefficient": 1.0,
-            "paulis": {
-              "0": "Z",
-              "1": "Z"
-            }
-          }
-        ]
-      },
-      "targets": [
-        0,
-        1
-      ],
-      "type": "expectation"
-    }
-  ],
-  "n_qubits": 2,
-  "name": "parameterized_bell_workflow",
-  "operations": [
-    {
-      "controls": [],
-      "gate": "H",
-      "parameter": null,
-      "targets": [
-        0
-      ]
-    },
-    {
-      "controls": [],
-      "gate": "RX",
-      "parameter": "theta",
-      "targets": [
-        1
-      ]
-    },
-    {
-      "controls": [
-        0
-      ],
-      "gate": "CNOT",
-      "parameter": null,
-      "targets": [
-        1
-      ]
-    }
-  ],
-  "parameter_bindings": {
-    "theta": 1.5707963267948966
-  },
-  "parameters": [
-    "theta"
-  ],
-  "seed": 1234,
-  "shots": 512
+workflow_spec = {
+    "name": "parameterized_bell_workflow",
+    "n_qubits": 2,
+    "parameters": ["theta"],
+    "parameter_bindings": {"theta": 1.5707963267948966},
+    "operations": [
+        {"gate": "H", "targets": [0], "controls": [], "parameter": None},
+        {"gate": "RX", "targets": [1], "controls": [], "parameter": "theta"},
+        {"gate": "CNOT", "targets": [1], "controls": [0], "parameter": None},
+    ],
+    "measurements": [
+        {"type": "counts", "targets": [0, 1]},
+        {"type": "probabilities", "targets": [0, 1]},
+        {
+            "type": "expectation",
+            "targets": [0, 1],
+            "observable": {
+                "n_qubits": 2,
+                "terms": [{"coefficient": 1.0, "paulis": {"0": "Z", "1": "Z"}}],
+            },
+        },
+    ],
+    "shots": 512,
+    "seed": 1234,
 }
-""")

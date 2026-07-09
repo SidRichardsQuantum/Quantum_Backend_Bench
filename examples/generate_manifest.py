@@ -5,28 +5,22 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from quantum_backend_bench import backend_capabilities
+from _common import installed_local_backends
 
 
 def main() -> None:
-    installed_backends = [
-        capability.name
-        for capability in backend_capabilities()
-        if capability.role == "execution" and capability.installed and capability.local_only
-    ]
-    if not installed_backends:
-        installed_backends = ["cirq"]
+    installed_backends = installed_local_backends(limit=3)
 
     manifest = {
         "name": "generated-local-smoke-study",
         "description": "Generated manifest using installed local execution backends.",
         "backends": installed_backends,
-        "shots": 128,
-        "repeats": 3,
+        "shots": 64,
+        "repeats": 2,
         "benchmarks": [
             {"benchmark": "ghz", "n_qubits": 3},
             {"benchmark": "bernstein-vazirani", "n_qubits": 4, "secret_string": "101"},
-            {"benchmark": "random-circuit", "n_qubits": 4, "depth": 8, "seed": 42},
+            {"benchmark": "random-circuit", "n_qubits": 4, "depth": 6, "seed": 42},
         ],
         "outputs": {
             "json": "artifacts/research/generated_smoke.json",

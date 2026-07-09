@@ -25,6 +25,12 @@ DOCS = [
     ("Overview", ROOT / "README.md", "overview.html", "Package overview and quickstart."),
     ("Usage", ROOT / "USAGE.md", "usage.html", "CLI and Python API workflows."),
     (
+        "Roadmap",
+        ROOT / "ROADMAP.md",
+        "roadmap.html",
+        "Planned SDK interop and translation stabilization work.",
+    ),
+    (
         "Results",
         ROOT / "docs" / "RESULTS.md",
         "results.html",
@@ -127,6 +133,7 @@ def nav(current: str | None) -> str:
         ("Home", "index.html"),
         ("Docs", "overview.html"),
         ("Usage", "usage.html"),
+        ("Roadmap", "roadmap.html"),
         ("Results", "results.html"),
         ("SDK Audits", "sdk-audits.html"),
         ("Theory", "theory.html"),

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
     ROOT / "README.md",
     ROOT / "USAGE.md",
+    ROOT / "ROADMAP.md",
     ROOT / "docs" / "RESULTS.md",
     ROOT / "docs" / "SDK_AUDITS.md",
     ROOT / "docs" / "THEORY.md",
@@ -57,14 +58,19 @@ def test_markdown_local_links_resolve() -> None:
                 ), f"{document.relative_to(ROOT)} links to missing anchor {target}"
 
 
-@pytest.mark.docs
-def test_generated_site_local_links_resolve() -> None:
+@pytest.fixture(scope="module")
+def generated_site() -> Path:
     pytest.importorskip("markdown")
 
     from docs.pages import build_site
 
     build_site.main()
-    site = ROOT / "_site"
+    return ROOT / "_site"
+
+
+@pytest.mark.docs
+def test_generated_site_local_links_resolve(generated_site: Path) -> None:
+    site = generated_site
     for page in site.glob("*.html"):
         text = page.read_text(encoding="utf-8")
         for href in re.findall(r'href="([^"]+)"', text):
@@ -96,27 +102,19 @@ def _slug(value: str) -> str:
     return re.sub(r"[-\s]+", "-", value).strip("-")
 
 
-def test_generated_site_includes_circuit_translation_page() -> None:
-    pytest.importorskip("markdown")
-
-    from docs.pages import build_site
-
-    build_site.main()
-    page = ROOT / "_site" / "translation.html"
+@pytest.mark.parametrize(
+    ("filename", "heading", "marker"),
+    [
+        ("translation.html", "Circuit Translation", "translate-check"),
+        ("sdk-audits.html", "SDK Audits", "roundtrip-audit"),
+        ("roadmap.html", "Roadmap", "translate-all"),
+    ],
+)
+def test_generated_site_includes_expected_pages(
+    generated_site: Path, filename: str, heading: str, marker: str
+) -> None:
+    page = generated_site / filename
     assert page.exists()
     text = page.read_text(encoding="utf-8")
-    assert "Circuit Translation" in text
-    assert "translate-check" in text
-
-
-def test_generated_site_includes_sdk_audits_page() -> None:
-    pytest.importorskip("markdown")
-
-    from docs.pages import build_site
-
-    build_site.main()
-    page = ROOT / "_site" / "sdk-audits.html"
-    assert page.exists()
-    text = page.read_text(encoding="utf-8")
-    assert "SDK Audits" in text
-    assert "roundtrip-audit" in text
+    assert heading in text
+    assert marker in text
