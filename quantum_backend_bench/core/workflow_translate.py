@@ -26,6 +26,10 @@ from quantum_backend_bench.core.observable_translate import (
     canonical_hamiltonian,
     import_hamiltonian_source,
 )
+from quantum_backend_bench.core.neutral_schema import (
+    NEUTRAL_SCHEMA_VERSION,
+    report_schema_metadata,
+)
 
 WORKFLOW_INPUT_FORMATS = ("workflow-json", "qiskit", "cirq", "pennylane", "braket")
 WORKFLOW_OUTPUT_FORMATS = ("qiskit_aer", "cirq", "pennylane", "braket_local", "workflow-json")
@@ -371,6 +375,7 @@ def workflow_translation_report(
         "source_path": source_path,
         "from_format": from_format,
         "to_format": to_format,
+        "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
         "notes": result.notes,
         "diagnostics": [
             {"severity": item.severity, "code": item.code, "message": item.message}
@@ -485,6 +490,7 @@ def _validate_workflow(
 
 def _workflow_payload(workflow: ParameterizedWorkflow) -> dict[str, object]:
     return {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "name": workflow.name,
         "n_qubits": workflow.n_qubits,
         "parameters": list(workflow.parameters),
@@ -513,6 +519,7 @@ def _measurement_payload(measurement: MeasurementRequest) -> dict[str, object]:
 
 def _hamiltonian_payload(hamiltonian: PauliHamiltonian) -> dict[str, object]:
     return {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "n_qubits": hamiltonian.n_qubits,
         "terms": [
             {
@@ -898,6 +905,7 @@ def _counts_to_probabilities(counts: dict[str, int], shots: int) -> dict[str, fl
 
 def _result_payload(result: NeutralResult) -> dict[str, object]:
     return {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "counts": dict(sorted(result.counts.items())),
         "shots": result.shots,
         "probabilities": dict(sorted(result.probabilities.items())),

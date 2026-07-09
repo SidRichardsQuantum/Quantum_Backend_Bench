@@ -1,0 +1,19 @@
+{
+  "n_qubits": 2,
+  "schema_version": "0.1",
+  "terms": [
+    {
+      "coefficient": 0.5,
+      "paulis": {
+        "0": "Z",
+        "1": "Z"
+      }
+    },
+    {
+      "coefficient": -1.25,
+      "paulis": {
+        "0": "X"
+      }
+    }
+  ]
+}

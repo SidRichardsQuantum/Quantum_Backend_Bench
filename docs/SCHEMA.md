@@ -6,12 +6,53 @@ For definitions of shots, counts, measurement distributions, success probability
 
 ## Table of Contents
 
+- [Neutral Translation Schemas](#neutral-translation-schemas)
 - [Experiment Bundle](#experiment-bundle)
 - [Result Row](#result-row)
 - [Metrics](#metrics)
 - [Metadata](#metadata)
 - [Manifest](#manifest)
 - [CSV](#csv)
+
+## Neutral Translation Schemas
+
+Translation workflows use four neutral JSON formats. Each format is versioned with
+`schema_version: "0.1"`. Importers remain tolerant of older local examples that omit the
+field, but newly emitted neutral JSON includes it. Patch releases may clarify docs or add
+optional fields; incompatible structural changes require a new schema version.
+
+| Format | JSON Schema | Example | Purpose |
+|---|---|---|---|
+| `internal-circuit` / `internal-json` | [`internal-circuit.schema.json`](./schemas/internal-circuit.schema.json) | [`internal-circuit.example.json`](./schema_examples/internal-circuit.example.json) | Static circuit operations, numeric parameters, and measurement wires. |
+| `pauli-json` | [`pauli-json.schema.json`](./schemas/pauli-json.schema.json) | [`pauli-json.example.json`](./schema_examples/pauli-json.example.json) | Weighted Pauli `I`, `X`, `Y`, and `Z` product terms. |
+| `workflow-json` | [`workflow-json.schema.json`](./schemas/workflow-json.schema.json) | [`workflow-json.example.json`](./schema_examples/workflow-json.example.json) | Parameterized circuits, bindings, local execution settings, and measurement requests. |
+| `result-json` | [`result-json.schema.json`](./schemas/result-json.schema.json) | [`result-json.example.json`](./schema_examples/result-json.example.json) | Portable counts, probabilities, expectations, and result metadata. |
+
+Translation reports include `schema_metadata` with the neutral schema version and the
+input/output schema identifiers when the selected CLI formats are neutral formats.
+
+### `internal-circuit`
+
+An internal circuit has `n_qubits`, ordered `operations`, and `measurements`. Operations
+contain a `gate`, integer `qubits`, and optional numeric `params`. The v0.1 gate set is
+`H`, `X`, `Y`, `Z`, `S`, `T`, `RX`, `RY`, `RZ`, `CNOT`, `CZ`, `SWAP`, and `CPHASE`.
+
+### `pauli-json`
+
+A Pauli Hamiltonian has `n_qubits` and at least one weighted term. Each term contains a
+numeric `coefficient` and a `paulis` object keyed by non-negative wire index strings.
+Identity factors may be omitted.
+
+### `workflow-json`
+
+A workflow adds symbolic `parameters`, numeric `parameter_bindings`, supported circuit
+operations, measurement requests, `shots`, and an optional deterministic `seed`.
+Expectation requests embed a `pauli-json` observable payload.
+
+### `result-json`
+
+A neutral result object contains `counts`, `shots`, normalized `probabilities`, optional
+`expectations`, and free-form `metadata`.
 
 ## Experiment Bundle
 

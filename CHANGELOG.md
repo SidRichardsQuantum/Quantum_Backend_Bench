@@ -6,6 +6,18 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-07-09
+
+### Added
+
+- Versioned neutral translation schemas for `internal-circuit`, `pauli-json`, `workflow-json`, and `result-json`, with JSON Schema files and example payloads.
+- Translation reports now include neutral schema metadata for supported input and output formats.
+- `translation-audit` now reports a fuller SDK translation coverage matrix with supported gates, parameter forms, measurement/result shapes, diagnostics, caveats, and verification modes.
+
+### Changed
+
+- Neutral JSON emitters now include `schema_version: "0.1"` while remaining tolerant of existing unversioned local examples.
+
 ## [0.2.7] - 2026-07-09
 
 ### Added
@@ -17,6 +29,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - README and usage documentation now link to the roadmap alongside release notes and translation docs.
 - Source distributions now include `ROADMAP.md`.
+- The `dev` extra now includes the clean-venv dependencies needed by the default test suite.
 - Test coverage now avoids redundant generated-site builds and expensive SDK rendering in CLI dispatch tests while preserving draw and plot artifact coverage.
 - Example scripts now use compact adaptive workloads and installed-backend selection for faster, more portable default runs.
 

@@ -50,6 +50,7 @@ def test_internal_json_export_is_parseable() -> None:
 
     payload = json.loads(export_benchmark_circuit(benchmark, "internal-json"))
 
+    assert payload["schema_version"] == "0.1"
     assert payload["benchmark"] == "vqe_ansatz"
     assert payload["n_qubits"] == 3
     assert payload["operations"]

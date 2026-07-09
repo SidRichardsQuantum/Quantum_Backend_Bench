@@ -13,6 +13,10 @@ from quantum_backend_bench.core.circuit_translate import (
     TranslationResult,
     TranslationVerification,
 )
+from quantum_backend_bench.core.neutral_schema import (
+    NEUTRAL_SCHEMA_VERSION,
+    report_schema_metadata,
+)
 
 HAMILTONIAN_INPUT_FORMATS = ("auto", "pauli-json", "qiskit", "cirq", "pennylane", "braket")
 HAMILTONIAN_OUTPUT_FORMATS = ("qiskit_aer", "cirq", "pennylane", "braket_local", "pauli-json")
@@ -209,6 +213,7 @@ def hamiltonian_translation_report(
         "source_path": source_path,
         "from_format": from_format,
         "to_format": to_format,
+        "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
         "notes": result.notes,
         "diagnostics": [
             {"severity": item.severity, "code": item.code, "message": item.message}
@@ -246,8 +251,35 @@ def translation_capability_rows() -> list[dict[str, object]]:
         rows.append(
             {
                 "sdk": sdk,
+                "schema_version": NEUTRAL_SCHEMA_VERSION,
+                "neutral_formats": [
+                    "internal-json",
+                    "pauli-json",
+                    "workflow-json",
+                    "result-json",
+                ],
                 "input_formats": _sdk_input_formats(sdk),
                 "output_formats": [sdk],
+                "supported_gates": [
+                    "H",
+                    "X",
+                    "Y",
+                    "Z",
+                    "S",
+                    "T",
+                    "RX",
+                    "RY",
+                    "RZ",
+                    "CNOT",
+                    "CZ",
+                    "SWAP",
+                    "CPHASE",
+                ],
+                "parameter_forms": ["static numeric rotations", "named workflow parameters"],
+                "measurements": ["static computational-basis measurements"],
+                "hamiltonian_terms": ["weighted Pauli I/X/Y/Z products"],
+                "result_shapes": ["counts", "probabilities", "samples", "expectations"],
+                "diagnostic_modes": ["structured translation errors", "backend caveat warnings"],
                 "circuits": True,
                 "parameterized_circuits": True,
                 "parameter_bindings": True,
@@ -258,14 +290,18 @@ def translation_capability_rows() -> list[dict[str, object]]:
                 "noise_models": False,
                 "execution_wrappers": True,
                 "result_objects": True,
-                "verification_modes": ["canonical", "matrix"],
+                "verification_modes": ["exact", "samples", "canonical", "matrix"],
                 "caveats": [
                     "static source only for SDK imports",
-                    "workflow-json required for parameterized/execution layers",
+                    "workflow-json required for precise parameterized/execution layers",
                     "Pauli I/X/Y/Z products only",
-                    "no symbolic coefficients",
+                    "no symbolic Hamiltonian coefficients",
+                    "neutral noise-model translation is not implemented",
                 ],
-                "planned_layers": ["noise_models", "static SDK imports for workflow layers"],
+                "planned_layers": [
+                    "noise_models",
+                    "broader static SDK imports for workflow layers",
+                ],
                 "notes": "Free/local static circuit, Pauli Hamiltonian, workflow, result, and grouping subset.",
             }
         )
@@ -534,6 +570,7 @@ def _parse_braket_observable(node: ast.AST) -> list[str]:
 
 def _emit_pauli_json(hamiltonian: PauliHamiltonian) -> str:
     payload = {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "n_qubits": hamiltonian.n_qubits,
         "terms": [
             {

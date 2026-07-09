@@ -27,6 +27,8 @@ Neutral outputs are also available:
 - `internal-json`
 - `openqasm`
 
+The JSON neutral formats are versioned in `docs/SCHEMA.md`: `internal-circuit`, `pauli-json`, `workflow-json`, and `result-json` currently use `schema_version: "0.1"`.
+
 ## Examples
 
 Translate OpenQASM to Cirq:
@@ -199,7 +201,7 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 ## Reports
 
-`--save-report` writes JSON for both `translate` and `translate-check`. Reports include detected formats, diagnostics, gate inventory for checks, verification total variation distance for translations, and supported outputs. These reports are intended for CI and migration audits.
+`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, diagnostics, gate inventory for checks, verification total variation distance for translations, and supported outputs. These reports are intended for CI and migration audits.
 
 ## Verification
 
@@ -214,6 +216,8 @@ A failed verification exits with status 1. The translated source is still produc
 Translation reports include warning diagnostics for backend-specific behavior that users should review: measurement bit ordering, Braket probability targets versus measurement counts, PennyLane QNode sampling, and controlled-phase conventions. Exact verification compares neutral measurement probabilities and is the recommended guardrail for these caveats.
 
 ## Golden Outputs
+
+`quantum-bench translation-audit --json` emits the current SDK translation coverage matrix, including neutral schema version, supported gates, parameter forms, measurements, Hamiltonian terms, result shapes, diagnostics, caveats, and verification modes per local SDK target.
 
 Expected generated outputs for selected fixtures live in `examples/translation/expected/`. Regenerate them intentionally after codegen changes:
 

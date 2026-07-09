@@ -1,0 +1,52 @@
+{
+  "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/pauli-json.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "n_qubits": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "terms": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "coefficient": {
+            "type": "number"
+          },
+          "paulis": {
+            "additionalProperties": {
+              "enum": [
+                "I",
+                "X",
+                "Y",
+                "Z"
+              ],
+              "type": "string"
+            },
+            "propertyNames": {
+              "pattern": "^[0-9]+$"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "coefficient",
+          "paulis"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "n_qubits",
+    "terms"
+  ],
+  "title": "quantum-backend-bench pauli-json",
+  "type": "object"
+}

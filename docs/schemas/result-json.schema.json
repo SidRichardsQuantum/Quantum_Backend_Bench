@@ -1,0 +1,47 @@
+{
+  "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/result-json.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "counts": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "expectations": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "probabilities": {
+      "additionalProperties": {
+        "maximum": 1,
+        "minimum": 0,
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "shots": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "counts",
+    "shots",
+    "probabilities",
+    "expectations",
+    "metadata"
+  ],
+  "title": "quantum-backend-bench result-json",
+  "type": "object"
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import py_compile
 import tomllib
 from pathlib import Path
@@ -33,6 +34,8 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["braket"] == ["amazon-braket-sdk"]
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
+    assert "cirq" in extras["dev"]
+    assert "pandas" in extras["dev"]
     assert extras["docs"] == ["markdown", "matplotlib", "pymdown-extensions"]
     assert extras["pyquil"] == ["pyquil"]
     assert extras["notebooks"] == ["ipykernel", "matplotlib", "pandas"]
@@ -55,6 +58,26 @@ def test_required_docs_are_included_in_sdist_manifest() -> None:
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     for document in REQUIRED_SDIST_DOCS:
         assert f"include {document}" in manifest
+
+
+def test_neutral_schema_assets_are_included_in_sdist_manifest() -> None:
+    manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
+
+    assert "recursive-include docs/schemas *.json" in manifest
+    assert "recursive-include docs/schema_examples *.json" in manifest
+
+
+def test_neutral_schema_assets_are_valid_json() -> None:
+    expected_stems = {"internal-circuit", "pauli-json", "workflow-json", "result-json"}
+    schema_paths = sorted(Path("docs/schemas").glob("*.schema.json"))
+    example_paths = sorted(Path("docs/schema_examples").glob("*.example.json"))
+
+    assert {path.name.removesuffix(".schema.json") for path in schema_paths} == expected_stems
+    assert {path.name.removesuffix(".example.json") for path in example_paths} == expected_stems
+    for path in [*schema_paths, *example_paths]:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if path.name.endswith(".example.json"):
+            assert payload["schema_version"] == "0.1"
 
 
 def test_notebook_result_assets_are_included_in_sdist_manifest() -> None:

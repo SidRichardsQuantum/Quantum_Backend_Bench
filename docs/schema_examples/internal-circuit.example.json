@@ -1,0 +1,25 @@
+{
+  "measurements": [
+    0,
+    1
+  ],
+  "n_qubits": 2,
+  "operations": [
+    {
+      "gate": "H",
+      "params": {},
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "gate": "CNOT",
+      "params": {},
+      "qubits": [
+        0,
+        1
+      ]
+    }
+  ],
+  "schema_version": "0.1"
+}

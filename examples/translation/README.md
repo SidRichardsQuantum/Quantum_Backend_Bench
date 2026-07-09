@@ -1,6 +1,6 @@
 # Translation Examples
 
-These fixtures exercise the SDK translation surface used by `quantum-bench translate`, `translate-hamiltonian`, `translate-workflow`, `translate-result`, and `group-pauli-terms`. They are intentionally small, static, and CI-friendly. The goal is stable semantic coverage, not large application examples.
+These fixtures exercise the SDK translation surface used by `quantum-bench translate`, `translate-hamiltonian`, `translate-workflow`, `translate-result`, and `group-pauli-terms`. They are intentionally small, static, and CI-friendly. The goal is stable semantic coverage, not large application examples. Neutral JSON fixtures use the v0.1 schemas documented in [`docs/SCHEMA.md`](../../docs/SCHEMA.md); regenerated neutral outputs include `schema_version`.
 
 ## Run the Corpus
 

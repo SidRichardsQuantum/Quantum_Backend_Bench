@@ -613,6 +613,8 @@ def test_cli_translate_save_report(capsys: pytest.CaptureFixture[str], tmp_path)
     assert exit_code == 0
     assert "Saved translation report" in captured.out
     assert report["to_format"] == "cirq"
+    assert report["schema_metadata"]["neutral_schema_version"] == "0.1"
+    assert report["schema_metadata"]["input_schema"] is None
     assert report["verification"]["passed"] is True
     assert any(
         item["code"] == "translation.caveat.measurement_order" for item in report["diagnostics"]
@@ -637,6 +639,7 @@ def test_cli_translate_check_json_stdout(capsys: pytest.CaptureFixture[str], tmp
     assert exit_code == 0
     assert report["input_format"] == "qiskit"
     assert report["gate_counts"] == {"CNOT": 1, "H": 1}
+    assert report["schema_metadata"]["neutral_schema_version"] == "0.1"
     assert "Translation check" not in captured.out
 
 

@@ -1,0 +1,18 @@
+{
+  "counts": {
+    "00": 256,
+    "11": 256
+  },
+  "expectations": {
+    "ZZ": 1.0
+  },
+  "metadata": {
+    "source_format": "result-json"
+  },
+  "probabilities": {
+    "00": 0.5,
+    "11": 0.5
+  },
+  "schema_version": "0.1",
+  "shots": 512
+}

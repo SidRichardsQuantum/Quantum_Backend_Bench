@@ -385,7 +385,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     audit_parser = subparsers.add_parser(
         "translation-audit",
-        help="Show current SDK translation capability coverage.",
+        help="Show current SDK translation coverage matrix.",
     )
     audit_parser.add_argument("--json", action="store_true", help="Print audit rows as JSON.")
     audit_parser.add_argument("--sdk", choices=HAMILTONIAN_OUTPUT_FORMATS[:-1])
@@ -1072,14 +1072,14 @@ def _translation_audit_command(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(rows, indent=2, sort_keys=True))
         return 0
-    print("SDK Translation Capability Audit")
+    print("SDK Translation Coverage Matrix")
     print(
-        "sdk           circuits  pauli_hamiltonians  params  bindings  measurements  grouping  execution  results  verification"
+        "sdk           schema  circuits  gates  pauli_hamiltonians  params  bindings  measurements  grouping  execution  results  verification"
     )
     for row in rows:
         print(
-            f"{row['sdk']:<13} {_yes_no(row['circuits']):<8} "
-            f"{_yes_no(row['pauli_hamiltonians']):<19} "
+            f"{row['sdk']:<13} {row['schema_version']:<7} {_yes_no(row['circuits']):<8} "
+            f"{len(row['supported_gates']):<5} {_yes_no(row['pauli_hamiltonians']):<19} "
             f"{_yes_no(row['parameterized_circuits']):<7} "
             f"{_yes_no(row['parameter_bindings']):<9} "
             f"{_yes_no(row['measurement_requests']):<13} "

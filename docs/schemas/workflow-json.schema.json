@@ -1,0 +1,182 @@
+{
+  "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/workflow-json.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "measurements": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "observable": {
+            "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/pauli-json.schema.json",
+            "additionalProperties": false,
+            "properties": {
+              "n_qubits": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "schema_version": {
+                "const": "0.1"
+              },
+              "terms": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "coefficient": {
+                      "type": "number"
+                    },
+                    "paulis": {
+                      "additionalProperties": {
+                        "enum": [
+                          "I",
+                          "X",
+                          "Y",
+                          "Z"
+                        ],
+                        "type": "string"
+                      },
+                      "propertyNames": {
+                        "pattern": "^[0-9]+$"
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "coefficient",
+                    "paulis"
+                  ],
+                  "type": "object"
+                },
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "schema_version",
+              "n_qubits",
+              "terms"
+            ],
+            "title": "quantum-backend-bench pauli-json",
+            "type": "object"
+          },
+          "targets": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "counts",
+              "probabilities",
+              "samples",
+              "expectation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "n_qubits": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "controls": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "gate": {
+            "enum": [
+              "H",
+              "X",
+              "Y",
+              "Z",
+              "RX",
+              "RY",
+              "RZ",
+              "CNOT",
+              "CX",
+              "MEASURE"
+            ],
+            "type": "string"
+          },
+          "parameter": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "targets": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "gate",
+          "targets"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "parameter_bindings": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "parameters": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "shots": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "n_qubits",
+    "parameters",
+    "parameter_bindings",
+    "operations",
+    "measurements",
+    "shots"
+  ],
+  "title": "quantum-backend-bench workflow-json",
+  "type": "object"
+}

@@ -15,6 +15,10 @@ from quantum_backend_bench.core.benchmark_spec import (
 from quantum_backend_bench.core.circuit_export import import_openqasm_circuit
 from quantum_backend_bench.core.exact import exact_probabilities
 from quantum_backend_bench.core.metrics import normalize_counts, total_variation_distance
+from quantum_backend_bench.core.neutral_schema import (
+    NEUTRAL_SCHEMA_VERSION,
+    report_schema_metadata,
+)
 
 FREE_LOCAL_TRANSLATION_SDKS = ("braket_local", "cirq", "pennylane", "qiskit_aer")
 TRANSLATION_INPUT_FORMATS = (
@@ -93,6 +97,7 @@ def translation_result_report(
         "source_path": source_path,
         "from_format": from_format,
         "to_format": to_format,
+        "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
         "notes": result.notes,
         "diagnostics": [_diagnostic_payload(diagnostic) for diagnostic in result.diagnostics],
         "verification": _verification_payload(result.verification),
@@ -120,6 +125,7 @@ def translation_check_report(
         "operation_count": len(circuit.operations),
         "measurements": list(circuit.measurements),
         "gate_counts": dict(sorted(gate_counts.items())),
+        "schema_metadata": report_schema_metadata(from_format=detected_format),
         "diagnostics": [
             _diagnostic_payload(diagnostic) for diagnostic in (diagnostics or _caveat_diagnostics())
         ],
@@ -139,6 +145,7 @@ def translation_error_report(
     return {
         "source_path": source_path,
         "from_format": from_format,
+        "schema_metadata": report_schema_metadata(from_format=from_format),
         "status": "failed",
         "diagnostics": [_diagnostic_payload(diagnostic) for diagnostic in error.diagnostics],
     }
@@ -979,6 +986,7 @@ def _literal_constant(node: ast.AST, constants: dict[str, object]) -> object | N
 
 def _emit_internal_json(circuit: InternalCircuit) -> str:
     payload = {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "n_qubits": circuit.n_qubits,
         "operations": [
             {"gate": op.gate, "qubits": list(op.qubits), "params": op.params}

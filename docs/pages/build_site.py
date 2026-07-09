@@ -379,6 +379,10 @@ def main() -> None:
     assets = ROOT / "docs/pages/assets"
     if assets.exists():
         shutil.copytree(assets, OUT / "pages/assets")
+    for docs_asset in ("schemas", "schema_examples"):
+        directory = ROOT / "docs" / docs_asset
+        if directory.exists():
+            shutil.copytree(directory, OUT / docs_asset)
     for directory_name in ("examples", "notebooks", ".devcontainer", ".github"):
         directory = ROOT / directory_name
         if directory.exists():

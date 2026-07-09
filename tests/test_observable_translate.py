@@ -100,6 +100,7 @@ def test_hamiltonian_reports_and_audit_rows() -> None:
     audit = translation_capability_rows()
 
     assert report["verification"]["passed"] is True
+    assert report["schema_metadata"]["input_schema"] == "pauli-json"
     assert check["term_count"] == 2
     assert check["pauli_counts"] == {"X": 1, "Z": 2}
     assert all(row["pauli_hamiltonians"] for row in audit)
@@ -132,6 +133,7 @@ def test_cli_translate_hamiltonian_writes_output_and_report(tmp_path, capsys) ->
     assert "Saved translated Hamiltonian" in captured.out
     assert "SparsePauliOp.from_list" in output.read_text(encoding="utf-8")
     assert payload["verification"]["passed"] is True
+    assert payload["schema_metadata"]["input_schema"] == "pauli-json"
 
 
 def test_cli_translate_observable_stdout_and_audit(capsys, tmp_path) -> None:
@@ -243,5 +245,7 @@ def test_cli_translation_audit_filters(capsys) -> None:
 
     assert exit_code == 0
     assert [row["sdk"] for row in payload] == ["qiskit_aer"]
-    assert payload[0]["verification_modes"] == ["canonical", "matrix"]
+    assert payload[0]["schema_version"] == "0.1"
+    assert payload[0]["verification_modes"] == ["exact", "samples", "canonical", "matrix"]
+    assert "CPHASE" in payload[0]["supported_gates"]
     assert "noise_models" in payload[0]["planned_layers"]

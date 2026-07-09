@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from quantum_backend_bench.backends import get_backend
+from quantum_backend_bench.core.neutral_schema import NEUTRAL_SCHEMA_VERSION
 from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
     CircuitOperation,
@@ -46,6 +47,7 @@ def export_benchmark_circuit(
 def _internal_json(benchmark: BenchmarkSpec) -> str:
     circuit = _internal_circuit(benchmark)
     payload: dict[str, Any] = {
+        "schema_version": NEUTRAL_SCHEMA_VERSION,
         "benchmark": benchmark.name,
         "n_qubits": benchmark.n_qubits,
         "parameters": benchmark.parameters,

@@ -82,6 +82,7 @@ def test_workflow_json_round_trip_keeps_bindings_and_requests() -> None:
     result = translate_workflow_source(WORKFLOW_JSON, to_format="workflow-json")
     payload = json.loads(result.source)
 
+    assert payload["schema_version"] == "0.1"
     assert payload["parameter_bindings"] == {"theta": 1.5707963267948966}
     assert [item["type"] for item in payload["measurements"]] == [
         "counts",
@@ -109,6 +110,7 @@ def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     )
 
     payload = json.loads(qiskit_result.source)
+    assert payload["schema_version"] == "0.1"
     assert payload["counts"] == {"00": 3, "11": 1}
     assert payload["probabilities"] == {"00": 0.75, "11": 0.25}
     assert payload["metadata"]["backend"] == "qiskit_aer"
@@ -139,6 +141,7 @@ def test_group_pauli_terms_qubit_wise_commuting_sets() -> None:
     assert [len(group.terms) for group in groups] == [2, 2]
     assert payload["group_count"] == 2
     assert payload["groups"][0]["term_count"] == 2
+    assert payload["groups"][0]["hamiltonian"]["schema_version"] == "0.1"
 
 
 def test_cli_workflow_result_grouping_and_audit(capsys, tmp_path) -> None:
@@ -195,6 +198,9 @@ def test_capability_rows_include_requested_workflow_layers() -> None:
         assert row["execution_wrappers"]
         assert row["result_objects"]
         assert row["measurement_grouping"]
+        assert row["schema_version"] == "0.1"
+        assert "result-json" in row["neutral_formats"]
+        assert "structured translation errors" in row["diagnostic_modes"]
 
 
 def test_workflow_expected_outputs_are_stable_and_verifiable() -> None:

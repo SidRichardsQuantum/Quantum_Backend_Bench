@@ -32,6 +32,7 @@ neutral_result = {
 print(json.dumps(neutral_result, indent=2, sort_keys=True))
 
 workflow_spec = {
+    "schema_version": "0.1",
     "name": "parameterized_bell_workflow",
     "n_qubits": 2,
     "parameters": ["theta"],
@@ -48,6 +49,7 @@ workflow_spec = {
             "type": "expectation",
             "targets": [0, 1],
             "observable": {
+                "schema_version": "0.1",
                 "n_qubits": 2,
                 "terms": [{"coefficient": 1.0, "paulis": {"0": "Z", "1": "Z"}}],
             },

@@ -12,6 +12,8 @@ include docs/LIMITATIONS.md
 include docs/METHODOLOGY.md
 include docs/PROBLEM.md
 include docs/SCHEMA.md
+recursive-include docs/schemas *.json
+recursive-include docs/schema_examples *.json
 include USAGE.md
 include pyproject.toml
 

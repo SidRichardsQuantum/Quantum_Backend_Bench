@@ -1,0 +1,73 @@
+{
+  "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/internal-circuit.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "measurements": {
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "n_qubits": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "operations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "gate": {
+            "enum": [
+              "H",
+              "X",
+              "Y",
+              "Z",
+              "S",
+              "T",
+              "RX",
+              "RY",
+              "RZ",
+              "CNOT",
+              "CZ",
+              "SWAP",
+              "CPHASE"
+            ],
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "qubits": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "gate",
+          "qubits"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "n_qubits",
+    "operations",
+    "measurements"
+  ],
+  "title": "quantum-backend-bench internal-circuit",
+  "type": "object"
+}
