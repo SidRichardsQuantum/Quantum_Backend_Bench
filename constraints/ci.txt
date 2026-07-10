@@ -12,6 +12,7 @@ cudaq>=0.8,<1
 markdown>=3.6,<4
 matplotlib>=3.8,<4
 mypy>=1.10,<2
+numpy>=1.26,<2.3
 pandas>=2.2,<3
 pennylane>=0.38,<1
 pymdown-extensions>=10,<11

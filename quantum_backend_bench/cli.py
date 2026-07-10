@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import cast
 
 from quantum_backend_bench.backends import BACKEND_REGISTRY
 from quantum_backend_bench.benchmarks import noise_sensitivity
@@ -1117,11 +1118,15 @@ def _translate_check_command(args: argparse.Namespace) -> int:
         print(f"  operations: {report['operation_count']}")
         print(f"  measurements: {report['measurements']}")
         print(f"  gates: {json.dumps(report['gate_counts'], sort_keys=True)}")
-        print(f"  contract: {report['semantic_contract']['guarantee']}")
+        semantic_contract = _dict_value(report.get("semantic_contract"))
+        print(
+            "  contract: "
+            f"{semantic_contract.get('guarantee', 'Lossless only within the declared neutral semantic subset.')}"
+        )
         print("  verification_available: yes")
         print("  supported_outputs: " + ", ".join(TRANSLATION_OUTPUT_FORMATS))
         if args.explain or args.to_format:
-            _print_migration_audit(report["migration_audit"])
+            _print_migration_audit(_dict_value(report.get("migration_audit")))
     if args.save_report:
         _write_translation_report(args.save_report, report)
     if args.save_markdown:
@@ -1130,9 +1135,9 @@ def _translate_check_command(args: argparse.Namespace) -> int:
 
 
 def _format_translation_check_markdown(report: dict[str, object]) -> str:
-    contract = report.get("semantic_contract", {})
-    audit = report.get("migration_audit", {})
-    diagnostics = report.get("diagnostics", [])
+    contract = _dict_value(report.get("semantic_contract"))
+    audit = _dict_value(report.get("migration_audit"))
+    diagnostics = _list_value(report.get("diagnostics"))
     lines = [
         "# Translation Check",
         "",
@@ -1161,10 +1166,10 @@ def _format_translation_check_markdown(report: dict[str, object]) -> str:
         ("Rejected If Present", "rejected_if_present"),
         ("Not Modeled", "not_modeled"),
     ):
-        values = audit.get(key, []) if isinstance(audit, dict) else []
+        values = _list_value(audit.get(key))
         if values:
             lines.extend([f"## {title}", "", *[f"- {value}" for value in values], ""])
-    recommendation = audit.get("verification_recommendation") if isinstance(audit, dict) else None
+    recommendation = audit.get("verification_recommendation")
     if recommendation:
         lines.extend(["## Verification", "", str(recommendation), ""])
     if isinstance(diagnostics, list) and diagnostics:
@@ -1183,10 +1188,18 @@ def _write_markdown_report(path: str, content: str) -> None:
     print(f"Saved Markdown report to {path}")
 
 
+def _dict_value(value: object) -> dict[str, object]:
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
+
+
+def _list_value(value: object) -> list[object]:
+    return cast(list[object], value) if isinstance(value, list) else []
+
+
 def _print_migration_audit(audit: dict[str, object]) -> None:
     print("  migration_audit:")
     for key in ("preserved", "rewritten", "rejected_if_present", "not_modeled"):
-        values = audit.get(key, [])
+        values = _list_value(audit.get(key))
         if values:
             print(f"    {key}: " + "; ".join(str(value) for value in values))
     recommendation = audit.get("verification_recommendation")
