@@ -69,6 +69,12 @@ DOCS = [
         "limitations.html",
         "Known boundaries and caveats.",
     ),
+    (
+        "Release Policy",
+        ROOT / "docs" / "RELEASE_POLICY.md",
+        "release-policy.html",
+        "Wheel, source distribution, and reproducibility artifact policy.",
+    ),
     ("Changelog", ROOT / "CHANGELOG.md", "changelog.html", "Release notes and project history."),
 ]
 DOC_OUTPUTS = {source.name: output for _, source, output, _ in DOCS}

@@ -23,6 +23,7 @@ DOCS = [
     ROOT / "docs" / "COMPATIBILITY.md",
     ROOT / "docs" / "LIMITATIONS.md",
     ROOT / "docs" / "CIRCUIT_TRANSLATION.md",
+    ROOT / "docs" / "RELEASE_POLICY.md",
     ROOT / "CHANGELOG.md",
     ROOT / "examples" / "README.md",
     ROOT / "examples" / "translation" / "README.md",
