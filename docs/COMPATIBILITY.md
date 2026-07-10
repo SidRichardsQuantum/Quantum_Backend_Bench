@@ -26,7 +26,7 @@ runtime expectations for the current package line.
 | pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available |
 | qBraid | `qbraid` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
 | Q# / QDK | `qsharp` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
-| Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Not executed in CI |
+| Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Static notebook checks plus quickstart execution smoke in main CI |
 | Documentation tooling | `docs` | Pages build and link validation | No | Python packages only | Main CI docs validation |
 
 ## Extras Policy
@@ -45,6 +45,10 @@ The default project scope is local simulator benchmarking. SDKs that require clo
 accounts, billing, remote queues, or private provider services should not be part of
 the default onboarding path. They may be considered later as clearly optional
 provider adapters if the local, free workflow remains the primary experience.
+
+## CI Dependency Constraints
+
+Project metadata keeps optional SDK requirements broad for package users. CI installs through `constraints/ci.txt`, which applies reviewed major-version bands to tooling and optional SDK smoke jobs so upstream releases are adopted deliberately.
 
 ## Validation Commands
 

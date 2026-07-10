@@ -4,7 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
-## [Unreleased]
+## [0.2.9] - 2026-07-10
+
+### Added
+
+- Translation reports now include an explicit semantic contract that states the lossless neutral-subset guarantee, preserved semantics, rewrites, rejected constructs, unmodeled behavior, verification modes, and free local SDK target scope.
+- `quantum-bench translate-check` now supports `--to-format`, `--explain`, and `--save-markdown` for target-aware migration-audit guidance covering preserved semantics, syntax rewrites, rejection categories, unmodeled behavior, and recommended verification.
+- `quantum-bench translate-all` now emits selected SDK target source files, neutral `internal-json`, per-target JSON reports, a combined JSON report, and a compact Markdown summary in one artifact directory.
+- Translation examples now include migration-audit reports, realistic accepted SDK snippets, purpose-level workflow JSON, round-trip audit artifacts, portable rewrites for rejected patterns, roadmap-only intent examples, and result-normalization edge cases.
+- Added a translation migration-audit notebook and refreshed the circuit/workflow translation notebooks to show semantic contracts, target-aware audit guidance, and purpose-level workflow examples.
+
+### Changed
+
+- Translation documentation and SDK workflow guidance now describe the semantic-contract and migration-audit report fields so SDK portability checks are easier to use in CI and migration reviews.
 
 ## [0.2.8] - 2026-07-09
 

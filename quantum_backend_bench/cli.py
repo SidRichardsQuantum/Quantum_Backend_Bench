@@ -35,7 +35,11 @@ from quantum_backend_bench.core.diff import (
     load_result_file,
 )
 from quantum_backend_bench.core.diagnostics import diagnose_result_parity
-from quantum_backend_bench.core.discovery import BENCHMARK_INFOS, backend_capabilities
+from quantum_backend_bench.core.discovery import (
+    BENCHMARK_INFOS,
+    BackendCapability,
+    backend_capabilities,
+)
 from quantum_backend_bench.core.doctor import doctor_checks, doctor_passed, format_doctor_table
 from quantum_backend_bench.core.draw import draw_benchmark
 from quantum_backend_bench.core.exact import (
@@ -283,6 +287,56 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     translate_parser.set_defaults(func=_translate_command)
 
+    translate_all_parser = subparsers.add_parser(
+        "translate-all",
+        help="Translate a supported circuit source to all selected local SDK targets.",
+    )
+    translate_all_parser.add_argument("source")
+    translate_all_parser.add_argument(
+        "--from-format",
+        choices=TRANSLATION_INPUT_FORMATS,
+        default="auto",
+        help="Input circuit format.",
+    )
+    translate_all_parser.add_argument(
+        "--targets",
+        nargs="+",
+        choices=TRANSLATION_OUTPUT_FORMATS,
+        default=["qiskit_aer", "cirq", "pennylane", "braket_local"],
+        help="Output targets. Defaults to all free local SDK source targets.",
+    )
+    translate_all_parser.add_argument(
+        "--output-dir",
+        "-o",
+        required=True,
+        help="Directory for generated source, reports, neutral JSON, and summary files.",
+    )
+    translate_all_parser.add_argument("--name", default="translated_circuit")
+    translate_all_parser.add_argument(
+        "--verify",
+        choices=TRANSLATION_VERIFY_MODES,
+        default="exact",
+        help="Semantic verification mode used for each selected target.",
+    )
+    translate_all_parser.add_argument(
+        "--verify-tolerance",
+        type=float,
+        default=1e-9,
+        help="Maximum allowed total variation distance for semantic verification.",
+    )
+    translate_all_parser.add_argument(
+        "--sample-shots",
+        type=_positive_int,
+        default=2048,
+        help="Shot count used by --verify samples.",
+    )
+    translate_all_parser.add_argument(
+        "--fail-on-verification",
+        action="store_true",
+        help="Exit nonzero when any selected target fails verification.",
+    )
+    translate_all_parser.set_defaults(func=_translate_all_command)
+
     translate_check_parser = subparsers.add_parser(
         "translate-check",
         help="Inspect whether a circuit source can be translated without writing output.",
@@ -291,7 +345,21 @@ def _build_parser() -> argparse.ArgumentParser:
     translate_check_parser.add_argument(
         "--from-format", choices=TRANSLATION_INPUT_FORMATS, default="auto"
     )
+    translate_check_parser.add_argument(
+        "--to-format",
+        choices=TRANSLATION_OUTPUT_FORMATS,
+        help="Optional target format for target-aware migration audit details.",
+    )
+    translate_check_parser.add_argument(
+        "--explain",
+        action="store_true",
+        help="Print preservation, rewrite, rejection, and verification guidance.",
+    )
     translate_check_parser.add_argument("--save-report")
+    translate_check_parser.add_argument(
+        "--save-markdown",
+        help="Save a compact human-readable translation-check Markdown report.",
+    )
     translate_check_parser.add_argument(
         "--json",
         action="store_true",
@@ -873,6 +941,146 @@ def _translate_command(args: argparse.Namespace) -> int:
     return 0 if result.verification is None or result.verification.passed else 1
 
 
+def _translate_all_command(args: argparse.Namespace) -> int:
+    source_path = Path(args.source)
+    source = source_path.read_text(encoding="utf-8")
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stem = source_path.stem
+
+    targets = list(dict.fromkeys(args.targets))
+    if "internal-json" not in targets:
+        targets.append("internal-json")
+
+    combined_report = []
+    artifact_rows = []
+    failed = False
+    for target in targets:
+        try:
+            result = translate_circuit_source(
+                source,
+                from_format=args.from_format,
+                to_format=target,
+                name=args.name,
+                verify=args.verify if target != "internal-json" else "none",
+                verification_tolerance=args.verify_tolerance,
+                sample_shots=args.sample_shots,
+            )
+            suffix = _translation_target_suffix(target)
+            artifact_path = output_dir / f"{stem}_to_{target.replace('-', '_')}{suffix}"
+            artifact_path.write_text(result.source, encoding="utf-8")
+            report = translation_result_report(
+                result,
+                source_path=args.source,
+                from_format=args.from_format,
+                to_format=target,
+            )
+            report_path = output_dir / f"{stem}_to_{target.replace('-', '_')}_report.json"
+            report_path.write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            verification = report.get("verification")
+            passed = True
+            if isinstance(verification, dict):
+                passed = bool(verification.get("passed"))
+            if not passed:
+                failed = True
+            combined_report.append(report)
+            artifact_rows.append(
+                {
+                    "target": target,
+                    "source": str(artifact_path),
+                    "report": str(report_path),
+                    "status": "passed" if passed else "failed",
+                    "verification": verification,
+                    "notes": result.notes,
+                }
+            )
+        except TranslationError as exc:
+            failed = True
+            report = translation_error_report(
+                exc, source_path=args.source, from_format=args.from_format
+            )
+            report["to_format"] = target
+            report_path = output_dir / f"{stem}_to_{target.replace('-', '_')}_report.json"
+            report_path.write_text(
+                json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            combined_report.append(report)
+            artifact_rows.append(
+                {
+                    "target": target,
+                    "source": None,
+                    "report": str(report_path),
+                    "status": "failed",
+                    "verification": None,
+                    "notes": [diagnostic.message for diagnostic in exc.diagnostics],
+                }
+            )
+
+    combined_path = output_dir / f"{stem}_translate_all_report.json"
+    combined_path.write_text(
+        json.dumps(combined_report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    summary_path = output_dir / f"{stem}_translate_all_summary.md"
+    summary_path.write_text(
+        _format_translate_all_markdown(args.source, artifact_rows, combined_path),
+        encoding="utf-8",
+    )
+
+    print(f"Saved translate-all artifacts to {output_dir}")
+    for row in artifact_rows:
+        print(f"  {row['target']}: {row['status']}")
+    print(f"  combined_report: {combined_path}")
+    print(f"  summary: {summary_path}")
+    return 1 if failed and args.fail_on_verification else 0
+
+
+def _translation_target_suffix(target: str) -> str:
+    if target == "internal-json":
+        return ".json"
+    if target == "openqasm":
+        return ".qasm"
+    return ".py"
+
+
+def _format_translate_all_markdown(
+    source_path: str, artifact_rows: list[dict[str, object]], combined_path: Path
+) -> str:
+    lines = [
+        "# Translate All Summary",
+        "",
+        f"- source: `{source_path}`",
+        f"- combined report: `{combined_path}`",
+        "",
+        "| Target | Status | Source | Report | Verification |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for row in artifact_rows:
+        verification = row.get("verification")
+        verification_text = "n/a"
+        if isinstance(verification, dict):
+            verification_text = str(verification.get("details", verification.get("passed")))
+        lines.append(
+            "| "
+            f"{_markdown_table_cell(row['target'])} | "
+            f"{_markdown_table_cell(row['status'])} | "
+            f"{_markdown_table_cell(_markdown_path(row.get('source')))} | "
+            f"{_markdown_table_cell(_markdown_path(row.get('report')))} | "
+            f"{_markdown_table_cell(verification_text)} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _markdown_table_cell(value: object) -> str:
+    return str(value).replace("\n", "<br>").replace("|", r"\|")
+
+
+def _markdown_path(value: object) -> str:
+    return "-" if value is None else f"`{value}`"
+
+
 def _translate_check_command(args: argparse.Namespace) -> int:
     source = Path(args.source).read_text(encoding="utf-8")
     try:
@@ -891,23 +1099,99 @@ def _translate_check_command(args: argparse.Namespace) -> int:
                 print(f"  {diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
         if args.save_report:
             _write_translation_report(args.save_report, report)
+        if args.save_markdown:
+            _write_markdown_report(args.save_markdown, _format_translation_check_markdown(report))
         return 1
 
-    report = translation_check_report(benchmark, detected_format, source_path=args.source)
+    report = translation_check_report(
+        benchmark, detected_format, source_path=args.source, to_format=args.to_format
+    )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
         print("Translation check")
         print(f"  input_format: {report['input_format']}")
+        if args.to_format:
+            print(f"  target: {args.to_format}")
         print(f"  n_qubits: {report['n_qubits']}")
         print(f"  operations: {report['operation_count']}")
         print(f"  measurements: {report['measurements']}")
         print(f"  gates: {json.dumps(report['gate_counts'], sort_keys=True)}")
+        print(f"  contract: {report['semantic_contract']['guarantee']}")
         print("  verification_available: yes")
         print("  supported_outputs: " + ", ".join(TRANSLATION_OUTPUT_FORMATS))
+        if args.explain or args.to_format:
+            _print_migration_audit(report["migration_audit"])
     if args.save_report:
         _write_translation_report(args.save_report, report)
+    if args.save_markdown:
+        _write_markdown_report(args.save_markdown, _format_translation_check_markdown(report))
     return 0
+
+
+def _format_translation_check_markdown(report: dict[str, object]) -> str:
+    contract = report.get("semantic_contract", {})
+    audit = report.get("migration_audit", {})
+    diagnostics = report.get("diagnostics", [])
+    lines = [
+        "# Translation Check",
+        "",
+        f"- source: `{report.get('source_path')}`",
+        f"- input format: `{report.get('input_format', report.get('from_format'))}`",
+        f"- target: `{audit.get('target')}`",
+        f"- status: `{report.get('status', audit.get('status', 'source_supported'))}`",
+        f"- guarantee: {contract.get('guarantee', 'Lossless only within the declared neutral semantic subset.')}",
+        "",
+    ]
+    if "gate_counts" in report:
+        lines.extend(
+            [
+                "## Inventory",
+                "",
+                f"- qubits: `{report.get('n_qubits')}`",
+                f"- operations: `{report.get('operation_count')}`",
+                f"- measurements: `{report.get('measurements')}`",
+                f"- gates: `{json.dumps(report.get('gate_counts', {}), sort_keys=True)}`",
+                "",
+            ]
+        )
+    for title, key in (
+        ("Preserved", "preserved"),
+        ("Rewritten", "rewritten"),
+        ("Rejected If Present", "rejected_if_present"),
+        ("Not Modeled", "not_modeled"),
+    ):
+        values = audit.get(key, []) if isinstance(audit, dict) else []
+        if values:
+            lines.extend([f"## {title}", "", *[f"- {value}" for value in values], ""])
+    recommendation = audit.get("verification_recommendation") if isinstance(audit, dict) else None
+    if recommendation:
+        lines.extend(["## Verification", "", str(recommendation), ""])
+    if isinstance(diagnostics, list) and diagnostics:
+        lines.extend(["## Diagnostics", ""])
+        for item in diagnostics:
+            if isinstance(item, dict):
+                lines.append(
+                    f"- `{item.get('code')}` ({item.get('severity')}): {item.get('message')}"
+                )
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _write_markdown_report(path: str, content: str) -> None:
+    Path(path).write_text(content, encoding="utf-8")
+    print(f"Saved Markdown report to {path}")
+
+
+def _print_migration_audit(audit: dict[str, object]) -> None:
+    print("  migration_audit:")
+    for key in ("preserved", "rewritten", "rejected_if_present", "not_modeled"):
+        values = audit.get(key, [])
+        if values:
+            print(f"    {key}: " + "; ".join(str(value) for value in values))
+    recommendation = audit.get("verification_recommendation")
+    if recommendation:
+        print(f"    verification: {recommendation}")
 
 
 def _translate_hamiltonian_command(args: argparse.Namespace) -> int:
@@ -1077,17 +1361,24 @@ def _translation_audit_command(args: argparse.Namespace) -> int:
         "sdk           schema  circuits  gates  pauli_hamiltonians  params  bindings  measurements  grouping  execution  results  verification"
     )
     for row in rows:
+        supported_gates = _list_field(row, "supported_gates")
+        verification_modes = [str(value) for value in _list_field(row, "verification_modes")]
         print(
             f"{row['sdk']:<13} {row['schema_version']:<7} {_yes_no(row['circuits']):<8} "
-            f"{len(row['supported_gates']):<5} {_yes_no(row['pauli_hamiltonians']):<19} "
+            f"{len(supported_gates):<5} {_yes_no(row['pauli_hamiltonians']):<19} "
             f"{_yes_no(row['parameterized_circuits']):<7} "
             f"{_yes_no(row['parameter_bindings']):<9} "
             f"{_yes_no(row['measurement_requests']):<13} "
             f"{_yes_no(row['measurement_grouping']):<9} "
             f"{_yes_no(row['execution_wrappers']):<9} "
-            f"{_yes_no(row['result_objects']):<7} {', '.join(row['verification_modes'])}"
+            f"{_yes_no(row['result_objects']):<7} {', '.join(verification_modes)}"
         )
     return 0
+
+
+def _list_field(row: dict[str, object], key: str) -> list[object]:
+    value = row.get(key, [])
+    return value if isinstance(value, list) else []
 
 
 def _filter_translation_audit_rows(
@@ -1097,9 +1388,11 @@ def _filter_translation_audit_rows(
     if args.sdk:
         selected = [row for row in selected if row["sdk"] == args.sdk]
     if args.to_format:
-        selected = [row for row in selected if args.to_format in row["output_formats"]]
+        selected = [row for row in selected if args.to_format in _list_field(row, "output_formats")]
     if args.from_format:
-        selected = [row for row in selected if args.from_format in row["input_formats"]]
+        selected = [
+            row for row in selected if args.from_format in _list_field(row, "input_formats")
+        ]
     if args.layer:
         selected = [row for row in selected if row[args.layer]]
     return selected
@@ -1232,8 +1525,10 @@ def _hardware_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _filter_recommendations(capabilities: list[object], args: argparse.Namespace) -> list[object]:
-    filtered = []
+def _filter_recommendations(
+    capabilities: list[BackendCapability], args: argparse.Namespace
+) -> list[BackendCapability]:
+    filtered: list[BackendCapability] = []
     for capability in capabilities:
         if args.needs_noise and getattr(capability, "noise_support") in {"not injected", "n/a"}:
             continue
@@ -1245,57 +1540,54 @@ def _filter_recommendations(capabilities: list[object], args: argparse.Namespace
     return filtered
 
 
-def _rank_capabilities(capabilities: list[object], use_case: str) -> list[object]:
-    def score(capability: object) -> tuple[int, str]:
+def _rank_capabilities(
+    capabilities: list[BackendCapability], use_case: str
+) -> list[BackendCapability]:
+    def score(capability: BackendCapability) -> tuple[int, str]:
         value = 0
-        if getattr(capability, "local_only"):
+        if capability.local_only:
             value += 2
-        if getattr(capability, "shot_sampling"):
+        if capability.shot_sampling:
             value += 2
-        if (
-            use_case in {"noise", "research"}
-            and getattr(capability, "noise_support") != "not injected"
-        ):
+        if use_case in {"noise", "research"} and capability.noise_support != "not injected":
             value += 4
-        if use_case == "performance" and not getattr(capability, "external_process"):
+        if use_case == "performance" and not capability.external_process:
             value += 2
-        if use_case == "teaching" and not getattr(capability, "external_process"):
+        if use_case == "teaching" and not capability.external_process:
             value += 2
-        if use_case == "portable" and not getattr(capability, "includes_transpilation_time"):
+        if use_case == "portable" and not capability.includes_transpilation_time:
             value += 1
-        return (-value, getattr(capability, "name"))
+        return (-value, capability.name)
 
     return sorted(capabilities, key=score)
 
 
-def _missing_reasons(capability: object) -> list[str]:
-    reasons = [
-        f"not installed; install quantum-backend-bench[{getattr(capability, 'install_extra')}]"
-    ]
-    if getattr(capability, "external_process"):
+def _missing_reasons(capability: BackendCapability) -> list[str]:
+    reasons = [f"not installed; install quantum-backend-bench[{capability.install_extra}]"]
+    if capability.external_process:
         reasons.append("requires external local runtime")
-    if not getattr(capability, "local_only"):
+    if not capability.local_only:
         reasons.append("outside credential-free local execution scope")
-    if getattr(capability, "includes_transpilation_time"):
+    if capability.includes_transpilation_time:
         reasons.append("runtime includes transpilation")
-    if getattr(capability, "noise_support") not in {"not injected", "n/a"}:
-        reasons.append(f"noise={getattr(capability, 'noise_support')}")
+    if capability.noise_support not in {"not injected", "n/a"}:
+        reasons.append(f"noise={capability.noise_support}")
     return reasons
 
 
-def _recommendation_reasons(capability: object, use_case: str) -> list[str]:
-    reasons = []
-    if getattr(capability, "local_only"):
+def _recommendation_reasons(capability: BackendCapability, use_case: str) -> list[str]:
+    reasons: list[str] = []
+    if capability.local_only:
         reasons.append("local")
-    if getattr(capability, "shot_sampling"):
+    if capability.shot_sampling:
         reasons.append("shot sampling")
-    if getattr(capability, "noise_support") not in {"not injected", "n/a"}:
-        reasons.append(f"noise={getattr(capability, 'noise_support')}")
-    if getattr(capability, "exact_statevector"):
+    if capability.noise_support not in {"not injected", "n/a"}:
+        reasons.append(f"noise={capability.noise_support}")
+    if capability.exact_statevector:
         reasons.append("exact statevector")
-    if getattr(capability, "external_process"):
+    if capability.external_process:
         reasons.append("external local process")
-    if getattr(capability, "includes_transpilation_time"):
+    if capability.includes_transpilation_time:
         reasons.append("runtime includes transpilation")
     if use_case == "research":
         reasons.append("capture caveats in results")
@@ -1514,8 +1806,12 @@ def _suite_manifest(suite_name: str) -> list[dict[str, object]]:
 def _print_suite_cases(suite_name: str, manifest: list[dict[str, object]]) -> None:
     print(f"Suite: {suite_name}")
     for case in manifest:
+        raw_parameters = case["parameters"]
         parameters = ", ".join(
-            f"{key}={value}" for key, value in sorted(case["parameters"].items())
+            f"{key}={value}"
+            for key, value in sorted(
+                raw_parameters.items() if isinstance(raw_parameters, dict) else []
+            )
         )
         print(f"{case['index']}. {case['benchmark']}: {case['description']}")
         print(f"   result_name={case['result_name']}; {parameters}")

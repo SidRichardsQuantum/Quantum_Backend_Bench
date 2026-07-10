@@ -1,6 +1,8 @@
 """Public API tests."""
 
+import quantum_backend_bench as qbb
 from quantum_backend_bench import (
+    __version__,
     BENCHMARK_BUILDERS,
     SUITES,
     build_benchmark_from_config,
@@ -19,6 +21,13 @@ from quantum_backend_bench import (
     translation_capability_rows,
     translation_check_report,
 )
+
+
+def test_all_public_exports_resolve() -> None:
+    assert __version__
+    assert sorted(qbb.__all__) == sorted(set(qbb.__all__))
+    missing = [name for name in qbb.__all__ if not hasattr(qbb, name)]
+    assert missing == []
 
 
 def test_suite_and_summary_helpers_are_public() -> None:

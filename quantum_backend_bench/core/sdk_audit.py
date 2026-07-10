@@ -107,7 +107,7 @@ class AuditCase:
 def _gate_coverage_case() -> BenchmarkSpec:
     circuit = InternalCircuit(
         3,
-        (
+        [
             CircuitOperation("H", (0,)),
             CircuitOperation("RX", (0,), {"theta": 0.25}),
             CircuitOperation("RY", (1,), {"theta": 0.5}),
@@ -115,8 +115,8 @@ def _gate_coverage_case() -> BenchmarkSpec:
             CircuitOperation("CZ", (0, 1)),
             CircuitOperation("SWAP", (1, 2)),
             CircuitOperation("CPHASE", (0, 2), {"theta": 0.125}),
-        ),
-        (0, 1, 2),
+        ],
+        [0, 1, 2],
     )
     return BenchmarkSpec(
         name="sdk_gate_coverage",
@@ -592,6 +592,9 @@ def _workflow_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
                 source, from_format=_workflow_import_format(target)
             )
             verification = verify_workflow_translation(expected, source, to_format=target)
+            canonical = canonical_workflow(imported)
+            operations = canonical["operations"]
+            measurements = canonical["measurements"]
             rows.append(
                 {
                     "audit": "workflow_roundtrip",
@@ -599,8 +602,8 @@ def _workflow_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
                     "case": "parameterized_expectation_workflow",
                     "status": "passed" if verification.passed else "failed",
                     "detected_format": detected,
-                    "operations": len(canonical_workflow(imported)["operations"]),
-                    "measurements": len(canonical_workflow(imported)["measurements"]),
+                    "operations": len(operations) if isinstance(operations, list) else 0,
+                    "measurements": len(measurements) if isinstance(measurements, list) else 0,
                     "details": verification.details,
                 }
             )

@@ -19,6 +19,7 @@ from quantum_backend_bench.core.circuit_translate import (
     TranslationError,
     TranslationResult,
     TranslationVerification,
+    translation_semantic_contract,
 )
 from quantum_backend_bench.core.observable_translate import (
     PauliHamiltonian,
@@ -376,6 +377,11 @@ def workflow_translation_report(
         "from_format": from_format,
         "to_format": to_format,
         "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
+        "semantic_contract": translation_semantic_contract(
+            _report_contract_layer(from_format, to_format),
+            from_format=from_format,
+            to_format=to_format,
+        ),
         "notes": result.notes,
         "diagnostics": [
             {"severity": item.severity, "code": item.code, "message": item.message}
@@ -383,6 +389,14 @@ def workflow_translation_report(
         ],
         "verification": verification,
     }
+
+
+def _report_contract_layer(from_format: str | None, to_format: str | None) -> str:
+    if to_format == "measurement-groups":
+        return "measurement_grouping"
+    if from_format in RESULT_INPUT_FORMATS or to_format in RESULT_OUTPUT_FORMATS:
+        return "result"
+    return "workflow"
 
 
 def _workflow_from_payload(payload: dict[str, Any]) -> ParameterizedWorkflow:

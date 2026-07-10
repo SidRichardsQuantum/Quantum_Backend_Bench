@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import runpy
+import shutil
 from pathlib import Path
 
 import pytest
@@ -253,6 +255,8 @@ def test_translation_reports_include_caveats_and_verification() -> None:
     )
 
     assert report["verification"]["passed"] is True
+    assert report["semantic_contract"]["layer"] == "circuit"
+    assert report["semantic_contract"]["lossless_subset"] is True
     diagnostic_codes = {item["code"] for item in report["diagnostics"]}
     assert "translation.caveat.measurement_order" in diagnostic_codes
     assert "translation.caveat.controlled_phase" in diagnostic_codes
@@ -262,9 +266,15 @@ def test_translation_check_report_includes_gate_inventory() -> None:
     source = (TRANSLATION_EXAMPLES / "qiskit_registers.py").read_text(encoding="utf-8")
     benchmark, detected = import_circuit_source(source, from_format="qiskit")
 
-    report = translation_check_report(benchmark, detected, source_path="qiskit_registers.py")
+    report = translation_check_report(
+        benchmark, detected, source_path="qiskit_registers.py", to_format="cirq"
+    )
 
     assert report["input_format"] == "qiskit"
+    assert report["schema_metadata"]["output_schema"] is None
+    assert report["semantic_contract"]["guarantee"].startswith("Lossless only")
+    assert report["migration_audit"]["target"] == "cirq"
+    assert "custom gates" in report["migration_audit"]["rejected_if_present"]
     assert report["gate_counts"] == {"CNOT": 1, "H": 1, "RX": 1}
     assert "cirq" in report["supported_outputs"]
     diagnostic_codes = {item["code"] for item in report["diagnostics"]}
@@ -424,6 +434,83 @@ def test_translation_example_expected_outputs_are_stable() -> None:
         assert result.verification.passed
 
 
+def _copy_translation_examples(tmp_path: Path) -> Path:
+    copied_root = tmp_path / "examples" / "translation"
+    copied_root.parent.mkdir(parents=True)
+    shutil.copytree(
+        TRANSLATION_EXAMPLES,
+        copied_root,
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    return copied_root
+
+
+def _run_expected_generator(script_path: Path) -> None:
+    namespace = runpy.run_path(str(script_path))
+    assert namespace["main"]() == 0
+
+
+def _json_with_normalized_source_paths(path: Path) -> object:
+    def normalize(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                key: "<source_path>" if key == "source_path" else normalize(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        return value
+
+    return normalize(json.loads(path.read_text(encoding="utf-8")))
+
+
+def test_migration_audit_expected_artifacts_regenerate_cleanly(tmp_path: Path) -> None:
+    copied_examples = _copy_translation_examples(tmp_path)
+
+    _run_expected_generator(copied_examples / "migration_audit" / "generate_expected.py")
+
+    expected_dir = TRANSLATION_EXAMPLES / "migration_audit" / "expected"
+    generated_dir = copied_examples / "migration_audit" / "expected"
+    assert _json_with_normalized_source_paths(
+        generated_dir / "qiskit_static_bell_to_cirq_check.json"
+    ) == _json_with_normalized_source_paths(expected_dir / "qiskit_static_bell_to_cirq_check.json")
+    assert (generated_dir / "qiskit_static_bell_to_cirq_check.md").read_text(encoding="utf-8") == (
+        expected_dir / "qiskit_static_bell_to_cirq_check.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_roundtrip_audit_expected_artifacts_regenerate_cleanly(tmp_path: Path) -> None:
+    copied_examples = _copy_translation_examples(tmp_path)
+
+    _run_expected_generator(copied_examples / "roundtrip_audit" / "generate_expected.py")
+
+    expected_dir = TRANSLATION_EXAMPLES / "roundtrip_audit" / "expected"
+    generated_dir = copied_examples / "roundtrip_audit" / "expected"
+    assert _json_with_normalized_source_paths(
+        generated_dir / "qiskit_static_bell_to_cirq_roundtrip.json"
+    ) == _json_with_normalized_source_paths(
+        expected_dir / "qiskit_static_bell_to_cirq_roundtrip.json"
+    )
+    assert (generated_dir / "qiskit_static_bell_to_cirq_roundtrip.md").read_text(
+        encoding="utf-8"
+    ) == (expected_dir / "qiskit_static_bell_to_cirq_roundtrip.md").read_text(encoding="utf-8")
+
+
+def test_roadmap_translation_examples_are_documented_but_not_verified() -> None:
+    verifier = (TRANSLATION_EXAMPLES / "verify_examples.py").read_text(encoding="utf-8")
+    examples_readme = (TRANSLATION_EXAMPLES / "README.md").read_text(encoding="utf-8")
+    roadmap_readme = (TRANSLATION_EXAMPLES / "roadmap" / "README.md").read_text(encoding="utf-8")
+    roadmap_files = sorted((TRANSLATION_EXAMPLES / "roadmap").glob("*.py"))
+
+    assert roadmap_files
+    assert "intentionally excluded from `verify_examples.py`" in roadmap_readme
+    assert "roadmap/" not in verifier
+    for path in roadmap_files:
+        relative = f"roadmap/{path.name}"
+        assert relative in examples_readme
+        assert relative not in verifier
+
+
 def test_translation_example_corpus_verifies() -> None:
     cases = [
         ("qiskit_registers.py", "qiskit", "cirq"),
@@ -432,6 +519,11 @@ def test_translation_example_corpus_verifies() -> None:
         ("braket_local.py", "braket", "pennylane"),
         ("ghz.qasm", "openqasm", "cirq"),
         ("internal_ghz.json", "internal-json", "qiskit_aer"),
+        ("accepted/qiskit_static_rotations.py", "qiskit", "cirq"),
+        ("accepted/cirq_measurement_keys.py", "cirq", "qiskit_aer"),
+        ("accepted/braket_probability_result_type.py", "braket", "pennylane"),
+        ("portable/custom_gate_decomposed_qiskit.py", "qiskit", "cirq"),
+        ("portable/runtime_removed_qiskit.py", "qiskit", "cirq"),
     ]
 
     for source_name, from_format, to_format in cases:

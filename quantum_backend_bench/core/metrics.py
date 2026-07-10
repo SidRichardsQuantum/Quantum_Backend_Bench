@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
-def normalize_counts(counts: dict[str, int], shots: int | None = None) -> dict[str, float]:
+def normalize_counts(counts: Mapping[str, int], shots: int | None = None) -> dict[str, float]:
     """Convert integer counts to a normalized distribution."""
 
     total = shots if shots is not None else sum(counts.values())
@@ -54,7 +54,9 @@ def total_variation_distance(
     if ideal is None:
         return None
     observed_distribution = (
-        normalize_counts(observed, shots=shots) if _looks_like_counts(observed) else dict(observed)
+        normalize_counts({key: int(value) for key, value in observed.items()}, shots=shots)
+        if _looks_like_counts(observed)
+        else dict(observed)
     )
     keys = set(observed_distribution) | set(ideal)
     return 0.5 * sum(abs(observed_distribution.get(key, 0.0) - ideal.get(key, 0.0)) for key in keys)

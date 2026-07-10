@@ -27,7 +27,7 @@ def load_manifest(path: str | Path) -> dict[str, Any]:
         data = json.loads(text)
     elif source.suffix.lower() in {".yaml", ".yml"}:
         try:
-            import yaml
+            import yaml  # type: ignore[import-untyped]
         except ImportError as exc:
             raise RuntimeError(
                 "YAML manifests require PyYAML. Install it directly with: pip install pyyaml"

@@ -186,7 +186,8 @@ def _swap(state: Any, n_qubits: int, left: int, right: int) -> Any:
 def _sample_counts(
     probabilities: dict[str, float], shots: int, seed: object | None = None
 ) -> dict[str, int]:
-    rng = random.Random(0 if seed is None else seed)
+    rng_seed = seed if isinstance(seed, (int, float, str, bytes, bytearray)) else 0
+    rng = random.Random(rng_seed)
     states = sorted(probabilities)
     weights = [max(0.0, probabilities[state]) for state in states]
     samples = rng.choices(states, weights=weights, k=shots)

@@ -6,7 +6,10 @@ import ast
 import json
 import re
 from pathlib import Path
+from typing import Any
 from urllib.parse import unquote, urlparse
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "notebooks"
@@ -99,11 +102,36 @@ def test_notebook_readme_links_existing_notebooks() -> None:
         assert linked.exists(), f"notebooks/README.md references missing {linked.name}"
 
 
-def _load_notebook(path: Path) -> dict:
+def test_quickstart_notebook_executes_code_cells(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("cirq")
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("pandas")
+
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    workdir = tmp_path / "notebook-workdir"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
+
+    notebook = _load_notebook(NOTEBOOK_DIR / "01_quickstart_cirq.ipynb")
+    namespace: dict[str, Any] = {"__name__": "__notebook_smoke__"}
+    for index, cell in enumerate(notebook.get("cells", []), start=1):
+        if cell.get("cell_type") != "code":
+            continue
+        source = "".join(cell.get("source", []))
+        exec(compile(source, f"01_quickstart_cirq.ipynb:cell-{index}", "exec"), namespace)
+
+    artifact_dir = workdir.parent / "artifacts" / "notebooks"
+    assert (artifact_dir / "quickstart_cirq_smoke.json").exists()
+    assert (artifact_dir / "quickstart_cirq_smoke.csv").exists()
+
+
+def _load_notebook(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _code_source(notebook: dict) -> str:
+def _code_source(notebook: dict[str, Any]) -> str:
     return "\n".join(
         "".join(cell.get("source", []))
         for cell in notebook.get("cells", [])
@@ -120,6 +148,8 @@ def test_translation_notebook_uses_translation_helpers() -> None:
     assert "translation_check_report" in source
     assert "translation_result_report" in source
     assert "translation_error_report" in source
+    assert "semantic_contract" in source
+    assert "migration_audit" in source
     assert "verification_frame" in source
     assert "draw_benchmark" in source
     for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
@@ -153,6 +183,27 @@ def test_workflow_translation_notebook_uses_workflow_helpers() -> None:
     assert "workflow_translation_report" in source
     assert "normalize_result_source" in source
     assert "group_pauli_terms_source" in source
+    assert "purpose_workflows" in source
+    assert "PURPOSE_CASES" in source
     assert "verification_frame" in source
     for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
         assert target in source
+
+
+def test_migration_audit_notebook_uses_new_example_corpus() -> None:
+    path = NOTEBOOK_DIR / "12_translation_migration_audit_workflow.ipynb"
+    notebook = _load_notebook(path)
+    source = _code_source(notebook)
+
+    assert "translation_check_report" in source
+    assert "translation_result_report" in source
+    assert "translation_error_report" in source
+    assert "semantic_contract" in source
+    assert "migration_audit" in source
+    assert "accepted" in source
+    assert "rejected" in source
+    assert "portable" in source
+    assert "results" in source
+    assert "purpose_workflows" in source
+    assert "roadmap" in source
+    assert "verification_frame" in source

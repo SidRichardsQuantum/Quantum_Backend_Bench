@@ -112,7 +112,7 @@ Bundled manifests:
 
 ## Circuit Translation Examples
 
-Translation fixtures live in [`examples/translation/`](./translation/). They cover OpenQASM, internal JSON, and static snippets for Qiskit, Cirq, PennyLane, and Braket LocalSimulator. Run the corpus with exact verification:
+Translation fixtures live in [`examples/translation/`](./translation/). They cover OpenQASM, internal JSON, static snippets for Qiskit, Cirq, PennyLane, and Braket LocalSimulator, migration-audit reports, purpose-level workflow JSON, portable rewrites, round-trip audit artifacts, and result-normalization edge cases. Run the supported corpus with exact/canonical verification:
 
 ```bash
 python examples/translation/verify_examples.py

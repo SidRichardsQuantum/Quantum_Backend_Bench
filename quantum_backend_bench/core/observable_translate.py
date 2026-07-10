@@ -12,6 +12,7 @@ from quantum_backend_bench.core.circuit_translate import (
     TranslationError,
     TranslationResult,
     TranslationVerification,
+    translation_semantic_contract,
 )
 from quantum_backend_bench.core.neutral_schema import (
     NEUTRAL_SCHEMA_VERSION,
@@ -214,6 +215,9 @@ def hamiltonian_translation_report(
         "from_format": from_format,
         "to_format": to_format,
         "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
+        "semantic_contract": translation_semantic_contract(
+            "pauli_hamiltonian", from_format=from_format, to_format=to_format
+        ),
         "notes": result.notes,
         "diagnostics": [
             {"severity": item.severity, "code": item.code, "message": item.message}

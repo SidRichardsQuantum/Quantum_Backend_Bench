@@ -1,0 +1,40 @@
+{
+  "measurements": [
+    {
+      "targets": [
+        0,
+        1
+      ],
+      "type": "counts"
+    }
+  ],
+  "n_qubits": 2,
+  "name": "sampler_bell_workflow",
+  "operations": [
+    {
+      "gate": "RX",
+      "parameter": "theta",
+      "targets": [
+        0
+      ]
+    },
+    {
+      "controls": [
+        0
+      ],
+      "gate": "CNOT",
+      "targets": [
+        1
+      ]
+    }
+  ],
+  "parameter_bindings": {
+    "theta": 0.5
+  },
+  "parameters": [
+    "theta"
+  ],
+  "schema_version": "0.1",
+  "seed": 7,
+  "shots": 256
+}

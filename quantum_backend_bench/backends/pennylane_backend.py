@@ -54,7 +54,7 @@ class PennyLaneBackend(BaseBackend):
             return qml.sample(wires=circuit_data.measurements or list(range(circuit_data.n_qubits)))
 
         try:
-            circuit._qbb_seed_applied = seed_applied  # type: ignore[attr-defined]
+            circuit._qbb_seed_applied = seed_applied
         except AttributeError:
             pass
         return circuit
@@ -158,6 +158,7 @@ def _make_device(qml: Any, device_name: str, wires: int, seed: object | None) ->
     if seed is None:
         return qml.device(device_name, wires=wires), False
     try:
-        return qml.device(device_name, wires=wires, seed=int(seed)), True
+        seed_value = int(seed) if isinstance(seed, (int, str)) else 0
+        return qml.device(device_name, wires=wires, seed=seed_value), True
     except TypeError:
         return qml.device(device_name, wires=wires), False

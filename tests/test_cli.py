@@ -9,7 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from quantum_backend_bench.cli import main
+from quantum_backend_bench.cli import _format_translate_all_markdown, main
+from quantum_backend_bench.core.circuit_translate import (
+    TranslationDiagnostic,
+    TranslationError,
+    TranslationResult,
+    TranslationVerification,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -581,6 +587,7 @@ def test_cli_translate_check_reports_supported_source(
     assert exit_code == 0
     assert "Translation check" in captured.out
     assert "input_format: qiskit" in captured.out
+    assert "contract: Lossless only within the declared neutral semantic subset." in captured.out
     assert "verification_available: yes" in captured.out
     assert '"CNOT": 1' in captured.out
 
@@ -640,6 +647,8 @@ def test_cli_translate_check_json_stdout(capsys: pytest.CaptureFixture[str], tmp
     assert report["input_format"] == "qiskit"
     assert report["gate_counts"] == {"CNOT": 1, "H": 1}
     assert report["schema_metadata"]["neutral_schema_version"] == "0.1"
+    assert report["semantic_contract"]["layer"] == "circuit"
+    assert report["migration_audit"]["status"] == "source_supported"
     assert "Translation check" not in captured.out
 
 
@@ -671,6 +680,355 @@ def test_cli_translate_check_save_report(capsys: pytest.CaptureFixture[str], tmp
     assert report["input_format"] == "qiskit"
     assert report["gate_counts"] == {"CNOT": 1, "H": 1}
     assert report["verification_available"] is True
+    assert report["semantic_contract"]["guarantee"].startswith("Lossless only")
+
+
+def test_cli_translate_check_save_markdown(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    source_path = tmp_path / "registers.py"
+    markdown_path = tmp_path / "check_report.md"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-check",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--to-format",
+            "cirq",
+            "--save-markdown",
+            str(markdown_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "Saved Markdown report" in captured.out
+    assert "# Translation Check" in markdown
+    assert "## Preserved" in markdown
+    assert "## Rejected If Present" in markdown
+    assert "custom gates" in markdown
+
+
+def test_cli_translate_all_writes_targets_reports_and_summary(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    source_path = tmp_path / "registers.py"
+    output_dir = tmp_path / "translated"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-all",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--targets",
+            "cirq",
+            "qiskit_aer",
+            "--output-dir",
+            str(output_dir),
+            "--verify",
+            "exact",
+            "--fail-on-verification",
+        ]
+    )
+    captured = capsys.readouterr()
+    combined = json.loads((output_dir / "registers_translate_all_report.json").read_text())
+    summary = (output_dir / "registers_translate_all_summary.md").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "Saved translate-all artifacts" in captured.out
+    assert (output_dir / "registers_to_cirq.py").exists()
+    assert (output_dir / "registers_to_qiskit_aer.py").exists()
+    assert (output_dir / "registers_to_internal_json.json").exists()
+    assert (output_dir / "registers_to_cirq_report.json").exists()
+    assert {item["to_format"] for item in combined} == {"cirq", "qiskit_aer", "internal-json"}
+    assert "# Translate All Summary" in summary
+    assert "cirq" in summary
+    assert "qiskit_aer" in summary
+
+
+def test_cli_translate_all_writes_partial_failure_artifacts(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    source_path = tmp_path / "registers.py"
+    source_path.write_text("static circuit source", encoding="utf-8")
+
+    def fake_translate_circuit_source(
+        source: str, *, to_format: str, **kwargs
+    ) -> TranslationResult:
+        del source, kwargs
+        if to_format == "qiskit_aer":
+            raise TranslationError(
+                [
+                    TranslationDiagnostic(
+                        "error",
+                        "fake.unsupported",
+                        "qiskit_aer cannot represent this fake construct",
+                    )
+                ]
+            )
+        return TranslationResult(
+            f"# translated {to_format}\n",
+            [f"target={to_format}"],
+            verification=TranslationVerification("exact", True, 0.0, 1e-9, "passed"),
+        )
+
+    monkeypatch.setattr(
+        "quantum_backend_bench.cli.translate_circuit_source", fake_translate_circuit_source
+    )
+
+    output_dir = tmp_path / "translated"
+    exit_code = main(
+        [
+            "translate-all",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--targets",
+            "cirq",
+            "qiskit_aer",
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    combined = json.loads((output_dir / "registers_translate_all_report.json").read_text())
+    failed_report = json.loads((output_dir / "registers_to_qiskit_aer_report.json").read_text())
+    summary = (output_dir / "registers_translate_all_summary.md").read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "qiskit_aer: failed" in captured.out
+    assert (output_dir / "registers_to_cirq.py").exists()
+    assert (output_dir / "registers_to_internal_json.json").exists()
+    assert failed_report["status"] == "failed"
+    assert failed_report["to_format"] == "qiskit_aer"
+    assert failed_report["diagnostics"][0]["code"] == "fake.unsupported"
+    assert {item.get("to_format") for item in combined} == {
+        "cirq",
+        "qiskit_aer",
+        "internal-json",
+    }
+    assert "| qiskit_aer | failed | - |" in summary
+
+    strict_output_dir = tmp_path / "translated_strict"
+    strict_exit_code = main(
+        [
+            "translate-all",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--targets",
+            "cirq",
+            "qiskit_aer",
+            "--output-dir",
+            str(strict_output_dir),
+            "--fail-on-verification",
+        ]
+    )
+
+    assert strict_exit_code == 1
+    assert (strict_output_dir / "registers_translate_all_report.json").exists()
+
+
+def test_cli_translate_all_deduplicates_targets_and_internal_json(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    source_path = tmp_path / "registers.py"
+    source_path.write_text("static circuit source", encoding="utf-8")
+    calls: list[str] = []
+
+    def fake_translate_circuit_source(
+        source: str, *, to_format: str, **kwargs
+    ) -> TranslationResult:
+        del source, kwargs
+        calls.append(to_format)
+        return TranslationResult(
+            f"# translated {to_format}\n",
+            [],
+            verification=TranslationVerification("exact", True, 0.0, 1e-9, "passed"),
+        )
+
+    monkeypatch.setattr(
+        "quantum_backend_bench.cli.translate_circuit_source", fake_translate_circuit_source
+    )
+
+    output_dir = tmp_path / "translated"
+    exit_code = main(
+        [
+            "translate-all",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--targets",
+            "cirq",
+            "cirq",
+            "internal-json",
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    capsys.readouterr()
+    combined = json.loads((output_dir / "registers_translate_all_report.json").read_text())
+
+    assert exit_code == 0
+    assert calls == ["cirq", "internal-json"]
+    assert [item["to_format"] for item in combined] == ["cirq", "internal-json"]
+
+
+def test_cli_translate_check_save_markdown_for_unsupported_source(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    source_path = tmp_path / "unsupported.py"
+    markdown_path = tmp_path / "unsupported.md"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n" "if True:\n" "    circuit = QuantumCircuit(1)\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-check",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--save-markdown",
+            str(markdown_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert exit_code == 1
+    assert "Translation check failed" in captured.out
+    assert "Saved Markdown report" in captured.out
+    assert "# Translation Check" in markdown
+    assert "## Diagnostics" in markdown
+    assert "python.conditionals" in markdown
+
+
+def test_format_translate_all_markdown_escapes_table_cells() -> None:
+    markdown = _format_translate_all_markdown(
+        "source.py",
+        [
+            {
+                "target": "cirq|target",
+                "source": "out|file.py",
+                "report": "report.md",
+                "status": "passed",
+                "verification": {"details": "passed | exact\nsecond line"},
+            }
+        ],
+        Path("combined.md"),
+    )
+
+    assert "cirq\\|target" in markdown
+    assert "`out\\|file.py`" in markdown
+    assert "passed \\| exact<br>second line" in markdown
+    assert "passed | exact\nsecond line" not in markdown
+
+
+def test_cli_translate_all_combined_report_shape(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    source_path = tmp_path / "registers.py"
+    output_dir = tmp_path / "translated"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-all",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--targets",
+            "cirq",
+            "--output-dir",
+            str(output_dir),
+            "--verify",
+            "exact",
+        ]
+    )
+    capsys.readouterr()
+    combined = json.loads((output_dir / "registers_translate_all_report.json").read_text())
+
+    assert exit_code == 0
+    assert [item["to_format"] for item in combined] == ["cirq", "internal-json"]
+    for report in combined:
+        assert {
+            "source_path",
+            "from_format",
+            "to_format",
+            "schema_metadata",
+            "semantic_contract",
+            "notes",
+            "diagnostics",
+            "verification",
+        } <= report.keys()
+        assert report["source_path"] == str(source_path)
+        assert report["from_format"] == "qiskit"
+        assert report["schema_metadata"]["neutral_schema_version"] == "0.1"
+        assert report["semantic_contract"]["guarantee"].startswith("Lossless only")
+
+    cirq_report = next(item for item in combined if item["to_format"] == "cirq")
+    internal_report = next(item for item in combined if item["to_format"] == "internal-json")
+    assert cirq_report["verification"]["passed"] is True
+    assert internal_report["verification"] is None
+
+
+def test_cli_translate_check_target_explain(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
+    source_path = tmp_path / "registers.py"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure_all()\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "translate-check",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--to-format",
+            "cirq",
+            "--explain",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "target: cirq" in captured.out
+    assert "migration_audit:" in captured.out
+    assert "preserved: supported gates and operation order" in captured.out
+    assert "rejected_if_present:" in captured.out
+    assert "--verify exact" in captured.out
 
 
 def test_cli_translate_include_runner(capsys: pytest.CaptureFixture[str], tmp_path) -> None:

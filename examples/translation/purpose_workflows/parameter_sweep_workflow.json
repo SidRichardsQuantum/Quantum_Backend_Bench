@@ -1,0 +1,40 @@
+{
+  "measurements": [
+    {
+      "targets": [
+        0
+      ],
+      "type": "probabilities"
+    }
+  ],
+  "metadata": {
+    "purpose": "One binding point from a sweep; duplicate this file with different bindings for current workflow-json.",
+    "sweep_values": {
+      "theta": [
+        0.25,
+        0.5,
+        0.75
+      ]
+    }
+  },
+  "n_qubits": 1,
+  "name": "parameter_sweep_point_workflow",
+  "operations": [
+    {
+      "gate": "RX",
+      "parameter": "theta",
+      "targets": [
+        0
+      ]
+    }
+  ],
+  "parameter_bindings": {
+    "theta": 0.25
+  },
+  "parameters": [
+    "theta"
+  ],
+  "schema_version": "0.1",
+  "seed": 13,
+  "shots": 128
+}

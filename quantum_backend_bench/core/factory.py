@@ -57,7 +57,8 @@ def build_benchmark_from_config(config: dict[str, object]) -> BenchmarkSpec:
         kwargs["bitmask"] = config.get("bitmask")
         kwargs["constant_value"] = config.get("constant_value", 0)
     elif name == "grover":
-        n_qubits = int(config.get("n_qubits") or 3)
+        n_qubits_value = config.get("n_qubits")
+        n_qubits = int(n_qubits_value) if isinstance(n_qubits_value, (int, str)) else 3
         kwargs["marked_state"] = config.get("marked_state") or ("1" * n_qubits)
         kwargs["iterations"] = config.get("iterations")
     elif name == "amplitude-estimation":

@@ -71,7 +71,23 @@ quantum-bench translate-check examples/translation/qiskit_registers.py \
 quantum-bench translate-check examples/translation/qiskit_registers.py \
   --from-format qiskit \
   --json
+
+quantum-bench translate-check examples/translation/qiskit_registers.py \
+  --from-format qiskit \
+  --to-format cirq \
+  --explain
+
+quantum-bench translate-check examples/translation/qiskit_registers.py \
+  --from-format qiskit \
+  --to-format cirq \
+  --save-markdown artifacts/translation_check.md
 ```
+
+## Semantic Contract and Migration Audit
+
+Translation commands are lossless only within the declared neutral semantic subset. Saved reports include a `semantic_contract` object that lists preserved semantics, syntax rewrites, rejected constructs, behavior that is not modeled, verification modes, and the free local SDK target scope. This makes the translation promise explicit for CI and migration reviews.
+
+`translate-check --to-format ... --explain` adds a target-aware `migration_audit` for circuit sources. It reports the supported source/target status, gate inventory, preserved circuit semantics, SDK syntax rewrites, constructs that would be rejected if present, behavior outside the model, and the recommended verification mode. This is a preflight audit; it does not broaden the supported subset or attempt approximate Python program migration.
 
 Save a translation report containing diagnostics and verification metrics:
 
@@ -81,6 +97,20 @@ quantum-bench translate examples/translation/ghz.qasm \
   --to-format cirq \
   --verify exact \
   --save-report artifacts/translation_report.json
+```
+
+Translate one source to all selected local SDK targets, neutral `internal-json`, per-target reports, a combined JSON report, and a compact Markdown summary:
+
+```bash
+quantum-bench translate-all examples/translation/qiskit_registers.py \
+  --from-format qiskit \
+  --output-dir artifacts/qiskit_registers_all
+
+quantum-bench translate-all examples/translation/qiskit_registers.py \
+  --from-format qiskit \
+  --targets cirq qiskit_aer \
+  --output-dir artifacts/qiskit_registers_subset \
+  --fail-on-verification
 ```
 
 Emit a runnable local script as well as circuit construction code:
@@ -201,7 +231,7 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 ## Reports
 
-`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, diagnostics, gate inventory for checks, verification total variation distance for translations, and supported outputs. These reports are intended for CI and migration audits.
+`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance for translations, and supported outputs. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
 
 ## Verification
 

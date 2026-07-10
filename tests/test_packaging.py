@@ -20,6 +20,7 @@ REQUIRED_SDIST_DOCS = {
     "docs/PROBLEM.md",
     "docs/COMPATIBILITY.md",
     "docs/CIRCUIT_TRANSLATION.md",
+    "docs/RELEASE_POLICY.md",
 }
 
 
@@ -35,6 +36,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
     assert "cirq" in extras["dev"]
+    assert "mypy" in extras["dev"]
     assert "pandas" in extras["dev"]
     assert extras["docs"] == ["markdown", "matplotlib", "pymdown-extensions"]
     assert extras["pyquil"] == ["pyquil"]
@@ -53,11 +55,29 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert "cudaq" in extras["full"]
     assert "pyquil" in extras["full"]
 
+    mypy = metadata["tool"]["mypy"]
+    assert mypy["files"] == ["quantum_backend_bench"]
+    assert mypy["disallow_untyped_defs"] is True
+
 
 def test_required_docs_are_included_in_sdist_manifest() -> None:
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     for document in REQUIRED_SDIST_DOCS:
         assert f"include {document}" in manifest
+
+
+def test_ci_constraints_exist_for_reproducible_validation() -> None:
+    constraints = Path("constraints/ci.txt").read_text(encoding="utf-8")
+
+    for package in ("mypy", "pytest", "ruff", "cirq", "qiskit-aer", "pennylane"):
+        assert package in constraints
+
+
+def test_release_policy_and_constraints_are_included_in_sdist_manifest() -> None:
+    manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
+
+    assert "include docs/RELEASE_POLICY.md" in manifest
+    assert "recursive-include constraints *.txt" in manifest
 
 
 def test_neutral_schema_assets_are_included_in_sdist_manifest() -> None:
@@ -97,4 +117,9 @@ def test_translation_examples_are_included_in_sdist_manifest() -> None:
 
 def test_example_scripts_compile() -> None:
     for path in sorted(Path("examples").rglob("*.py")):
+        py_compile.compile(path, doraise=True)
+
+
+def test_release_scripts_compile() -> None:
+    for path in sorted(Path("scripts").glob("*.py")):
         py_compile.compile(path, doraise=True)

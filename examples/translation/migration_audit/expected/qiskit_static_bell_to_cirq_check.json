@@ -1,0 +1,131 @@
+{
+  "diagnostics": [
+    {
+      "code": "translation.caveat.measurement_order",
+      "message": "SDKs may display measurement bitstrings with different endian conventions; verification compares neutral measurement probabilities.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.braket_probability",
+      "message": "Braket output emits probability targets for circuit construction; --include-runner uses LocalSimulator measurement counts.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.pennylane_sampling",
+      "message": "PennyLane output is a QNode returning qml.sample; runner output wraps it with qml.set_shots.",
+      "severity": "warning"
+    },
+    {
+      "code": "translation.caveat.controlled_phase",
+      "message": "Controlled-phase operations are mapped through each SDK's closest native phase convention and should be verified for nontrivial angles.",
+      "severity": "warning"
+    }
+  ],
+  "gate_counts": {
+    "CNOT": 1,
+    "H": 1
+  },
+  "input_format": "qiskit",
+  "measurements": [
+    0,
+    1
+  ],
+  "migration_audit": {
+    "gate_counts": {
+      "CNOT": 1,
+      "H": 1
+    },
+    "input_format": "qiskit",
+    "measurements": [
+      0,
+      1
+    ],
+    "not_modeled": [
+      "cloud execution behavior",
+      "noise models",
+      "full Python program state"
+    ],
+    "operation_count": 2,
+    "preserved": [
+      "supported gates and operation order",
+      "static measurement targets",
+      "numeric rotation parameters"
+    ],
+    "rejected_if_present": [
+      "dynamic Python control flow",
+      "custom gates",
+      "classical control",
+      "provider/runtime calls",
+      "transpiler settings",
+      "arbitrary result processing"
+    ],
+    "rewritten": [
+      "SDK imports and construction syntax",
+      "wire/register names into neutral integer-wire semantics"
+    ],
+    "status": "target_supported",
+    "target": "cirq",
+    "verification_recommendation": "Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows."
+  },
+  "n_qubits": 2,
+  "operation_count": 2,
+  "schema_metadata": {
+    "input_schema": null,
+    "input_schema_path": null,
+    "neutral_schema_version": "0.1",
+    "output_schema": null,
+    "output_schema_path": null
+  },
+  "semantic_contract": {
+    "free_local_targets": [
+      "braket_local",
+      "cirq",
+      "pennylane",
+      "qiskit_aer"
+    ],
+    "guarantee": "Lossless only within the declared neutral semantic subset.",
+    "input_format": "qiskit",
+    "layer": "circuit",
+    "lossless_subset": true,
+    "not_modeled": [
+      "hardware/provider execution semantics",
+      "full Python program behavior",
+      "noise models",
+      "pulse-level controls"
+    ],
+    "output_format": "cirq",
+    "preserved": [
+      "supported gate sequence",
+      "integer-wire operation targets",
+      "static numeric rotation parameters",
+      "static computational-basis measurements"
+    ],
+    "rejected": [
+      "dynamic Python circuit construction",
+      "custom or opaque gates",
+      "classical control",
+      "provider/runtime calls",
+      "transpiler settings",
+      "arbitrary result-processing code"
+    ],
+    "rewritten": [
+      "SDK syntax and imports",
+      "register and wire display names normalized to neutral integer wires",
+      "measurement bitstrings normalized for verification"
+    ],
+    "verification": [
+      "exact probabilities",
+      "sampled distributions"
+    ]
+  },
+  "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/migration_audit/qiskit_static_bell.py",
+  "supported_outputs": [
+    "braket_local",
+    "cirq",
+    "pennylane",
+    "qiskit_aer",
+    "internal-json",
+    "openqasm"
+  ],
+  "verification_available": true
+}

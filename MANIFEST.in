@@ -12,10 +12,12 @@ include docs/LIMITATIONS.md
 include docs/METHODOLOGY.md
 include docs/PROBLEM.md
 include docs/SCHEMA.md
+include docs/RELEASE_POLICY.md
 recursive-include docs/schemas *.json
 recursive-include docs/schema_examples *.json
 include USAGE.md
 include pyproject.toml
+recursive-include constraints *.txt
 
 recursive-include quantum_backend_bench *.py
 recursive-include quantum_backend_bench *.json

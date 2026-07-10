@@ -84,6 +84,176 @@ class TranslationError(ValueError):
         super().__init__(message)
 
 
+def translation_semantic_contract(
+    layer: str = "circuit",
+    *,
+    from_format: str | None = None,
+    to_format: str | None = None,
+) -> dict[str, object]:
+    """Return the explicit semantic contract for a translation layer."""
+
+    base: dict[str, object] = {
+        "guarantee": "Lossless only within the declared neutral semantic subset.",
+        "lossless_subset": True,
+        "input_format": from_format,
+        "output_format": to_format,
+        "free_local_targets": list(FREE_LOCAL_TRANSLATION_SDKS),
+    }
+    if layer == "circuit":
+        base.update(
+            {
+                "layer": "circuit",
+                "preserved": [
+                    "supported gate sequence",
+                    "integer-wire operation targets",
+                    "static numeric rotation parameters",
+                    "static computational-basis measurements",
+                ],
+                "rewritten": [
+                    "SDK syntax and imports",
+                    "register and wire display names normalized to neutral integer wires",
+                    "measurement bitstrings normalized for verification",
+                ],
+                "rejected": [
+                    "dynamic Python circuit construction",
+                    "custom or opaque gates",
+                    "classical control",
+                    "provider/runtime calls",
+                    "transpiler settings",
+                    "arbitrary result-processing code",
+                ],
+                "not_modeled": [
+                    "hardware/provider execution semantics",
+                    "full Python program behavior",
+                    "noise models",
+                    "pulse-level controls",
+                ],
+                "verification": ["exact probabilities", "sampled distributions"],
+            }
+        )
+    elif layer == "pauli_hamiltonian":
+        base.update(
+            {
+                "layer": "pauli_hamiltonian",
+                "preserved": [
+                    "weighted sums of Pauli I/X/Y/Z products",
+                    "neutral qubit-indexed Pauli terms",
+                    "numeric coefficients",
+                ],
+                "rewritten": ["SDK-specific observable syntax", "wire-order display conventions"],
+                "rejected": [
+                    "non-Pauli operator algebra",
+                    "symbolic coefficients",
+                    "dynamic Hamiltonian construction",
+                ],
+                "not_modeled": [
+                    "fermionic operators",
+                    "time-dependent coefficients",
+                    "noise models",
+                ],
+                "verification": ["canonical Pauli terms", "small dense matrices"],
+            }
+        )
+    elif layer == "workflow":
+        base.update(
+            {
+                "layer": "workflow",
+                "preserved": [
+                    "supported parameterized circuit operations",
+                    "symbolic parameter names and numeric bindings",
+                    "measurement and expectation requests",
+                    "local shot-count execution settings",
+                    "neutral result extraction shape",
+                ],
+                "rewritten": [
+                    "SDK parameter APIs",
+                    "local execution wrapper code",
+                    "SDK result object access",
+                ],
+                "rejected": [
+                    "arbitrary workflow Python",
+                    "provider/runtime services",
+                    "unsupported dynamic parameter or wire construction",
+                ],
+                "not_modeled": ["cloud execution", "optimizer loops", "full application state"],
+                "verification": ["canonical workflow reimport"],
+            }
+        )
+    elif layer == "result":
+        base.update(
+            {
+                "layer": "result",
+                "preserved": ["counts", "shots", "probabilities", "expectations", "metadata"],
+                "rewritten": ["SDK-specific count/sample payloads normalized to result-json"],
+                "rejected": ["non-JSON SDK result objects", "arbitrary post-processing code"],
+                "not_modeled": [
+                    "backend job lifecycle",
+                    "raw provider metadata outside known fields",
+                ],
+                "verification": ["shot totals and probability normalization"],
+            }
+        )
+    elif layer == "measurement_grouping":
+        base.update(
+            {
+                "layer": "measurement_grouping",
+                "preserved": ["weighted Pauli I/X/Y/Z terms", "qubit-wise commuting groups"],
+                "rewritten": ["term ordering within neutral grouping output"],
+                "rejected": ["non-Pauli observables", "non-qubit-wise grouping strategies"],
+                "not_modeled": ["hardware-specific readout mitigation", "device topology costs"],
+                "verification": ["canonical Pauli-term grouping payloads"],
+            }
+        )
+    else:
+        raise ValueError(f"Unknown translation contract layer: {layer}")
+    return base
+
+
+def circuit_migration_audit(
+    benchmark: BenchmarkSpec,
+    detected_format: str,
+    *,
+    to_format: str | None = None,
+) -> dict[str, object]:
+    """Return target-aware migration guidance for a supported circuit source."""
+
+    if to_format is not None and to_format not in TRANSLATION_OUTPUT_FORMATS:
+        available = ", ".join(TRANSLATION_OUTPUT_FORMATS)
+        raise ValueError(f"Unknown output format '{to_format}'. Available: {available}")
+    circuit = _internal_circuit(benchmark)
+    gate_counts: dict[str, int] = {}
+    for operation in circuit.operations:
+        gate_counts[operation.gate] = gate_counts.get(operation.gate, 0) + 1
+    status = "source_supported" if to_format is None else "target_supported"
+    return {
+        "status": status,
+        "input_format": detected_format,
+        "target": to_format,
+        "operation_count": len(circuit.operations),
+        "measurements": list(circuit.measurements),
+        "gate_counts": dict(sorted(gate_counts.items())),
+        "preserved": [
+            "supported gates and operation order",
+            "static measurement targets",
+            "numeric rotation parameters",
+        ],
+        "rewritten": [
+            "SDK imports and construction syntax",
+            "wire/register names into neutral integer-wire semantics",
+        ],
+        "rejected_if_present": [
+            "dynamic Python control flow",
+            "custom gates",
+            "classical control",
+            "provider/runtime calls",
+            "transpiler settings",
+            "arbitrary result processing",
+        ],
+        "not_modeled": ["cloud execution behavior", "noise models", "full Python program state"],
+        "verification_recommendation": "Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows.",
+    }
+
+
 def translation_result_report(
     result: TranslationResult,
     *,
@@ -98,6 +268,9 @@ def translation_result_report(
         "from_format": from_format,
         "to_format": to_format,
         "schema_metadata": report_schema_metadata(from_format=from_format, to_format=to_format),
+        "semantic_contract": translation_semantic_contract(
+            "circuit", from_format=from_format, to_format=to_format
+        ),
         "notes": result.notes,
         "diagnostics": [_diagnostic_payload(diagnostic) for diagnostic in result.diagnostics],
         "verification": _verification_payload(result.verification),
@@ -110,6 +283,7 @@ def translation_check_report(
     detected_format: str,
     *,
     source_path: str | None = None,
+    to_format: str | None = None,
     diagnostics: list[TranslationDiagnostic] | None = None,
 ) -> dict[str, object]:
     """Return a JSON-compatible report for a translation preflight check."""
@@ -125,7 +299,11 @@ def translation_check_report(
         "operation_count": len(circuit.operations),
         "measurements": list(circuit.measurements),
         "gate_counts": dict(sorted(gate_counts.items())),
-        "schema_metadata": report_schema_metadata(from_format=detected_format),
+        "schema_metadata": report_schema_metadata(from_format=detected_format, to_format=to_format),
+        "semantic_contract": translation_semantic_contract(
+            "circuit", from_format=detected_format, to_format=to_format
+        ),
+        "migration_audit": circuit_migration_audit(benchmark, detected_format, to_format=to_format),
         "diagnostics": [
             _diagnostic_payload(diagnostic) for diagnostic in (diagnostics or _caveat_diagnostics())
         ],
@@ -146,6 +324,7 @@ def translation_error_report(
         "source_path": source_path,
         "from_format": from_format,
         "schema_metadata": report_schema_metadata(from_format=from_format),
+        "semantic_contract": translation_semantic_contract("circuit", from_format=from_format),
         "status": "failed",
         "diagnostics": [_diagnostic_payload(diagnostic) for diagnostic in error.diagnostics],
     }
@@ -681,10 +860,12 @@ def _parse_cirq_ast(tree: ast.AST) -> InternalCircuit:
                 arg, qubit_ranges, qubit_vars, operations, measurements, constants
             )
 
-    n_qubits = _inferred_n_qubits(operations, measurements, qubit_ranges, qubit_vars)
-    if n_qubits is None:
+    inferred_n_qubits = _inferred_n_qubits(operations, measurements, qubit_ranges, qubit_vars)
+    if inferred_n_qubits is None:
         raise _unsupported("cirq.no_circuit", "No supported Cirq circuit construction found.")
-    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)))
+    return InternalCircuit(
+        inferred_n_qubits, operations, measurements or list(range(inferred_n_qubits))
+    )
 
 
 def _collect_cirq_operation(
@@ -872,9 +1053,9 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
         if var_name not in circuit_vars:
             continue
         if call.func.attr == "probability":
-            target = _keyword(call, "target")
-            if target is not None:
-                measurements = _wire_list(target, constants)
+            probability_target = _keyword(call, "target")
+            if probability_target is not None:
+                measurements = _wire_list(probability_target, constants)
             continue
         operation = _braket_operation(call.func.attr, call, constants)
         if operation is not None:
@@ -1239,8 +1420,10 @@ def _int_expr(node: ast.AST, constants: dict[str, object]) -> int:
 def _number_expr(node: ast.AST, constants: dict[str, object]) -> float:
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return float(node.value)
-    if isinstance(node, ast.Name) and isinstance(constants.get(node.id), (int, float)):
-        return float(constants[node.id])
+    if isinstance(node, ast.Name):
+        value = constants.get(node.id)
+        if isinstance(value, (int, float)):
+            return float(value)
     if _call_name(node) in {"math.pi", "np.pi", "numpy.pi"}:
         return 3.141592653589793
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
@@ -1265,8 +1448,10 @@ def _number_expr(node: ast.AST, constants: dict[str, object]) -> float:
 def _wire_list(node: ast.AST, constants: dict[str, object]) -> list[int]:
     if isinstance(node, ast.Constant) and isinstance(node.value, int):
         return [node.value]
-    if isinstance(node, ast.Name) and isinstance(constants.get(node.id), int):
-        return [int(constants[node.id])]
+    if isinstance(node, ast.Name):
+        value = constants.get(node.id)
+        if isinstance(value, int):
+            return [value]
     if isinstance(node, (ast.List, ast.Tuple)):
         return [_int_expr(item, constants) for item in node.elts]
     raise _unsupported(
@@ -1283,8 +1468,10 @@ def _cirq_qubit_index(
 ) -> int:
     if isinstance(node, ast.Name) and node.id in qubit_vars:
         return qubit_vars[node.id]
-    if isinstance(node, ast.Name) and isinstance(constants.get(node.id), int):
-        return int(constants[node.id])
+    if isinstance(node, ast.Name):
+        value = constants.get(node.id)
+        if isinstance(value, int):
+            return value
     if (
         isinstance(node, ast.Subscript)
         and isinstance(node.value, ast.Name)
@@ -1315,6 +1502,8 @@ def _inferred_n_qubits(
 
 
 def _format_number(value: object) -> str:
+    if not isinstance(value, (int, float)):
+        raise TypeError(f"Expected numeric value, got {type(value).__name__}")
     return repr(float(value))
 
 

@@ -1,5 +1,11 @@
 """Quantum backend benchmark toolkit."""
 
+from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+from typing import Any
+
 from quantum_backend_bench import _runtime as _runtime
 from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
@@ -105,8 +111,13 @@ from quantum_backend_bench.core.suites import SUITES, build_suite
 from quantum_backend_bench.core.summary import format_summary, summarize_results
 from quantum_backend_bench.core.validation import validate_backends, validation_passed
 
+try:
+    __version__ = version("quantum-backend-bench")
+except PackageNotFoundError:  # pragma: no cover - editable source tree fallback
+    __version__ = "0+unknown"
 
-def load_manifest(path):  # type: ignore[no-untyped-def]
+
+def load_manifest(path: str | Path) -> dict[str, Any]:
     """Load an experiment manifest without importing CLI internals at package import time."""
 
     from quantum_backend_bench.core.manifest import load_manifest as _load_manifest
@@ -114,7 +125,7 @@ def load_manifest(path):  # type: ignore[no-untyped-def]
     return _load_manifest(path)
 
 
-def run_experiment_manifest(path):  # type: ignore[no-untyped-def]
+def run_experiment_manifest(path: str | Path) -> dict[str, Any]:
     """Run an experiment manifest without importing CLI internals at package import time."""
 
     from quantum_backend_bench.core.manifest import (
@@ -125,6 +136,7 @@ def run_experiment_manifest(path):  # type: ignore[no-untyped-def]
 
 
 __all__ = [
+    "__version__",
     "pauli_z_expectation",
     "import_openqasm_circuit",
     "exact_amplitudes",

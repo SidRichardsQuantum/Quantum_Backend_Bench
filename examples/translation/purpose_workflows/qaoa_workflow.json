@@ -1,0 +1,97 @@
+{
+  "measurements": [
+    {
+      "targets": [
+        0,
+        1
+      ],
+      "type": "counts"
+    },
+    {
+      "observable": {
+        "n_qubits": 2,
+        "schema_version": "0.1",
+        "terms": [
+          {
+            "coefficient": 0.5,
+            "paulis": {
+              "0": "Z",
+              "1": "Z"
+            }
+          }
+        ]
+      },
+      "targets": [
+        0,
+        1
+      ],
+      "type": "expectation"
+    }
+  ],
+  "n_qubits": 2,
+  "name": "qaoa_line_two_qubit_workflow",
+  "operations": [
+    {
+      "gate": "H",
+      "targets": [
+        0
+      ]
+    },
+    {
+      "gate": "H",
+      "targets": [
+        1
+      ]
+    },
+    {
+      "controls": [
+        0
+      ],
+      "gate": "CNOT",
+      "targets": [
+        1
+      ]
+    },
+    {
+      "gate": "RZ",
+      "parameter": "gamma",
+      "targets": [
+        1
+      ]
+    },
+    {
+      "controls": [
+        0
+      ],
+      "gate": "CNOT",
+      "targets": [
+        1
+      ]
+    },
+    {
+      "gate": "RX",
+      "parameter": "beta",
+      "targets": [
+        0
+      ]
+    },
+    {
+      "gate": "RX",
+      "parameter": "beta",
+      "targets": [
+        1
+      ]
+    }
+  ],
+  "parameter_bindings": {
+    "beta": 0.2,
+    "gamma": 0.4
+  },
+  "parameters": [
+    "gamma",
+    "beta"
+  ],
+  "schema_version": "0.1",
+  "seed": 17,
+  "shots": 512
+}

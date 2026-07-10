@@ -59,7 +59,7 @@ def results_to_records(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return records
 
 
-def results_to_dataframe(results: list[dict[str, Any]] | str | Path):
+def results_to_dataframe(results: list[dict[str, Any]] | str | Path) -> Any:
     """Return benchmark results as a pandas DataFrame.
 
     ``results`` may be an in-memory result list or a saved JSON/CSV result path.

@@ -18,7 +18,8 @@ artifact, ket-formatting, top-state, and verification code stays consistent.
   SDK export, execution, plotting, artifact, and verification workflows.
 - `09_circuit_translation_workflow.ipynb`: all-target local SDK circuit translation with native diagram comparison, reports, runner output, and diagnostics.
 - `10_observable_hamiltonian_translation_workflow.ipynb`: Pauli observable and Hamiltonian translation across local SDK formats with canonical verification.
-- `11_parameterized_workflow_translation.ipynb`: parameterized workflow translation across local SDK targets with canonical verification, result normalization, and Pauli grouping.
+- `11_parameterized_workflow_translation.ipynb`: parameterized workflow translation across local SDK targets with canonical verification, result normalization, Pauli grouping, and purpose-level workflow examples.
+- `12_translation_migration_audit_workflow.ipynb`: target-aware migration audits, semantic contracts, accepted/rejected/portable examples, round-trip reports, result edge cases, purpose workflows, and roadmap-only boundaries.
 
 ## Suggested Install
 
@@ -42,4 +43,5 @@ python -m pip install -e ".[all,notebooks]"
 - `08_sdk_qutip_workflow.ipynb`: exact-probability workflow using the internal statevector path.
 - `09_circuit_translation_workflow.ipynb`: translate supported static circuits to Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, compare native diagrams, save reports, emit runnable scripts, and inspect unsupported diagnostics.
 - `10_observable_hamiltonian_translation_workflow.ipynb`: translate weighted Pauli observables and Hamiltonians to Qiskit Aer, Cirq, PennyLane, Braket LocalSimulator, and neutral JSON, then verify canonical Pauli terms.
-- `11_parameterized_workflow_translation.ipynb`: translate one parameterized workflow to Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator; save generated source/report artifacts; reimport generated workflow source; normalize SDK-shaped results; and group Pauli terms for measurement planning.
+- `11_parameterized_workflow_translation.ipynb`: translate one parameterized workflow to Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator; save generated source/report artifacts; reimport generated workflow source; normalize SDK-shaped results; group Pauli terms for measurement planning; and compare purpose-level workflow fixtures.
+- `12_translation_migration_audit_workflow.ipynb`: inspect source portability with `semantic_contract` and `migration_audit`, compare accepted/rejected/portable fixtures, save a verified round-trip report, normalize result edge cases, and keep roadmap-only examples separate from current support.

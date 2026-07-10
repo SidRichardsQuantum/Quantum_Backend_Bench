@@ -14,7 +14,9 @@ def list_presets() -> list[str]:
     """Return available packaged preset names."""
 
     root = resources.files(_PRESET_PACKAGE)
-    return sorted(path.stem for path in root.iterdir() if path.name.endswith(".json"))
+    return sorted(
+        path.name.removesuffix(".json") for path in root.iterdir() if path.name.endswith(".json")
+    )
 
 
 def load_preset(name: str) -> dict[str, Any]:

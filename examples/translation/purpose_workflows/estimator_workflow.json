@@ -1,0 +1,53 @@
+{
+  "measurements": [
+    {
+      "observable": {
+        "n_qubits": 2,
+        "schema_version": "0.1",
+        "terms": [
+          {
+            "coefficient": 1.0,
+            "paulis": {
+              "0": "Z",
+              "1": "Z"
+            }
+          }
+        ]
+      },
+      "targets": [
+        0,
+        1
+      ],
+      "type": "expectation"
+    }
+  ],
+  "n_qubits": 2,
+  "name": "estimator_zz_workflow",
+  "operations": [
+    {
+      "gate": "RY",
+      "parameter": "theta",
+      "targets": [
+        0
+      ]
+    },
+    {
+      "controls": [
+        0
+      ],
+      "gate": "CNOT",
+      "targets": [
+        1
+      ]
+    }
+  ],
+  "parameter_bindings": {
+    "theta": 0.5
+  },
+  "parameters": [
+    "theta"
+  ],
+  "schema_version": "0.1",
+  "seed": 11,
+  "shots": 256
+}
