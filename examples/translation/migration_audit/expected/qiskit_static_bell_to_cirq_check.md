@@ -10,11 +10,16 @@
 ## Preserved
 - supported gates and operation order
 - static measurement targets
-- numeric rotation parameters
+- numeric rotation and phase parameters
+- named register offset metadata
+- measurement-key and bit-order metadata
+- global phase metadata
+- neutral noise-channel annotations
 
 ## Rewritten
 - SDK imports and construction syntax
 - wire/register names into neutral integer-wire semantics
+- neutral noise channels into SDK-local noise syntax when emitted
 
 ## Rejected If Present
 - dynamic Python control flow
@@ -26,7 +31,7 @@
 
 ## Not Modeled
 - cloud execution behavior
-- noise models
+- provider-calibrated noise semantics
 - full Python program state
 
 Verification: Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows.

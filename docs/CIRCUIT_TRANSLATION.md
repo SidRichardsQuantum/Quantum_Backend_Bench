@@ -165,7 +165,7 @@ quantum-bench translation-audit
 quantum-bench translation-audit --from-format qiskit --to-format qiskit_aer --json
 ```
 
-Verification supports two modes. `canonical` reimports generated SDK source and compares neutral qubit-indexed Pauli terms. `matrix` additionally compares dense matrices for small Hamiltonians up to 6 qubits, which is useful for stronger confidence during SDK migration. Non-Pauli operator algebra, symbolic coefficients, and noise models remain future work.
+Verification supports two modes. `canonical` reimports generated SDK source and compares neutral qubit-indexed Pauli terms. `matrix` additionally compares dense matrices for small Hamiltonians up to 6 qubits, which is useful for stronger confidence during SDK migration. Non-Pauli operator algebra and symbolic coefficients remain future work. Neutral circuit-level noise annotations cover portable local channel syntax; provider-calibrated noise semantics remain outside the model.
 
 ## Workflow-Level Translation
 
@@ -206,17 +206,18 @@ quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json \
   --output artifacts/ising_measurement_groups.json
 ```
 
-This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, and Braket `FreeParameter`. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
+This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, Braket `FreeParameter`, and Braket `circuit.expectation(...)` Pauli result types. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
 
 ## Supported Gates
 
 The first supported gate set matches the existing internal circuit model:
 
-- Single-qubit gates: `H`, `X`, `Y`, `Z`, `S`, `T`
+- Single-qubit gates: `H`, `X`, `Y`, `Z`, `S`, `T`, `SX`, phase/`P`, and `U`
 - Rotations: `RX`, `RY`, `RZ` with static numeric parameters
 - Two-qubit gates: `CNOT`, `CZ`, `SWAP`
-- Controlled phase: `CPHASE`
-- Measurements over static integer wires
+- Three-qubit and controlled gates: `CCX`, `CRX`, `CRY`, `CRZ`, and `CPHASE`
+- Measurements over static integer wires, with measurement-key and bit-order metadata where importers can preserve it
+- Optional neutral local noise-channel annotations for depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error requests
 
 ## Static Python Support
 

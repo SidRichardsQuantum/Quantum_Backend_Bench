@@ -33,7 +33,9 @@ class CirqCircuitAdapter:
             "circuit = cirq.Circuit()",
         ]
         for operation in circuit.operations:
-            lines.append(f"circuit.append({_cirq_expr(operation)})")
+            for expression in _cirq_exprs(operation):
+                lines.append(f"circuit.append({expression})")
+        lines.extend(_cirq_noise_lines(circuit))
         if circuit.measurements:
             qubits = ", ".join(f"qubits[{qubit}]" for qubit in circuit.measurements)
             lines.append(f'circuit.append(cirq.measure({qubits}, key="m"))')
@@ -55,22 +57,63 @@ class CirqCircuitAdapter:
         return []
 
 
-def _cirq_expr(operation: CircuitOperation) -> str:
+def _cirq_exprs(operation: CircuitOperation) -> list[str]:
     gate = operation.gate
     q = operation.qubits
     if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"cirq.{gate}(qubits[{q[0]}])"
+        return [f"cirq.{gate}(qubits[{q[0]}])"]
+    if gate == "SX":
+        return [f"cirq.XPowGate(exponent=0.5)(qubits[{q[0]}])"]
+    if gate in {"P", "PHASE"}:
+        return [
+            f"cirq.ZPowGate(exponent={_format_number(operation.params['theta'])} / 3.141592653589793)(qubits[{q[0]}])"
+        ]
     if gate in {"RX", "RY", "RZ"}:
-        return f"cirq.{gate.lower()}({_format_number(operation.params['theta'])})(qubits[{q[0]}])"
+        return [f"cirq.{gate.lower()}({_format_number(operation.params['theta'])})(qubits[{q[0]}])"]
+    if gate == "U":
+        return [
+            f"cirq.rz({_format_number(operation.params['phi'])})(qubits[{q[0]}])",
+            f"cirq.ry({_format_number(operation.params['theta'])})(qubits[{q[0]}])",
+            f"cirq.rz({_format_number(operation.params['lambda'])})(qubits[{q[0]}])",
+        ]
     if gate in {"CNOT", "CZ", "SWAP"}:
-        return f"cirq.{gate}(qubits[{q[0]}], qubits[{q[1]}])"
+        return [f"cirq.{gate}(qubits[{q[0]}], qubits[{q[1]}])"]
+    if gate == "CCX":
+        return [f"cirq.TOFFOLI(qubits[{q[0]}], qubits[{q[1]}], qubits[{q[2]}])"]
+    if gate in {"CRX", "CRY", "CRZ"}:
+        axis = gate[-1].lower()
+        return [
+            f"cirq.ControlledGate(cirq.r{axis}({_format_number(operation.params['theta'])}))(qubits[{q[0]}], qubits[{q[1]}])"
+        ]
     if gate == "CPHASE":
-        return (
+        return [
             "cirq.CZPowGate(exponent="
             f"{_format_number(operation.params['theta'])} / 3.141592653589793)"
             f"(qubits[{q[0]}], qubits[{q[1]}])"
-        )
+        ]
     raise ValueError(f"Unsupported Cirq emit gate: {gate}")
+
+
+def _cirq_noise_lines(circuit: InternalCircuit) -> list[str]:
+    channel_map = {
+        "depolarizing": "depolarize",
+        "bit_flip": "bit_flip",
+        "phase_flip": "phase_flip",
+        "amplitude_damping": "amplitude_damp",
+    }
+    lines = []
+    for item in circuit.noise:
+        channel = channel_map.get(item.channel)
+        if channel is None:
+            lines.append(
+                f"# neutral_noise channel={item.channel} targets={list(item.targets)!r} probability={item.probability!r}"
+            )
+            continue
+        for target in item.targets:
+            lines.append(
+                f"circuit.append(cirq.{channel}({_format_number(item.probability)})(qubits[{target}]))"
+            )
+    return lines
 
 
 def _cirq_runner_lines(shots: int) -> list[str]:

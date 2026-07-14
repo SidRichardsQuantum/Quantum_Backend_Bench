@@ -130,6 +130,23 @@ def test_pennylane_qnode_observable_fixture_imports_as_expectation() -> None:
     assert result.verification.passed
 
 
+def test_braket_expectation_result_type_fixture_imports_as_expectation() -> None:
+    root = __import__("pathlib").Path(__file__).resolve().parents[1] / "examples" / "translation"
+    source = (root / "accepted" / "braket_expectation_result_type.py").read_text(encoding="utf-8")
+
+    workflow, detected = import_workflow_source(source, from_format="braket")
+
+    assert detected == "braket"
+    assert [operation.gate for operation in workflow.operations] == ["H", "CNOT"]
+    assert workflow.measurements[0].kind == "expectation"
+    assert workflow.measurements[0].targets == (0, 1)
+    assert workflow.measurements[0].observable is not None
+
+    result = translate_workflow_source(source, from_format="braket", to_format="qiskit_aer")
+    assert result.verification is not None
+    assert result.verification.passed
+
+
 def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     qiskit_result = normalize_result_source(
         json.dumps({"counts": {"0 0": 3, "1 1": 1}, "shots": 4, "backend": "qiskit_aer"}),

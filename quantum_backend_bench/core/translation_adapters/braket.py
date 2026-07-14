@@ -27,12 +27,13 @@ class BraketCircuitAdapter:
         runner_shots: int = 1024,
     ) -> str:
         lines = [
-            "from braket.circuits import Circuit",
+            "from braket.circuits import Circuit, Noise",
             "",
             "circuit = Circuit()",
         ]
         for operation in circuit.operations:
-            lines.append(_braket_line(operation))
+            lines.extend(_braket_lines(operation))
+        lines.extend(_braket_noise_lines(circuit))
         measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
         lines.append(f"circuit.probability(target=[{measurements}])")
         if include_runner:
@@ -59,22 +60,64 @@ class BraketCircuitAdapter:
         ]
 
 
-def _braket_line(operation: CircuitOperation) -> str:
+def _braket_lines(operation: CircuitOperation) -> list[str]:
     gate = operation.gate
     q = operation.qubits
     if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"circuit.{gate.lower()}({q[0]})"
+        return [f"circuit.{gate.lower()}({q[0]})"]
+    if gate == "SX":
+        return [f"circuit.v({q[0]})"]
+    if gate in {"P", "PHASE"}:
+        return [f"circuit.phaseshift({q[0]}, angle={_format_number(operation.params['theta'])})"]
     if gate in {"RX", "RY", "RZ"}:
-        return f"circuit.{gate.lower()}({q[0]}, angle={_format_number(operation.params['theta'])})"
+        return [
+            f"circuit.{gate.lower()}({q[0]}, angle={_format_number(operation.params['theta'])})"
+        ]
+    if gate == "U":
+        return [
+            f"circuit.rz({q[0]}, angle={_format_number(operation.params['phi'])})",
+            f"circuit.ry({q[0]}, angle={_format_number(operation.params['theta'])})",
+            f"circuit.rz({q[0]}, angle={_format_number(operation.params['lambda'])})",
+        ]
     if gate == "CNOT":
-        return f"circuit.cnot({q[0]}, {q[1]})"
+        return [f"circuit.cnot({q[0]}, {q[1]})"]
     if gate == "CZ":
-        return f"circuit.cz({q[0]}, {q[1]})"
+        return [f"circuit.cz({q[0]}, {q[1]})"]
     if gate == "SWAP":
-        return f"circuit.swap({q[0]}, {q[1]})"
+        return [f"circuit.swap({q[0]}, {q[1]})"]
+    if gate == "CCX":
+        return [f"circuit.ccnot({q[0]}, {q[1]}, {q[2]})"]
+    if gate in {"CRX", "CRY", "CRZ"}:
+        return [
+            f"circuit.{gate.lower()}({q[0]}, {q[1]}, angle={_format_number(operation.params['theta'])})"
+        ]
     if gate == "CPHASE":
-        return f"circuit.cphaseshift({q[0]}, {q[1]}, angle={_format_number(operation.params['theta'])})"
+        return [
+            f"circuit.cphaseshift({q[0]}, {q[1]}, angle={_format_number(operation.params['theta'])})"
+        ]
     raise ValueError(f"Unsupported Braket emit gate: {gate}")
+
+
+def _braket_noise_lines(circuit: InternalCircuit) -> list[str]:
+    channel_map = {
+        "depolarizing": "Depolarizing",
+        "bit_flip": "BitFlip",
+        "phase_flip": "PhaseFlip",
+        "amplitude_damping": "AmplitudeDamping",
+    }
+    lines = []
+    for item in circuit.noise:
+        channel = channel_map.get(item.channel)
+        if channel is None:
+            lines.append(
+                f"# neutral_noise channel={item.channel} targets={list(item.targets)!r} probability={item.probability!r}"
+            )
+            continue
+        for target in item.targets:
+            lines.append(
+                f"circuit.apply_gate_noise(Noise.{channel}({_format_number(item.probability)}), target_qubits=[{target}])"
+            )
+    return lines
 
 
 def _braket_runner_lines(shots: int) -> list[str]:

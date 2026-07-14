@@ -7,9 +7,12 @@ For the theory behind the benchmark families, metrics, noise model terminology, 
 ## Table of Contents
 
 - [Not a Hardware Benchmark](#not-a-hardware-benchmark)
+- [Hardware Preparation Is Export Only](#hardware-preparation-is-export-only)
 - [SDK Runtimes Are Not Perfectly Equivalent](#sdk-runtimes-are-not-perfectly-equivalent)
 - [Noise Models Are Adapter-Specific](#noise-models-are-adapter-specific)
 - [Circuit Support Is Intentionally Small](#circuit-support-is-intentionally-small)
+- [Discovery-Only SDKs Are Informational](#discovery-only-sdks-are-informational)
+- [Heavy or External Runtime SDKs Stay Optional](#heavy-or-external-runtime-sdks-stay-optional)
 - [pyQuil Requires Local Runtime Support](#pyquil-requires-local-runtime-support)
 - [Quantum-Volume-Style Is Not Certification](#quantum-volume-style-is-not-certification)
 - [Statistical Interpretation Needs Care](#statistical-interpretation-needs-care)
@@ -18,6 +21,10 @@ For the theory behind the benchmark families, metrics, noise model terminology, 
 ## Not a Hardware Benchmark
 
 The package does not measure QPU performance, cloud queue time, calibration quality, or provider service reliability.
+
+## Hardware Preparation Is Export Only
+
+The `hardware` command writes preparation artifacts and caveats for external provider workflows. It does not submit jobs, manage credentials, inspect queues, estimate billing, or measure QPU performance.
 
 ## SDK Runtimes Are Not Perfectly Equivalent
 
@@ -30,6 +37,14 @@ Cirq, PennyLane, and Qiskit Aer currently inject several local noise models in t
 ## Circuit Support Is Intentionally Small
 
 The internal circuit representation supports a focused gate set used by the built-in benchmarks. It is not a full quantum IR.
+
+## Discovery-Only SDKs Are Informational
+
+qBraid and Q# / QDK are reported as optional ecosystem integrations only. They are not execution backends, translation targets, or verification engines in the current local SDK contract.
+
+## Heavy or External Runtime SDKs Stay Optional
+
+CUDA-Q and pyQuil fit local SDK comparison only when their platform or runtime requirements are already satisfied. They are intentionally outside the fastest default onboarding path.
 
 ## pyQuil Requires Local Runtime Support
 

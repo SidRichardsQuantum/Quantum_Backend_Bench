@@ -37,6 +37,7 @@ WORKFLOW_CASES = [
     ("parameterized_workflow.json", "workflow-json", "braket_local"),
     ("accepted/pennylane_qnode_probabilities.py", "pennylane", "qiskit_aer"),
     ("accepted/pennylane_qnode_observable.py", "pennylane", "qiskit_aer"),
+    ("accepted/braket_expectation_result_type.py", "braket", "qiskit_aer"),
     ("purpose_workflows/sampler_workflow.json", "workflow-json", "cirq"),
     ("purpose_workflows/estimator_workflow.json", "workflow-json", "qiskit_aer"),
     ("purpose_workflows/parameter_sweep_workflow.json", "workflow-json", "pennylane"),

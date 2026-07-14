@@ -23,7 +23,7 @@ optional fields; incompatible structural changes require a new schema version.
 
 | Format | JSON Schema | Example | Purpose |
 |---|---|---|---|
-| `internal-circuit` / `internal-json` | [`internal-circuit.schema.json`](./schemas/internal-circuit.schema.json) | [`internal-circuit.example.json`](./schema_examples/internal-circuit.example.json) | Static circuit operations, numeric parameters, and measurement wires. |
+| `internal-circuit` / `internal-json` | [`internal-circuit.schema.json`](./schemas/internal-circuit.schema.json) | [`internal-circuit.example.json`](./schema_examples/internal-circuit.example.json) | Static circuit operations, numeric parameters, measurement wires, register/key metadata, global phase, and neutral local noise annotations. |
 | `pauli-json` | [`pauli-json.schema.json`](./schemas/pauli-json.schema.json) | [`pauli-json.example.json`](./schema_examples/pauli-json.example.json) | Weighted Pauli `I`, `X`, `Y`, and `Z` product terms. |
 | `workflow-json` | [`workflow-json.schema.json`](./schemas/workflow-json.schema.json) | [`workflow-json.example.json`](./schema_examples/workflow-json.example.json) | Parameterized circuits, bindings, local execution settings, and measurement requests. |
 | `result-json` | [`result-json.schema.json`](./schemas/result-json.schema.json) | [`result-json.example.json`](./schema_examples/result-json.example.json) | Portable counts, probabilities, expectations, and result metadata. |
@@ -34,8 +34,11 @@ input/output schema identifiers when the selected CLI formats are neutral format
 ### `internal-circuit`
 
 An internal circuit has `n_qubits`, ordered `operations`, and `measurements`. Operations
-contain a `gate`, integer `qubits`, and optional numeric `params`. The v0.1 gate set is
-`H`, `X`, `Y`, `Z`, `S`, `T`, `RX`, `RY`, `RZ`, `CNOT`, `CZ`, `SWAP`, and `CPHASE`.
+contain a `gate`, integer `qubits`, and optional numeric `params`. Optional metadata
+fields preserve named quantum/classical register offsets, measurement keys, bit-order
+labels, global phase, and neutral local noise-channel annotations. The v0.1 circuit gate
+set is `H`, `X`, `Y`, `Z`, `S`, `T`, `SX`, `P`, `RX`, `RY`, `RZ`, `U`, `CNOT`,
+`CZ`, `SWAP`, `CCX`, `CRX`, `CRY`, `CRZ`, and `CPHASE`.
 
 ### `pauli-json`
 
@@ -46,7 +49,9 @@ Identity factors may be omitted.
 ### `workflow-json`
 
 A workflow adds symbolic `parameters`, numeric `parameter_bindings`, supported circuit
-operations, measurement requests, `shots`, and an optional deterministic `seed`.
+operations, measurement requests, `shots`, and an optional deterministic `seed`. Workflow
+operations support the single-parameter subset of the circuit gate set plus Pauli
+expectation requests; full three-parameter `U` belongs to `internal-circuit`.
 Expectation requests embed a `pauli-json` observable payload.
 
 ### `result-json`

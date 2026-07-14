@@ -4,4 +4,4 @@ These examples are small but closer to user-authored SDK snippets than the core 
 
 Current examples stay inside the declared neutral semantic subset. Related not-yet-modeled intent examples live under `../roadmap/`.
 
-PennyLane QNode probability and Pauli expectation examples exercise workflow-level static imports for local measurement requests.
+PennyLane QNode probability, PennyLane Pauli expectation, and Braket expectation result-type examples exercise workflow-level static imports for local measurement requests.

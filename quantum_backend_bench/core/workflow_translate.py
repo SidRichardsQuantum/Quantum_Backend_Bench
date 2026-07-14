@@ -476,7 +476,30 @@ def _validate_workflow(
         if key not in known_parameters:
             raise _workflow_error("workflow.binding.unknown", f"Unknown parameter binding '{key}'.")
     for operation in operations:
-        if operation.gate not in {"H", "X", "Y", "Z", "RX", "RY", "RZ", "CNOT", "CX", "MEASURE"}:
+        if operation.gate not in {
+            "H",
+            "X",
+            "Y",
+            "Z",
+            "S",
+            "T",
+            "SX",
+            "P",
+            "PHASE",
+            "RX",
+            "RY",
+            "RZ",
+            "CNOT",
+            "CX",
+            "CZ",
+            "SWAP",
+            "CCX",
+            "CRX",
+            "CRY",
+            "CRZ",
+            "CPHASE",
+            "MEASURE",
+        }:
             raise _workflow_error(
                 "workflow.gate.unsupported", f"Unsupported workflow gate '{operation.gate}'."
             )
@@ -485,7 +508,10 @@ def _validate_workflow(
                 raise _workflow_error(
                     "workflow.wire", f"Wire {wire} is outside n_qubits={n_qubits}."
                 )
-        if operation.gate in {"RX", "RY", "RZ"} and operation.parameter is None:
+        if (
+            operation.gate in {"P", "PHASE", "RX", "RY", "RZ", "CRX", "CRY", "CRZ", "CPHASE"}
+            and operation.parameter is None
+        ):
             raise _workflow_error(
                 "workflow.parameter.missing", f"Gate {operation.gate} requires a parameter."
             )
@@ -587,8 +613,12 @@ def _emit_qiskit_operations(workflow: ParameterizedWorkflow) -> list[str]:
     measured = False
     for operation in workflow.operations:
         gate = "cx" if operation.gate == "CNOT" else operation.gate.lower()
-        if operation.gate in {"H", "X", "Y", "Z"}:
+        if operation.gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
             lines.append(f"circuit.{gate}({operation.targets[0]})")
+        elif operation.gate in {"P", "PHASE"}:
+            lines.append(
+                f"circuit.p({_parameter_expr(operation.parameter)}, {operation.targets[0]})"
+            )
         elif operation.gate in {"RX", "RY", "RZ"}:
             lines.append(
                 f"circuit.{gate}({_parameter_expr(operation.parameter)}, {operation.targets[0]})"
@@ -597,6 +627,24 @@ def _emit_qiskit_operations(workflow: ParameterizedWorkflow) -> list[str]:
             control = operation.controls[0] if operation.controls else operation.targets[0]
             target = operation.targets[-1]
             lines.append(f"circuit.cx({control}, {target})")
+        elif operation.gate in {"CZ", "SWAP"}:
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(f"circuit.{operation.gate.lower()}({control}, {target})")
+        elif operation.gate == "CCX":
+            controls = operation.controls or operation.targets[:2]
+            target = operation.targets[-1]
+            lines.append(f"circuit.ccx({controls[0]}, {controls[1]}, {target})")
+        elif operation.gate in {"CRX", "CRY", "CRZ"}:
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(
+                f"circuit.{operation.gate.lower()}({_parameter_expr(operation.parameter)}, {control}, {target})"
+            )
+        elif operation.gate == "CPHASE":
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(f"circuit.cp({_parameter_expr(operation.parameter)}, {control}, {target})")
         elif operation.gate == "MEASURE":
             measured = True
             lines.append(f"circuit.measure({operation.targets[0]}, {operation.targets[0]})")
@@ -655,8 +703,12 @@ def _emit_cirq_workflow(workflow: ParameterizedWorkflow) -> str:
 
 def _cirq_operation_line(operation: WorkflowOperation) -> str:
     target = operation.targets[0]
-    if operation.gate in {"H", "X", "Y", "Z"}:
+    if operation.gate in {"H", "X", "Y", "Z", "S", "T"}:
         return f"circuit.append(cirq.{operation.gate}(qubits[{target}]))"
+    if operation.gate == "SX":
+        return f"circuit.append(cirq.XPowGate(exponent=0.5)(qubits[{target}]))"
+    if operation.gate in {"P", "PHASE"}:
+        return f"circuit.append(cirq.ZPowGate(exponent=({_parameter_expr(operation.parameter)}) / 3.141592653589793)(qubits[{target}]))"
     if operation.gate in {"RX", "RY", "RZ"}:
         axis = operation.gate[-1].lower()
         return f"circuit.append(cirq.r{axis}({_parameter_expr(operation.parameter)})(qubits[{target}]))"
@@ -664,6 +716,23 @@ def _cirq_operation_line(operation: WorkflowOperation) -> str:
         control = operation.controls[0] if operation.controls else operation.targets[0]
         target = operation.targets[-1]
         return f"circuit.append(cirq.CNOT(qubits[{control}], qubits[{target}]))"
+    if operation.gate in {"CZ", "SWAP"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        return f"circuit.append(cirq.{operation.gate}(qubits[{control}], qubits[{target}]))"
+    if operation.gate == "CCX":
+        controls = operation.controls or operation.targets[:2]
+        target = operation.targets[-1]
+        return f"circuit.append(cirq.TOFFOLI(qubits[{controls[0]}], qubits[{controls[1]}], qubits[{target}]))"
+    if operation.gate in {"CRX", "CRY", "CRZ"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        axis = operation.gate[-1].lower()
+        return f"circuit.append(cirq.ControlledGate(cirq.r{axis}({_parameter_expr(operation.parameter)}))(qubits[{control}], qubits[{target}]))"
+    if operation.gate == "CPHASE":
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        return f"circuit.append(cirq.CZPowGate(exponent=({_parameter_expr(operation.parameter)}) / 3.141592653589793)(qubits[{control}], qubits[{target}]))"
     if operation.gate == "MEASURE":
         return f"circuit.append(cirq.measure(qubits[{target}], key='m{target}'))"
     raise AssertionError(operation.gate)
@@ -718,9 +787,22 @@ def _emit_pennylane_operations(workflow: ParameterizedWorkflow) -> list[str]:
     lines = []
     for operation in workflow.operations:
         target = operation.targets[0]
-        if operation.gate in {"H", "X", "Y", "Z"}:
-            names = {"H": "Hadamard", "X": "PauliX", "Y": "PauliY", "Z": "PauliZ"}
+        if operation.gate in {"H", "X", "Y", "Z", "S", "T"}:
+            names = {
+                "H": "Hadamard",
+                "X": "PauliX",
+                "Y": "PauliY",
+                "Z": "PauliZ",
+                "S": "S",
+                "T": "T",
+            }
             lines.append(f"    qml.{names[operation.gate]}(wires={target})")
+        elif operation.gate == "SX":
+            lines.append(f"    qml.SX(wires={target})")
+        elif operation.gate in {"P", "PHASE"}:
+            lines.append(
+                f"    qml.PhaseShift({_parameter_expr(operation.parameter)}, wires={target})"
+            )
         elif operation.gate in {"RX", "RY", "RZ"}:
             lines.append(
                 f"    qml.{operation.gate}({_parameter_expr(operation.parameter)}, wires={target})"
@@ -729,6 +811,26 @@ def _emit_pennylane_operations(workflow: ParameterizedWorkflow) -> list[str]:
             control = operation.controls[0] if operation.controls else operation.targets[0]
             target = operation.targets[-1]
             lines.append(f"    qml.CNOT(wires=[{control}, {target}])")
+        elif operation.gate in {"CZ", "SWAP"}:
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(f"    qml.{operation.gate}(wires=[{control}, {target}])")
+        elif operation.gate == "CCX":
+            controls = operation.controls or operation.targets[:2]
+            target = operation.targets[-1]
+            lines.append(f"    qml.Toffoli(wires=[{controls[0]}, {controls[1]}, {target}])")
+        elif operation.gate in {"CRX", "CRY", "CRZ"}:
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(
+                f"    qml.{operation.gate}({_parameter_expr(operation.parameter)}, wires=[{control}, {target}])"
+            )
+        elif operation.gate == "CPHASE":
+            control = operation.controls[0] if operation.controls else operation.targets[0]
+            target = operation.targets[-1]
+            lines.append(
+                f"    qml.ControlledPhaseShift({_parameter_expr(operation.parameter)}, wires=[{control}, {target}])"
+            )
     return lines or ["    pass"]
 
 
@@ -788,14 +890,34 @@ def _emit_braket_workflow(workflow: ParameterizedWorkflow) -> str:
 
 def _braket_operation_line(operation: WorkflowOperation) -> str:
     target = operation.targets[0]
-    if operation.gate in {"H", "X", "Y", "Z"}:
+    if operation.gate in {"H", "X", "Y", "Z", "S", "T"}:
         return f"circuit.{operation.gate.lower()}({target})"
+    if operation.gate == "SX":
+        return f"circuit.v({target})"
+    if operation.gate in {"P", "PHASE"}:
+        return f"circuit.phaseshift({target}, {_parameter_expr(operation.parameter)})"
     if operation.gate in {"RX", "RY", "RZ"}:
         return f"circuit.{operation.gate.lower()}({target}, {_parameter_expr(operation.parameter)})"
     if operation.gate in {"CNOT", "CX"}:
         control = operation.controls[0] if operation.controls else operation.targets[0]
         target = operation.targets[-1]
         return f"circuit.cnot({control}, {target})"
+    if operation.gate in {"CZ", "SWAP"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        return f"circuit.{operation.gate.lower()}({control}, {target})"
+    if operation.gate == "CCX":
+        controls = operation.controls or operation.targets[:2]
+        target = operation.targets[-1]
+        return f"circuit.ccnot({controls[0]}, {controls[1]}, {target})"
+    if operation.gate in {"CRX", "CRY", "CRZ"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        return f"circuit.{operation.gate.lower()}({control}, {target}, {_parameter_expr(operation.parameter)})"
+    if operation.gate == "CPHASE":
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        target = operation.targets[-1]
+        return f"circuit.cphaseshift({control}, {target}, {_parameter_expr(operation.parameter)})"
     if operation.gate == "MEASURE":
         return f"# Braket samples all measured qubits; requested measurement target: {target}"
     raise AssertionError(operation.gate)
@@ -1008,10 +1130,21 @@ def _import_qiskit_workflow_ast(tree: ast.AST) -> ParameterizedWorkflow:
             "x": "X",
             "y": "Y",
             "z": "Z",
+            "s": "S",
+            "t": "T",
+            "sx": "SX",
+            "p": "P",
             "rx": "RX",
             "ry": "RY",
             "rz": "RZ",
             "cx": "CNOT",
+            "cz": "CZ",
+            "swap": "SWAP",
+            "ccx": "CCX",
+            "crx": "CRX",
+            "cry": "CRY",
+            "crz": "CRZ",
+            "cp": "CPHASE",
             "measure": "MEASURE",
         },
         binding_names=("parameter_bindings",),
@@ -1045,10 +1178,21 @@ def _import_braket_workflow_ast(tree: ast.AST) -> ParameterizedWorkflow:
             "x": "X",
             "y": "Y",
             "z": "Z",
+            "s": "S",
+            "t": "T",
+            "v": "SX",
+            "phaseshift": "P",
             "rx": "RX",
             "ry": "RY",
             "rz": "RZ",
             "cnot": "CNOT",
+            "cz": "CZ",
+            "swap": "SWAP",
+            "ccnot": "CCX",
+            "crx": "CRX",
+            "cry": "CRY",
+            "crz": "CRZ",
+            "cphaseshift": "CPHASE",
         },
         binding_names=("inputs",),
     )
@@ -1191,7 +1335,61 @@ def _static_n_qubits(tree: ast.AST, sdk: str) -> int:
             for keyword in node.keywords:
                 if keyword.arg == "wires":
                     return int(ast.literal_eval(keyword.value))
+    if sdk == "braket":
+        return _braket_static_n_qubits(tree)
     return _max_wire_index(tree) + 1
+
+
+def _braket_static_n_qubits(tree: ast.AST) -> int:
+    wires: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Attribute):
+            method = node.func.attr
+            if (
+                method
+                in {
+                    "h",
+                    "x",
+                    "y",
+                    "z",
+                    "s",
+                    "t",
+                    "v",
+                    "rx",
+                    "ry",
+                    "rz",
+                    "phaseshift",
+                }
+                and node.args
+            ):
+                wires.append(_wire_index(node.args[0]))
+            elif (
+                method
+                in {
+                    "cnot",
+                    "cz",
+                    "swap",
+                    "crx",
+                    "cry",
+                    "crz",
+                    "cphaseshift",
+                }
+                and len(node.args) >= 2
+            ):
+                wires.extend([_wire_index(node.args[0]), _wire_index(node.args[1])])
+            elif method == "ccnot" and len(node.args) >= 3:
+                wires.extend(
+                    [
+                        _wire_index(node.args[0]),
+                        _wire_index(node.args[1]),
+                        _wire_index(node.args[2]),
+                    ]
+                )
+            elif method in {"probability", "expectation"}:
+                wires.extend(_keyword_target(node))
+    return max(wires) + 1 if wires else 1
 
 
 def _static_shots(tree: ast.AST, sdk: str) -> int:
@@ -1251,16 +1449,29 @@ def _static_operation(
 
 
 def _operation_from_method_call(gate: str, args: list[ast.expr]) -> WorkflowOperation | None:
-    if gate in {"H", "X", "Y", "Z"} and args:
+    if gate in {"H", "X", "Y", "Z", "S", "T", "SX"} and args:
         return WorkflowOperation(gate, (_wire_index(args[0]),))
-    if gate in {"RX", "RY", "RZ"} and len(args) >= 2:
+    if gate in {"P", "PHASE", "RX", "RY", "RZ"} and len(args) >= 2:
         first = _expr_name_or_float(args[0])
         second = _expr_name_or_float(args[1])
         if isinstance(first, int | float):
             return WorkflowOperation(gate, (int(first),), parameter=second)
         return WorkflowOperation(gate, (_wire_index(args[1]),), parameter=first)
-    if gate == "CNOT" and len(args) >= 2:
-        return WorkflowOperation("CNOT", (_wire_index(args[1]),), (_wire_index(args[0]),))
+    if gate in {"CNOT", "CZ", "SWAP"} and len(args) >= 2:
+        return WorkflowOperation(gate, (_wire_index(args[1]),), (_wire_index(args[0]),))
+    if gate == "CCX" and len(args) >= 3:
+        return WorkflowOperation(
+            "CCX", (_wire_index(args[2]),), (_wire_index(args[0]), _wire_index(args[1]))
+        )
+    if gate in {"CRX", "CRY", "CRZ", "CPHASE"} and len(args) >= 3:
+        first = _expr_name_or_float(args[0])
+        second = _expr_name_or_float(args[1])
+        third = _expr_name_or_float(args[2])
+        if isinstance(first, int | float):
+            return WorkflowOperation(gate, (int(second),), (int(first),), parameter=third)
+        return WorkflowOperation(
+            gate, (_wire_index(args[2]),), (_wire_index(args[1]),), parameter=first
+        )
     if gate == "MEASURE" and args:
         return WorkflowOperation("MEASURE", (_wire_index(args[0]),))
     return None
@@ -1336,7 +1547,52 @@ def _static_measurement_request(
         return MeasurementRequest("expectation", tuple(range(observable.n_qubits)), observable)
     if sdk == "braket" and isinstance(node.func, ast.Attribute) and node.func.attr == "probability":
         return MeasurementRequest("probabilities", tuple(_keyword_target(node) or range(n_qubits)))
+    if sdk == "braket" and isinstance(node.func, ast.Attribute) and node.func.attr == "expectation":
+        observable_node = _keyword(node, "observable") or (node.args[0] if node.args else None)
+        targets = _keyword_target(node) or list(range(n_qubits))
+        if observable_node is None:
+            raise _workflow_error(
+                "workflow.braket.expectation", "Braket expectation requires an observable."
+            )
+        observable = _braket_expectation_observable(observable_node, targets, n_qubits)
+        return MeasurementRequest("expectation", tuple(targets), observable)
     return None
+
+
+def _braket_expectation_observable(
+    node: ast.AST, targets: list[int], n_qubits: int
+) -> PauliHamiltonian:
+    pauli_sequence = _braket_observable_paulis(node)
+    if len(pauli_sequence) != len(targets):
+        raise _workflow_error(
+            "workflow.braket.expectation",
+            "Braket expectation observable and target lengths differ.",
+        )
+    paulis = {
+        target: pauli for target, pauli in zip(targets, pauli_sequence, strict=True) if pauli != "I"
+    }
+    return PauliHamiltonian(n_qubits, (PauliTerm(1.0, tuple(sorted(paulis.items()))),))
+
+
+def _braket_observable_paulis(node: ast.AST) -> list[str]:
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.MatMult):
+        return [*_braket_observable_paulis(node.left), *_braket_observable_paulis(node.right)]
+    if isinstance(node, ast.Call):
+        mapping = {
+            "Observable.X": "X",
+            "Observable.Y": "Y",
+            "Observable.Z": "Z",
+            "Observable.I": "I",
+        }
+        name = _call_name(node.func)
+        if name not in mapping:
+            raise _workflow_error(
+                "workflow.braket.expectation", f"Unsupported Braket observable {name}."
+            )
+        return [mapping[name]]
+    raise _workflow_error(
+        "workflow.braket.expectation", "Braket expectation supports static Pauli products only."
+    )
 
 
 def _pennylane_expval_observable(node: ast.AST, n_qubits: int) -> PauliHamiltonian:
@@ -1466,6 +1722,13 @@ def _keyword_wires(node: ast.Call) -> list[int]:
                 return [int(item) for item in value]
             return [int(value)]
     return []
+
+
+def _keyword(node: ast.Call, name: str) -> ast.AST | None:
+    for keyword in node.keywords:
+        if keyword.arg == name:
+            return keyword.value
+    return None
 
 
 def _keyword_target(node: ast.Call) -> list[int]:

@@ -31,7 +31,15 @@
               "CNOT",
               "CZ",
               "SWAP",
-              "CPHASE"
+              "CPHASE",
+              "SX",
+              "P",
+              "PHASE",
+              "U",
+              "CCX",
+              "CRX",
+              "CRY",
+              "CRZ"
             ],
             "type": "string"
           },
@@ -60,6 +68,73 @@
     },
     "schema_version": {
       "const": "0.1"
+    },
+    "quantum_registers": {
+      "additionalProperties": {
+        "items": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "classical_registers": {
+      "additionalProperties": {
+        "items": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "measurement_keys": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "bit_order": {
+      "type": "string"
+    },
+    "global_phase": {
+      "type": "number"
+    },
+    "noise": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "depolarizing",
+              "bit_flip",
+              "phase_flip",
+              "amplitude_damping",
+              "readout_error"
+            ],
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "probability": {
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "channel",
+          "targets",
+          "probability"
+        ],
+        "type": "object"
+      },
+      "type": "array"
     }
   },
   "required": [

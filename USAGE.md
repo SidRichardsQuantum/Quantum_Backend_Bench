@@ -12,7 +12,9 @@ For the theoretical background behind shots, distributions, success probability,
 ## Table of Contents
 
 - [Installation](#installation)
+- [Scope](#scope)
 - [CLI Usage](#cli-usage)
+  - [Command Groups](#command-groups)
   - [Discover Benchmarks and Integrations](#discover-benchmarks-and-integrations)
   - [Diagnose Local Readiness](#diagnose-local-readiness)
   - [Choosing Backends](#choosing-backends)
@@ -110,6 +112,14 @@ python -m pip install -e ".[full,dev]"
 Even with `full`, the pyQuil execution test requires non-Python local runtime tools:
 `qvm` and `quilc` must be installed separately and available on `PATH`.
 
+## Scope
+
+The core workflows are SDK comparison, SDK translation, and semantic verification on free local simulator stacks. Benchmark commands exist to exercise comparable local workloads; translation commands move supported circuits, Pauli Hamiltonians, workflows, and result shapes through neutral schemas; audit commands check parity, semantics, compilation metadata, round trips, noise support, and artifact drift.
+
+Peripheral workflows remain available but should be read as support material: plotting, diagram drawing, tutorial notebooks, generated documentation assets, reference-result bundles, hardware-preparation exports, and discovery-only ecosystem checks. They help users inspect and reproduce SDK behavior, but they are not cloud execution or hardware benchmarking features.
+
+The default workflow intentionally excludes cloud job submission, provider credentials, queue timing, billing workflows, arbitrary Python migration, and new benchmark families that do not strengthen SDK comparison or translation validation.
+
 ## CLI Usage
 
 The CLI entrypoint is:
@@ -118,29 +128,28 @@ The CLI entrypoint is:
 quantum-bench
 ```
 
-Available subcommands:
+### Command Groups
 
-- `list`
-- `info`
-- `doctor`
-- `recommend`
-- `validate`
-- `compatibility`
-- `sdk-parity`
-- `semantic-audit`
-- `noise-audit`
-- `compile-audit`
-- `roundtrip-audit`
-- `diff`
-- `report`
-- `bundle`
-- `preset`
-- `run`
-- `compare`
-- `noise-sweep`
-- `suite`
-- `draw`
-- `experiment`
+Core comparison and execution commands:
+
+- `run`, `compare`, `suite`, `preset`, `experiment`
+- `list`, `info`, `doctor`, `recommend`, `compatibility`, `validate`
+
+Translation and SDK interop commands:
+
+- `export`, `import-qasm`, `translate`, `translate-all`, `translate-check`
+- `translate-hamiltonian`, `translate-observable`, `translate-workflow`, `translate-result`
+- `group-pauli-terms`, `translation-audit`, `exact`
+
+Verification and audit commands:
+
+- `sdk-parity`, `semantic-audit`, `roundtrip-audit`, `compile-audit`, `noise-audit`
+- `diff`, `diagnose`, `report`, `bundle`
+
+Peripheral inspection and preparation commands:
+
+- `draw` for local SDK/pytket circuit diagrams
+- `hardware` for hardware-preparation exports only; it does not submit cloud jobs, benchmark QPUs, or manage credentials
 
 ### Discover Benchmarks and Integrations
 
@@ -187,6 +196,7 @@ Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` 
 - Use QuTiP when statevector-style local simulation is useful for small physics-oriented cases.
 - Use pyQuil only when local `qvm` and `quilc` runtime support is available.
 - Treat CUDA-Q availability as platform-sensitive and check it with `doctor` in CI or fresh environments.
+- Treat `qbraid` and `qsharp` as discovery-only ecosystem checks; they are not execution backends, translation targets, or verification engines.
 
 ### Compatibility Matrix
 
@@ -259,7 +269,7 @@ quantum-bench bundle artifacts/runtime.json --output artifacts/runtime_bundle
 quantum-bench bundle artifacts/runtime.csv --output artifacts/runtime_bundle --no-plots
 ```
 
-`qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations, but they are not execution backends in this local circuit adapter.
+`qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations only. They are not execution backends, translation targets, or verification engines in this package.
 
 ### Run One Benchmark on One Backend
 
@@ -625,7 +635,7 @@ Quality metrics should be interpreted with shot count in mind. A lower `total_va
 
 ## Examples
 
-The repository includes example scripts:
+The repository includes example scripts. These are research/reproducibility assets around the core package workflows rather than separate product surfaces:
 
 - [`examples/basic_benchmark.py`](./examples/basic_benchmark.py)
 - [`examples/circuit_diagrams.py`](./examples/circuit_diagrams.py)
@@ -712,7 +722,7 @@ quantum-bench recommend --needs-noise --no-external-runtime
 
 `translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. `translate-hamiltonian` and `translate-observable` convert weighted Pauli terms through the neutral Pauli Hamiltonian model with canonical or small dense-matrix verification. `translate-workflow`, `translate-result`, and `group-pauli-terms` extend that into parameterized workflow JSON, first-pass static SDK workflow imports, parameter bindings, measurement/expectation requests, local execution wrappers, neutral result objects, and qubit-wise Pauli grouping. Generated workflow scripts print neutral result JSON and embed a canonical `workflow_spec` for verification. SDK output is limited to free local Python SDK APIs for now: Cirq, Qiskit, PennyLane, and Braket LocalSimulator. Unsupported dynamic Python constructs are rejected instead of rewritten approximately. Neutral `internal-json`, `pauli-json`, `workflow-json`, and `result-json` payloads are versioned with `schema_version: "0.1"`; saved translation reports include `schema_metadata` and `semantic_contract`, `translate-check` can emit target-aware `migration_audit` guidance with `--to-format`, `--explain`, and `--save-markdown`, `translate-all` writes all selected target sources plus neutral JSON and reports, and `translation-audit --json` emits the current SDK coverage matrix. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) and [Schema](./docs/SCHEMA.md) for supported gates, static Python patterns, diagnostics, runnable-script output, report artifacts, JSON Schema files, examples, caveats, and verification modes.
 
-Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks. `notebooks/09_circuit_translation_workflow.ipynb` covers all-target local SDK circuit translation, SDK-native diagram comparison, reports, runner output, and diagnostics. `notebooks/10_observable_hamiltonian_translation_workflow.ipynb` covers Pauli observable and Hamiltonian translation with canonical verification. `notebooks/11_parameterized_workflow_translation.ipynb` covers parameterized workflow translation, result normalization, and Pauli grouping.
+Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command is a hardware-preparation export helper: it writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs, benchmark QPUs, or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks. `notebooks/09_circuit_translation_workflow.ipynb` covers all-target local SDK circuit translation, SDK-native diagram comparison, reports, runner output, and diagnostics. `notebooks/10_observable_hamiltonian_translation_workflow.ipynb` covers Pauli observable and Hamiltonian translation with canonical verification. `notebooks/11_parameterized_workflow_translation.ipynb` covers parameterized workflow translation, result normalization, and Pauli grouping.
 
 ---
 

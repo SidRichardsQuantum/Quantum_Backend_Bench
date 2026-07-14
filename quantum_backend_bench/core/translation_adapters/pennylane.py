@@ -36,7 +36,10 @@ class PennyLaneCircuitAdapter:
             "def circuit():",
         ]
         for operation in circuit.operations:
-            lines.append(f"    {_pennylane_line(operation)}")
+            for line in _pennylane_lines(operation):
+                lines.append(f"    {line}")
+        for line in _pennylane_noise_lines(circuit):
+            lines.append(f"    {line}")
         measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
         lines.append(f"    return qml.sample(wires=[{measurements}])")
         if include_runner:
@@ -63,7 +66,7 @@ class PennyLaneCircuitAdapter:
         ]
 
 
-def _pennylane_line(operation: CircuitOperation) -> str:
+def _pennylane_lines(operation: CircuitOperation) -> list[str]:
     gate = operation.gate
     q = operation.qubits
     one_qubit = {
@@ -75,14 +78,51 @@ def _pennylane_line(operation: CircuitOperation) -> str:
         "T": "T",
     }
     if gate in one_qubit:
-        return f"qml.{one_qubit[gate]}(wires={q[0]})"
+        return [f"qml.{one_qubit[gate]}(wires={q[0]})"]
+    if gate == "SX":
+        return [f"qml.SX(wires={q[0]})"]
+    if gate in {"P", "PHASE"}:
+        return [f"qml.PhaseShift({_format_number(operation.params['theta'])}, wires={q[0]})"]
     if gate in {"RX", "RY", "RZ"}:
-        return f"qml.{gate}({_format_number(operation.params['theta'])}, wires={q[0]})"
+        return [f"qml.{gate}({_format_number(operation.params['theta'])}, wires={q[0]})"]
+    if gate == "U":
+        return [
+            "qml.U3("
+            f"{_format_number(operation.params['theta'])}, "
+            f"{_format_number(operation.params['phi'])}, "
+            f"{_format_number(operation.params['lambda'])}, wires={q[0]})"
+        ]
     if gate in {"CNOT", "CZ", "SWAP"}:
-        return f"qml.{gate}(wires=[{q[0]}, {q[1]}])"
+        return [f"qml.{gate}(wires=[{q[0]}, {q[1]}])"]
+    if gate == "CCX":
+        return [f"qml.Toffoli(wires=[{q[0]}, {q[1]}, {q[2]}])"]
+    if gate in {"CRX", "CRY", "CRZ"}:
+        return [f"qml.{gate}({_format_number(operation.params['theta'])}, wires=[{q[0]}, {q[1]}])"]
     if gate == "CPHASE":
-        return f"qml.ControlledPhaseShift({_format_number(operation.params['theta'])}, wires=[{q[0]}, {q[1]}])"
+        return [
+            f"qml.ControlledPhaseShift({_format_number(operation.params['theta'])}, wires=[{q[0]}, {q[1]}])"
+        ]
     raise ValueError(f"Unsupported PennyLane emit gate: {gate}")
+
+
+def _pennylane_noise_lines(circuit: InternalCircuit) -> list[str]:
+    channel_map = {
+        "depolarizing": "DepolarizingChannel",
+        "bit_flip": "BitFlip",
+        "phase_flip": "PhaseFlip",
+        "amplitude_damping": "AmplitudeDamping",
+    }
+    lines = []
+    for item in circuit.noise:
+        channel = channel_map.get(item.channel)
+        if channel is None:
+            lines.append(
+                f"# neutral_noise channel={item.channel} targets={list(item.targets)!r} probability={item.probability!r}"
+            )
+            continue
+        for target in item.targets:
+            lines.append(f"qml.{channel}({_format_number(item.probability)}, wires={target})")
+    return lines
 
 
 def _pennylane_runner_lines(shots: int) -> list[str]:

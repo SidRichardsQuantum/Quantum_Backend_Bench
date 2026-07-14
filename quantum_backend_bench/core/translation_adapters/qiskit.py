@@ -31,8 +31,11 @@ class QiskitCircuitAdapter:
             "",
             f"circuit = QuantumCircuit({circuit.n_qubits}, {len(circuit.measurements)})",
         ]
+        if circuit.global_phase:
+            lines.append(f"circuit.global_phase = {_format_number(circuit.global_phase)}")
         for operation in circuit.operations:
-            lines.append(_qiskit_line(operation))
+            lines.extend(_qiskit_lines(operation))
+        lines.extend(_qiskit_noise_lines(circuit))
         for classical_index, qubit in enumerate(circuit.measurements):
             lines.append(
                 f"circuit.measure({qubit}, {len(circuit.measurements) - classical_index - 1})"
@@ -55,22 +58,46 @@ class QiskitCircuitAdapter:
         return []
 
 
-def _qiskit_line(operation: CircuitOperation) -> str:
+def _qiskit_lines(operation: CircuitOperation) -> list[str]:
     gate = operation.gate
     q = operation.qubits
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"circuit.{gate.lower()}({q[0]})"
+    if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
+        return [f"circuit.{gate.lower()}({q[0]})"]
+    if gate in {"P", "PHASE"}:
+        return [f"circuit.p({_format_number(operation.params['theta'])}, {q[0]})"]
     if gate in {"RX", "RY", "RZ"}:
-        return f"circuit.{gate.lower()}({_format_number(operation.params['theta'])}, {q[0]})"
+        return [f"circuit.{gate.lower()}({_format_number(operation.params['theta'])}, {q[0]})"]
+    if gate == "U":
+        return [
+            "circuit.u("
+            f"{_format_number(operation.params['theta'])}, "
+            f"{_format_number(operation.params['phi'])}, "
+            f"{_format_number(operation.params['lambda'])}, {q[0]})"
+        ]
     if gate == "CNOT":
-        return f"circuit.cx({q[0]}, {q[1]})"
+        return [f"circuit.cx({q[0]}, {q[1]})"]
     if gate == "CZ":
-        return f"circuit.cz({q[0]}, {q[1]})"
+        return [f"circuit.cz({q[0]}, {q[1]})"]
     if gate == "SWAP":
-        return f"circuit.swap({q[0]}, {q[1]})"
+        return [f"circuit.swap({q[0]}, {q[1]})"]
+    if gate == "CCX":
+        return [f"circuit.ccx({q[0]}, {q[1]}, {q[2]})"]
+    if gate in {"CRX", "CRY", "CRZ"}:
+        return [
+            f"circuit.{gate.lower()}({_format_number(operation.params['theta'])}, {q[0]}, {q[1]})"
+        ]
     if gate == "CPHASE":
-        return f"circuit.cp({_format_number(operation.params['theta'])}, {q[0]}, {q[1]})"
+        return [f"circuit.cp({_format_number(operation.params['theta'])}, {q[0]}, {q[1]})"]
     raise ValueError(f"Unsupported Qiskit emit gate: {gate}")
+
+
+def _qiskit_noise_lines(circuit: InternalCircuit) -> list[str]:
+    lines = []
+    for item in circuit.noise:
+        lines.append(
+            f"# neutral_noise channel={item.channel} targets={list(item.targets)!r} probability={item.probability!r}"
+        )
+    return lines
 
 
 def _qiskit_runner_lines(shots: int) -> list[str]:

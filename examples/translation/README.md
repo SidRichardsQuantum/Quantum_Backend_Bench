@@ -21,7 +21,7 @@ python examples/translation/update_expected.py
 - Executable corpus: top-level circuit/Hamiltonian/workflow/result fixtures plus `accepted/`, `portable/`, `purpose_workflows/`, and `results/` are covered by `verify_examples.py` or focused tests.
 - Generated expectations: `expected/`, `migration_audit/expected/`, and `roundtrip_audit/expected/` are committed regression artifacts. Update them only through their generator scripts after intentional output changes.
 - Diagnostic-only fixtures: `rejected/` pins unsupported constructs and expected diagnostic categories.
-- Roadmap-only fixtures: `roadmap/` documents useful SDK intent that is deliberately excluded from executable verification until the neutral model and static importers support that purpose.
+- Roadmap-only fixtures: `roadmap/` is reserved for useful SDK intent that is deliberately excluded from executable verification until the neutral model and static importers support that purpose.
 
 ## Fixture Map
 
@@ -94,7 +94,7 @@ python examples/translation/update_expected.py
 
 ## Roadmap Fixtures
 
-`roadmap/braket_expectation_result_type.py` documents a useful Braket expectation-value workflow shape that is not fully covered by static SDK workflow import today. It should move into `accepted/` only when canonical reimport verification supports it.
+`accepted/braket_expectation_result_type.py` covers a Braket expectation-value workflow shape with canonical workflow reimport verification.
 
 ## Notes on Redundancy
 

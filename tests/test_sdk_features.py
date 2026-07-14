@@ -246,6 +246,88 @@ circuit.measure_all()
     assert benchmark.circuit_data.operations[0].params["theta"] == pytest.approx(0.25)
 
 
+def test_internal_json_preserves_richer_metadata_gates_and_noise() -> None:
+    source = json.dumps(
+        {
+            "schema_version": "0.1",
+            "n_qubits": 3,
+            "quantum_registers": {"q": [0, 1, 2]},
+            "classical_registers": {"c": [0, 1]},
+            "measurement_keys": {"0": "c[0]", "1": "c[1]"},
+            "bit_order": "qiskit-classical",
+            "global_phase": 0.125,
+            "operations": [
+                {"gate": "SX", "qubits": [0]},
+                {"gate": "P", "qubits": [0], "params": {"theta": 0.25}},
+                {
+                    "gate": "U",
+                    "qubits": [1],
+                    "params": {"theta": 0.1, "phi": 0.2, "lambda": 0.3},
+                },
+                {"gate": "CCX", "qubits": [0, 1, 2]},
+                {"gate": "CRZ", "qubits": [0, 1], "params": {"theta": 0.4}},
+            ],
+            "measurements": [0, 1],
+            "noise": [{"channel": "depolarizing", "targets": [0, 1], "probability": 0.01}],
+        }
+    )
+
+    benchmark, detected = import_circuit_source(source, from_format="internal-json")
+    emitted = json.loads(
+        translate_circuit_source(
+            source, from_format="internal-json", to_format="internal-json"
+        ).source
+    )
+    cirq = translate_circuit_source(source, from_format="internal-json", to_format="cirq").source
+
+    assert detected == "internal-json"
+    assert [op.gate for op in benchmark.circuit_data.operations] == [
+        "SX",
+        "P",
+        "U",
+        "CCX",
+        "CRZ",
+    ]
+    assert benchmark.circuit_data.global_phase == 0.125
+    assert benchmark.circuit_data.noise[0].channel == "depolarizing"
+    assert emitted["measurement_keys"] == {"0": "c[0]", "1": "c[1]"}
+    assert emitted["noise"][0]["probability"] == 0.01
+    assert "cirq.XPowGate" in cirq
+    assert "cirq.depolarize" in cirq
+
+
+def test_qiskit_named_registers_and_richer_gates_import() -> None:
+    source = """
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+qa = QuantumRegister(1, "qa")
+qb = QuantumRegister(2, "qb")
+c = ClassicalRegister(2, "c")
+circuit = QuantumCircuit(qa, qb, c, global_phase=0.5)
+circuit.sx(qa[0])
+circuit.p(0.25, qb[0])
+circuit.u(0.1, 0.2, 0.3, qb[1])
+circuit.ccx(qa[0], qb[0], qb[1])
+circuit.crx(0.4, qa[0], qb[0])
+circuit.measure(qa[0], c[0])
+circuit.measure(qb[0], c[1])
+"""
+
+    benchmark, _ = import_circuit_source(source, from_format="qiskit")
+
+    assert benchmark.n_qubits == 3
+    assert benchmark.circuit_data.quantum_registers == {"qa": [0], "qb": [1, 2]}
+    assert benchmark.circuit_data.measurement_keys == {"0": "c[0]", "1": "c[1]"}
+    assert benchmark.circuit_data.global_phase == 0.5
+    assert [op.gate for op in benchmark.circuit_data.operations] == [
+        "SX",
+        "P",
+        "U",
+        "CCX",
+        "CRX",
+    ]
+
+
 def test_translation_reports_include_caveats_and_verification() -> None:
     source = (TRANSLATION_EXAMPLES / "ghz.qasm").read_text(encoding="utf-8")
     result = translate_circuit_source(
@@ -518,9 +600,9 @@ def test_roadmap_translation_examples_are_documented_but_not_verified() -> None:
     roadmap_readme = (TRANSLATION_EXAMPLES / "roadmap" / "README.md").read_text(encoding="utf-8")
     roadmap_files = sorted((TRANSLATION_EXAMPLES / "roadmap").glob("*.py"))
 
-    assert roadmap_files
     assert "intentionally excluded from `verify_examples.py`" in roadmap_readme
     assert "roadmap/" not in verifier
+    assert "accepted/braket_expectation_result_type.py" in examples_readme
     for path in roadmap_files:
         relative = f"roadmap/{path.name}"
         assert relative in examples_readme

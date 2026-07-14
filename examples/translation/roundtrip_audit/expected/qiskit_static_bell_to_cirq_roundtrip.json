@@ -58,19 +58,23 @@
     "not_modeled": [
       "hardware/provider execution semantics",
       "full Python program behavior",
-      "noise models",
+      "provider-specific noise calibration semantics",
       "pulse-level controls"
     ],
     "output_format": "cirq",
     "preserved": [
       "supported gate sequence",
       "integer-wire operation targets",
+      "named quantum/classical register offsets where imported",
+      "measurement keys and declared bit ordering where available",
+      "global phase metadata",
       "static numeric rotation parameters",
-      "static computational-basis measurements"
+      "static computational-basis measurements",
+      "neutral local noise-channel annotations"
     ],
     "rejected": [
       "dynamic Python circuit construction",
-      "custom or opaque gates",
+      "custom or opaque gates outside the supported neutral gate set",
       "classical control",
       "provider/runtime calls",
       "transpiler settings",
@@ -78,8 +82,9 @@
     ],
     "rewritten": [
       "SDK syntax and imports",
-      "register and wire display names normalized to neutral integer wires",
-      "measurement bitstrings normalized for verification"
+      "register names mapped to neutral integer-wire offsets",
+      "measurement bitstrings normalized for verification",
+      "neutral noise channels mapped to supported local SDK noise syntax"
     ],
     "verification": [
       "exact probabilities",

@@ -16,12 +16,27 @@ class CircuitOperation:
 
 
 @dataclass(slots=True)
+class NoiseInstruction:
+    """Backend-neutral local noise channel annotation."""
+
+    channel: str
+    targets: tuple[int, ...]
+    probability: float
+
+
+@dataclass(slots=True)
 class InternalCircuit:
     """Minimal circuit description used by all backends."""
 
     n_qubits: int
     operations: list[CircuitOperation]
     measurements: list[int] = field(default_factory=list)
+    quantum_registers: dict[str, list[int]] = field(default_factory=dict)
+    classical_registers: dict[str, list[int]] = field(default_factory=dict)
+    measurement_keys: dict[str, str] = field(default_factory=dict)
+    bit_order: str = "measurement-list"
+    global_phase: float = 0.0
+    noise: list[NoiseInstruction] = field(default_factory=list)
 
 
 @dataclass(slots=True)

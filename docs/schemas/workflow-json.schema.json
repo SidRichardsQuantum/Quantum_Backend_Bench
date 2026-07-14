@@ -112,7 +112,19 @@
               "RZ",
               "CNOT",
               "CX",
-              "MEASURE"
+              "MEASURE",
+              "S",
+              "T",
+              "SX",
+              "P",
+              "PHASE",
+              "CZ",
+              "SWAP",
+              "CCX",
+              "CRX",
+              "CRY",
+              "CRZ",
+              "CPHASE"
             ],
             "type": "string"
           },

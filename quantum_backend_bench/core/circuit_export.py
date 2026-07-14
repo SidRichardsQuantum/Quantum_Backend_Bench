@@ -56,6 +56,19 @@ def _internal_json(benchmark: BenchmarkSpec) -> str:
             for op in circuit.operations
         ],
         "measurements": circuit.measurements,
+        "quantum_registers": circuit.quantum_registers,
+        "classical_registers": circuit.classical_registers,
+        "measurement_keys": circuit.measurement_keys,
+        "bit_order": circuit.bit_order,
+        "global_phase": circuit.global_phase,
+        "noise": [
+            {
+                "channel": item.channel,
+                "targets": list(item.targets),
+                "probability": item.probability,
+            }
+            for item in circuit.noise
+        ],
         "metadata": {
             key: value for key, value in (benchmark.metadata or {}).items() if key != "base_circuit"
         },
@@ -140,7 +153,11 @@ def _qasm_operation(line: str) -> CircuitOperation:
     gate = gate_token
     if "(" in gate_token:
         gate, raw_param = gate_token.split("(", 1)
-        params["theta"] = float(raw_param.rstrip(")"))
+        values = [float(item.strip()) for item in raw_param.rstrip(")").split(",")]
+        if gate == "u" and len(values) >= 3:
+            params.update({"theta": values[0], "phi": values[1], "lambda": values[2]})
+        else:
+            params["theta"] = values[0]
     qubits = tuple(int(part.split("[", 1)[1].split("]", 1)[0]) for part in qubit_token.split(","))
     mapping = {
         "h": "H",
@@ -149,12 +166,19 @@ def _qasm_operation(line: str) -> CircuitOperation:
         "z": "Z",
         "s": "S",
         "t": "T",
+        "sx": "SX",
+        "p": "P",
+        "phase": "P",
         "rx": "RX",
         "ry": "RY",
         "rz": "RZ",
         "cx": "CNOT",
         "cz": "CZ",
         "swap": "SWAP",
+        "ccx": "CCX",
+        "crx": "CRX",
+        "cry": "CRY",
+        "crz": "CRZ",
         "cu1": "CPHASE",
         "cp": "CPHASE",
     }
@@ -164,32 +188,48 @@ def _qasm_operation(line: str) -> CircuitOperation:
 
 
 def _operation_to_qasm(gate: str, qubits: tuple[int, ...], params: dict[str, Any]) -> str:
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
+    if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
         return f"{gate.lower()} q[{qubits[0]}];"
+    if gate in {"P", "PHASE"}:
+        return f"p({params['theta']}) q[{qubits[0]}];"
     if gate in {"RX", "RY", "RZ"}:
         return f"{gate.lower()}({params['theta']}) q[{qubits[0]}];"
+    if gate == "U":
+        return f"u({params['theta']},{params['phi']},{params['lambda']}) q[{qubits[0]}];"
     if gate == "CNOT":
         return f"cx q[{qubits[0]}],q[{qubits[1]}];"
     if gate == "CZ":
         return f"cz q[{qubits[0]}],q[{qubits[1]}];"
     if gate == "SWAP":
         return f"swap q[{qubits[0]}],q[{qubits[1]}];"
+    if gate == "CCX":
+        return f"ccx q[{qubits[0]}],q[{qubits[1]}],q[{qubits[2]}];"
+    if gate in {"CRX", "CRY", "CRZ"}:
+        return f"{gate.lower()}({params['theta']}) q[{qubits[0]}],q[{qubits[1]}];"
     if gate == "CPHASE":
         return f"cu1({params['theta']}) q[{qubits[0]}],q[{qubits[1]}];"
     raise ValueError(f"Unsupported OpenQASM gate: {gate}")
 
 
 def _operation_to_qasm3(gate: str, qubits: tuple[int, ...], params: dict[str, Any]) -> str:
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
+    if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
         return f"{gate.lower()} q[{qubits[0]}];"
+    if gate in {"P", "PHASE"}:
+        return f"p({params['theta']}) q[{qubits[0]}];"
     if gate in {"RX", "RY", "RZ"}:
         return f"{gate.lower()}({params['theta']}) q[{qubits[0]}];"
+    if gate == "U":
+        return f"u({params['theta']}, {params['phi']}, {params['lambda']}) q[{qubits[0]}];"
     if gate == "CNOT":
         return f"cx q[{qubits[0]}], q[{qubits[1]}];"
     if gate == "CZ":
         return f"cz q[{qubits[0]}], q[{qubits[1]}];"
     if gate == "SWAP":
         return f"swap q[{qubits[0]}], q[{qubits[1]}];"
+    if gate == "CCX":
+        return f"ccx q[{qubits[0]}], q[{qubits[1]}], q[{qubits[2]}];"
+    if gate in {"CRX", "CRY", "CRZ"}:
+        return f"{gate.lower()}({params['theta']}) q[{qubits[0]}], q[{qubits[1]}];"
     if gate == "CPHASE":
         return f"cp({params['theta']}) q[{qubits[0]}], q[{qubits[1]}];"
     raise ValueError(f"Unsupported OpenQASM gate: {gate}")

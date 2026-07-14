@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import cmath
 import random
 import time
 from collections import Counter
@@ -89,10 +90,17 @@ def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> 
     q = operation.qubits
     params = operation.params
 
-    if gate in {"H", "X", "Y", "Z", "S", "T", "RX", "RY", "RZ"}:
+    if gate in {"H", "X", "Y", "Z", "S", "T", "SX", "P", "PHASE", "RX", "RY", "RZ", "U"}:
         return _single_qubit_operator(n_qubits, q[0], _single_qubit_gate(gate, params)) @ state
     if gate == "CNOT":
         return _controlled_permutation(state, n_qubits, q[0], q[1], target_gate="X")
+    if gate == "CCX":
+        return _toffoli(state, n_qubits, q[0], q[1], q[2])
+    if gate in {"CRX", "CRY", "CRZ"}:
+        target_gate = gate[1:]
+        return _controlled_single_qubit(
+            state, n_qubits, q[0], q[1], _single_qubit_gate(target_gate, params)
+        )
     if gate == "CZ":
         return _controlled_phase(state, n_qubits, q[0], q[1], phase=-1.0)
     if gate == "SWAP":
@@ -116,6 +124,24 @@ def _single_qubit_gate(gate: str, params: dict[str, Any]) -> Any:
         return np.array([[1, 0], [0, 1j]], dtype=complex)
     if gate == "T":
         return np.array([[1, 0], [0, np.exp(1j * math.pi / 4)]], dtype=complex)
+    if gate == "SX":
+        return 0.5 * np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=complex)
+    if gate in {"P", "PHASE"}:
+        return np.array([[1, 0], [0, np.exp(1j * params["theta"])]], dtype=complex)
+    if gate == "U":
+        theta = params["theta"]
+        phi = params["phi"]
+        lam = params["lambda"]
+        return np.array(
+            [
+                [math.cos(theta / 2), -cmath.exp(1j * lam) * math.sin(theta / 2)],
+                [
+                    cmath.exp(1j * phi) * math.sin(theta / 2),
+                    cmath.exp(1j * (phi + lam)) * math.cos(theta / 2),
+                ],
+            ],
+            dtype=complex,
+        )
     if gate == "RX":
         theta = params["theta"]
         return np.array(
@@ -159,6 +185,35 @@ def _controlled_permutation(
     for index, amplitude in enumerate(state):
         bits = list(format(index, f"0{n_qubits}b"))
         if bits[control] == "1":
+            bits[target] = "0" if bits[target] == "1" else "1"
+        output[int("".join(bits), 2)] += amplitude
+    return output
+
+
+def _controlled_single_qubit(
+    state: Any, n_qubits: int, control: int, target: int, gate: Any
+) -> Any:
+    output = state.copy()
+    affected_indexes = []
+    for index in range(len(state)):
+        bits = list(format(index, f"0{n_qubits}b"))
+        if bits[control] == "1" and bits[target] == "0":
+            bits[target] = "1"
+            affected_indexes.append((index, int("".join(bits), 2)))
+    for zero_index, one_index in affected_indexes:
+        zero_amp = state[zero_index]
+        one_amp = state[one_index]
+        output[zero_index] = gate[0, 0] * zero_amp + gate[0, 1] * one_amp
+        output[one_index] = gate[1, 0] * zero_amp + gate[1, 1] * one_amp
+    return output
+
+
+def _toffoli(state: Any, n_qubits: int, left_control: int, right_control: int, target: int) -> Any:
+    np = _numpy()
+    output = np.zeros_like(state)
+    for index, amplitude in enumerate(state):
+        bits = list(format(index, f"0{n_qubits}b"))
+        if bits[left_control] == "1" and bits[right_control] == "1":
             bits[target] = "0" if bits[target] == "1" else "1"
         output[int("".join(bits), 2)] += amplitude
     return output

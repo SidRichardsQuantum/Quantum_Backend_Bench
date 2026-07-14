@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.2.11] - 2026-07-14
+
+### Added
+
+- Promoted the Braket `circuit.expectation(...)` Pauli result-type fixture into the accepted workflow translation corpus with canonical reimport verification.
+- Extended the neutral `internal-circuit` model with named quantum/classical register metadata, measurement keys, bit-order labels, global phase metadata, and optional neutral local noise-channel annotations.
+- Added richer neutral circuit gate coverage for `SX`, phase/`P`, `U`, `CCX`, and controlled rotations (`CRX`, `CRY`, `CRZ`) across supported static import, emit, and exact-verification paths.
+- Added neutral local noise-channel emission for SDK targets where local channel syntax is available, while keeping provider-calibrated noise semantics outside the model.
+
+### Changed
+
+- Updated translation semantic contracts, `translation-audit` capability rows, JSON schemas, schema examples, and migration/round-trip expected artifacts to describe the expanded neutral circuit contract.
+- Updated circuit translation and roadmap documentation to distinguish implemented neutral local noise annotations from provider-specific calibrated noise behavior.
+- Clarified project scope across README, usage, compatibility, limitations, roadmap, and release policy docs, including core/peripheral workflows, discovery-only SDKs, hardware-preparation exports, benchmark expansion guardrails, and CLI command groups.
+
 ## [0.2.10] - 2026-07-10
 
 ### Added

@@ -22,10 +22,10 @@ runtime expectations for the current package line.
 | Qiskit Aer | `qiskit` | Execution backend | No | Python package only | Optional backend smoke | `qiskit>=1,<3`, `qiskit-aer>=0.15,<1` |
 | QuTiP | `qutip` | Execution backend | No | Python package only | Optional backend smoke | `qutip>=5,<6` |
 | pytket | `tket` | Structural analysis and drawing | No | Python package only | Main CI install | `pytket>=1.30,<3` |
-| CUDA-Q | `cudaq` | Execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke | `cudaq>=0.8,<1` |
-| pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available | `pyquil>=4,<5` |
-| qBraid | `qbraid` | Discovery only | Not used for execution | Python package only | Dependency metadata only | `qbraid>=0.9,<1` |
-| Q# / QDK | `qsharp` | Discovery only | Not used for execution | Python package only | Dependency metadata only | `qsharp>=1,<2` |
+| CUDA-Q | `cudaq` | Optional execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke; outside default onboarding | `cudaq>=0.8,<1` |
+| pyQuil QVM | `pyquil` | Optional execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available; outside default onboarding | `pyquil>=4,<5` |
+| qBraid | `qbraid` | Discovery only | Not used for execution, translation, or verification | Python package only | Dependency metadata only | `qbraid>=0.9,<1` |
+| Q# / QDK | `qsharp` | Discovery only | Not used for execution, translation, or verification | Python package only | Dependency metadata only | `qsharp>=1,<2` |
 | Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Static notebook checks plus quickstart execution smoke in main CI | CI constraints for notebook extras |
 | Documentation tooling | `docs` | Pages build and link validation | No | Python packages only | Main CI docs validation | CI constraints for docs extras |
 
@@ -37,14 +37,12 @@ runtime expectations for the current package line.
   stack. This intentionally excludes CUDA-Q and pyQuil because they are heavier or
   depend on external local runtime support.
 - Use `quantum-backend-bench[full]` only when explicitly testing every optional
-  Python SDK extra.
+  Python SDK extra. Discovery-only extras such as `qbraid` and `qsharp` do not
+  become execution backends, translation targets, or verification engines.
 
 ## Backend Scope
 
-The default project scope is local simulator benchmarking. SDKs that require cloud
-accounts, billing, remote queues, or private provider services should not be part of
-the default onboarding path. They may be considered later as clearly optional
-provider adapters if the local, free workflow remains the primary experience.
+The default project scope is local SDK comparison, translation, and verification on free local simulator workflows. SDKs that require cloud accounts, billing, remote queues, or private provider services should not be part of the default onboarding path. Discovery-only SDKs remain informational, and heavyweight or external-runtime-backed SDKs stay optional unless they can support the same neutral contract without weakening the local-first workflow.
 
 ## CI Dependency Constraints
 

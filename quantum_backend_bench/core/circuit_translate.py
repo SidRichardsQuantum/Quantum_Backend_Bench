@@ -11,6 +11,7 @@ from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
     CircuitOperation,
     InternalCircuit,
+    NoiseInstruction,
 )
 from quantum_backend_bench.core.circuit_export import import_openqasm_circuit
 from quantum_backend_bench.core.exact import exact_probabilities
@@ -106,17 +107,22 @@ def translation_semantic_contract(
                 "preserved": [
                     "supported gate sequence",
                     "integer-wire operation targets",
+                    "named quantum/classical register offsets where imported",
+                    "measurement keys and declared bit ordering where available",
+                    "global phase metadata",
                     "static numeric rotation parameters",
                     "static computational-basis measurements",
+                    "neutral local noise-channel annotations",
                 ],
                 "rewritten": [
                     "SDK syntax and imports",
-                    "register and wire display names normalized to neutral integer wires",
+                    "register names mapped to neutral integer-wire offsets",
                     "measurement bitstrings normalized for verification",
+                    "neutral noise channels mapped to supported local SDK noise syntax",
                 ],
                 "rejected": [
                     "dynamic Python circuit construction",
-                    "custom or opaque gates",
+                    "custom or opaque gates outside the supported neutral gate set",
                     "classical control",
                     "provider/runtime calls",
                     "transpiler settings",
@@ -125,7 +131,7 @@ def translation_semantic_contract(
                 "not_modeled": [
                     "hardware/provider execution semantics",
                     "full Python program behavior",
-                    "noise models",
+                    "provider-specific noise calibration semantics",
                     "pulse-level controls",
                 ],
                 "verification": ["exact probabilities", "sampled distributions"],
@@ -235,11 +241,16 @@ def circuit_migration_audit(
         "preserved": [
             "supported gates and operation order",
             "static measurement targets",
-            "numeric rotation parameters",
+            "numeric rotation and phase parameters",
+            "named register offset metadata",
+            "measurement-key and bit-order metadata",
+            "global phase metadata",
+            "neutral noise-channel annotations",
         ],
         "rewritten": [
             "SDK imports and construction syntax",
             "wire/register names into neutral integer-wire semantics",
+            "neutral noise channels into SDK-local noise syntax when emitted",
         ],
         "rejected_if_present": [
             "dynamic Python control flow",
@@ -249,7 +260,11 @@ def circuit_migration_audit(
             "transpiler settings",
             "arbitrary result processing",
         ],
-        "not_modeled": ["cloud execution behavior", "noise models", "full Python program state"],
+        "not_modeled": [
+            "cloud execution behavior",
+            "provider-calibrated noise semantics",
+            "full Python program state",
+        ],
         "verification_recommendation": "Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows.",
     }
 
@@ -555,7 +570,7 @@ def _import_internal_json(source: str, *, name: str) -> BenchmarkSpec:
     payload = json.loads(source)
     operations = [
         CircuitOperation(
-            str(item["gate"]),
+            str(item["gate"]).upper(),
             tuple(int(qubit) for qubit in item["qubits"]),
             dict(item.get("params", {})),
         )
@@ -563,13 +578,40 @@ def _import_internal_json(source: str, *, name: str) -> BenchmarkSpec:
     ]
     n_qubits = int(payload["n_qubits"])
     measurements = [int(qubit) for qubit in payload.get("measurements", [])]
+    noise = [
+        NoiseInstruction(
+            str(item["channel"]).lower(),
+            tuple(int(target) for target in item.get("targets", range(n_qubits))),
+            float(item.get("probability", item.get("p", 0.0))),
+        )
+        for item in payload.get("noise", [])
+    ]
+    circuit = InternalCircuit(
+        n_qubits,
+        operations,
+        measurements or list(range(n_qubits)),
+        quantum_registers=_register_payload(payload.get("quantum_registers")),
+        classical_registers=_register_payload(payload.get("classical_registers")),
+        measurement_keys={
+            str(key): str(value) for key, value in payload.get("measurement_keys", {}).items()
+        },
+        bit_order=str(payload.get("bit_order", "measurement-list")),
+        global_phase=float(payload.get("global_phase", 0.0)),
+        noise=noise,
+    )
     return BenchmarkSpec(
         name=name,
         n_qubits=n_qubits,
         parameters={"source": "internal-json"},
-        circuit_data=InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits))),
+        circuit_data=circuit,
         metadata={"family": "imported", "format": "internal-json"},
     )
+
+
+def _register_payload(payload: object) -> dict[str, list[int]]:
+    if not isinstance(payload, dict):
+        return {}
+    return {str(key): [int(item) for item in value] for key, value in payload.items()}
 
 
 def _import_python_sdk(source: str, sdk: str, *, name: str) -> BenchmarkSpec:
@@ -704,24 +746,47 @@ def _is_provider_or_runtime_call(call_name: str) -> bool:
 
 
 def _parse_qiskit_ast(tree: ast.AST) -> InternalCircuit:
-    register_vars: dict[str, int] = {}
+    register_sizes: dict[str, int] = {}
+    classical_register_sizes: dict[str, int] = {}
+    register_offsets: dict[str, tuple[int, int]] = {}
+    classical_offsets: dict[str, tuple[int, int]] = {}
     circuit_vars: dict[str, int] = {}
     operations: list[CircuitOperation] = []
     measurements: list[int] = []
+    measurement_keys: dict[str, str] = {}
+    global_phase = 0.0
 
     for node, constants in _iter_static_statements(tree):
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
             call_name = _call_name(node.value.func)
-            if call_name in {"QuantumRegister", "ClassicalRegister"} and node.value.args:
+            if call_name == "QuantumRegister" and node.value.args:
                 size = _int_expr(node.value.args[0], constants)
                 for target in node.targets:
                     if isinstance(target, ast.Name):
-                        register_vars[target.id] = size
+                        register_sizes[target.id] = size
+            if call_name == "ClassicalRegister" and node.value.args:
+                size = _int_expr(node.value.args[0], constants)
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        classical_register_sizes[target.id] = size
             if call_name == "QuantumCircuit" and node.value.args:
-                n_qubits = _qiskit_circuit_size(node.value.args[0], constants, register_vars)
+                n_qubits, register_offsets, classical_offsets = _qiskit_circuit_layout(
+                    node.value, constants, register_sizes, classical_register_sizes
+                )
+                for keyword in node.value.keywords:
+                    if keyword.arg == "global_phase":
+                        global_phase = _number_expr(keyword.value, constants)
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         circuit_vars[target.id] = n_qubits
+        if isinstance(node, ast.Assign) and isinstance(
+            node.value, ast.Constant | ast.Name | ast.BinOp | ast.UnaryOp | ast.Attribute
+        ):
+            for target in node.targets:
+                if isinstance(target, ast.Attribute) and target.attr == "global_phase":
+                    var_name = _name(target.value)
+                    if var_name in circuit_vars:
+                        global_phase = _number_expr(node.value, constants)
         if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
             continue
         call = node.value
@@ -733,12 +798,18 @@ def _parse_qiskit_ast(tree: ast.AST) -> InternalCircuit:
         method = call.func.attr
         if method == "measure_all":
             measurements = list(range(circuit_vars[var_name]))
+            measurement_keys = {str(qubit): f"c[{qubit}]" for qubit in measurements}
             continue
         if method == "measure":
             if call.args:
-                measurements.append(_qiskit_index_expr(call.args[0], constants, register_vars))
+                qubit = _qiskit_index_expr(call.args[0], constants, register_offsets)
+                measurements.append(qubit)
+                if len(call.args) >= 2:
+                    measurement_keys[str(qubit)] = _qiskit_classical_key(
+                        call.args[1], constants, classical_offsets
+                    )
             continue
-        operation = _qiskit_operation(method, call, constants, register_vars)
+        operation = _qiskit_operation(method, call, constants, register_offsets)
         if operation is not None:
             operations.append(operation)
 
@@ -747,50 +818,124 @@ def _parse_qiskit_ast(tree: ast.AST) -> InternalCircuit:
             "qiskit.no_circuit", "No supported Qiskit QuantumCircuit construction found."
         )
     n_qubits = next(iter(circuit_vars.values()))
-    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)))
+    return InternalCircuit(
+        n_qubits,
+        operations,
+        measurements or list(range(n_qubits)),
+        quantum_registers={
+            name: list(range(offset, offset + size))
+            for name, (offset, size) in register_offsets.items()
+        },
+        classical_registers={
+            name: list(range(offset, offset + size))
+            for name, (offset, size) in classical_offsets.items()
+        },
+        measurement_keys=measurement_keys,
+        bit_order="qiskit-classical",
+        global_phase=global_phase,
+    )
 
 
-def _qiskit_circuit_size(
-    node: ast.AST, constants: dict[str, object], register_vars: dict[str, int]
-) -> int:
-    if isinstance(node, ast.Name) and node.id in register_vars:
-        return register_vars[node.id]
-    return _int_expr(node, constants)
+def _qiskit_circuit_layout(
+    call: ast.Call,
+    constants: dict[str, object],
+    register_sizes: dict[str, int],
+    classical_register_sizes: dict[str, int],
+) -> tuple[int, dict[str, tuple[int, int]], dict[str, tuple[int, int]]]:
+    quantum_offsets: dict[str, tuple[int, int]] = {}
+    classical_offsets: dict[str, tuple[int, int]] = {}
+    next_quantum = 0
+    next_classical = 0
+    direct_qubit_count: int | None = None
+    for arg in call.args:
+        if isinstance(arg, ast.Name) and arg.id in register_sizes:
+            size = register_sizes[arg.id]
+            quantum_offsets[arg.id] = (next_quantum, size)
+            next_quantum += size
+        elif isinstance(arg, ast.Name) and arg.id in classical_register_sizes:
+            size = classical_register_sizes[arg.id]
+            classical_offsets[arg.id] = (next_classical, size)
+            next_classical += size
+        elif direct_qubit_count is None:
+            direct_qubit_count = _int_expr(arg, constants)
+            next_quantum = max(next_quantum, direct_qubit_count)
+        else:
+            try:
+                classical_size = _int_expr(arg, constants)
+            except TranslationError:
+                continue
+            classical_offsets.setdefault("c", (next_classical, classical_size))
+            next_classical += classical_size
+    if direct_qubit_count is not None and not quantum_offsets:
+        quantum_offsets["q"] = (0, direct_qubit_count)
+    return next_quantum, quantum_offsets, classical_offsets
 
 
 def _qiskit_operation(
     method: str,
     call: ast.Call,
     constants: dict[str, object],
-    register_vars: dict[str, int],
+    register_offsets: dict[str, tuple[int, int]],
 ) -> CircuitOperation | None:
-    one_qubit = {"h": "H", "x": "X", "y": "Y", "z": "Z", "s": "S", "t": "T"}
+    one_qubit = {"h": "H", "x": "X", "y": "Y", "z": "Z", "s": "S", "t": "T", "sx": "SX"}
+    phase_gates = {"p": "P", "phase": "P"}
     rotations = {"rx": "RX", "ry": "RY", "rz": "RZ"}
     two_qubit = {"cx": "CNOT", "cnot": "CNOT", "cz": "CZ", "swap": "SWAP"}
+    controlled_rotations = {"crx": "CRX", "cry": "CRY", "crz": "CRZ"}
     if method in one_qubit and len(call.args) >= 1:
         return CircuitOperation(
-            one_qubit[method], (_qiskit_index_expr(call.args[0], constants, register_vars),)
+            one_qubit[method], (_qiskit_index_expr(call.args[0], constants, register_offsets),)
+        )
+    if method in phase_gates and len(call.args) >= 2:
+        return CircuitOperation(
+            phase_gates[method],
+            (_qiskit_index_expr(call.args[1], constants, register_offsets),),
+            {"theta": _number_expr(call.args[0], constants)},
         )
     if method in rotations and len(call.args) >= 2:
         return CircuitOperation(
             rotations[method],
-            (_qiskit_index_expr(call.args[1], constants, register_vars),),
+            (_qiskit_index_expr(call.args[1], constants, register_offsets),),
             {"theta": _number_expr(call.args[0], constants)},
+        )
+    if method == "u" and len(call.args) >= 4:
+        return CircuitOperation(
+            "U",
+            (_qiskit_index_expr(call.args[3], constants, register_offsets),),
+            {
+                "theta": _number_expr(call.args[0], constants),
+                "phi": _number_expr(call.args[1], constants),
+                "lambda": _number_expr(call.args[2], constants),
+            },
         )
     if method in two_qubit and len(call.args) >= 2:
         return CircuitOperation(
             two_qubit[method],
             (
-                _qiskit_index_expr(call.args[0], constants, register_vars),
-                _qiskit_index_expr(call.args[1], constants, register_vars),
+                _qiskit_index_expr(call.args[0], constants, register_offsets),
+                _qiskit_index_expr(call.args[1], constants, register_offsets),
             ),
+        )
+    if method == "ccx" and len(call.args) >= 3:
+        return CircuitOperation(
+            "CCX",
+            tuple(_qiskit_index_expr(arg, constants, register_offsets) for arg in call.args[:3]),
+        )
+    if method in controlled_rotations and len(call.args) >= 3:
+        return CircuitOperation(
+            controlled_rotations[method],
+            (
+                _qiskit_index_expr(call.args[1], constants, register_offsets),
+                _qiskit_index_expr(call.args[2], constants, register_offsets),
+            ),
+            {"theta": _number_expr(call.args[0], constants)},
         )
     if method == "cp" and len(call.args) >= 3:
         return CircuitOperation(
             "CPHASE",
             (
-                _qiskit_index_expr(call.args[1], constants, register_vars),
-                _qiskit_index_expr(call.args[2], constants, register_vars),
+                _qiskit_index_expr(call.args[1], constants, register_offsets),
+                _qiskit_index_expr(call.args[2], constants, register_offsets),
             ),
             {"theta": _number_expr(call.args[0], constants)},
         )
@@ -798,15 +943,29 @@ def _qiskit_operation(
 
 
 def _qiskit_index_expr(
-    node: ast.AST, constants: dict[str, object], register_vars: dict[str, int]
+    node: ast.AST, constants: dict[str, object], register_offsets: dict[str, tuple[int, int]]
 ) -> int:
     if (
         isinstance(node, ast.Subscript)
         and isinstance(node.value, ast.Name)
-        and node.value.id in register_vars
+        and node.value.id in register_offsets
     ):
-        return _int_expr(node.slice, constants)
+        offset, _ = register_offsets[node.value.id]
+        return offset + _int_expr(node.slice, constants)
     return _int_expr(node, constants)
+
+
+def _qiskit_classical_key(
+    node: ast.AST, constants: dict[str, object], classical_offsets: dict[str, tuple[int, int]]
+) -> str:
+    if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+        index = _int_expr(node.slice, constants)
+        register_name = node.value.id
+        if register_name in classical_offsets:
+            offset, _ = classical_offsets[register_name]
+            return f"{register_name}[{offset + index}]"
+        return f"{register_name}[{index}]"
+    return f"c[{_int_expr(node, constants)}]"
 
 
 def _parse_cirq_ast(tree: ast.AST) -> InternalCircuit:
@@ -912,6 +1071,15 @@ def _cirq_operation(
                 _cirq_qubit_index(call.args[1], qubit_ranges, qubit_vars, constants),
             ),
         )
+    if gate_name == "TOFFOLI" and len(call.args) >= 3:
+        return CircuitOperation(
+            "CCX",
+            (
+                _cirq_qubit_index(call.args[0], qubit_ranges, qubit_vars, constants),
+                _cirq_qubit_index(call.args[1], qubit_ranges, qubit_vars, constants),
+                _cirq_qubit_index(call.args[2], qubit_ranges, qubit_vars, constants),
+            ),
+        )
     return None
 
 
@@ -924,6 +1092,45 @@ def _cirq_rotation_operation(
 ) -> CircuitOperation | None:
     gate_name = _call_name(gate_call.func).rsplit(".", 1)[-1]
     rotations = {"rx": "RX", "ry": "RY", "rz": "RZ"}
+    if gate_name in {"XPowGate", "ZPowGate"} and op_call.args:
+        exponent = _keyword(gate_call, "exponent")
+        if exponent is None:
+            return None
+        target = _cirq_qubit_index(op_call.args[0], qubit_ranges, qubit_vars, constants)
+        if gate_name == "XPowGate":
+            if abs(_number_expr(exponent, constants) - 0.5) <= 1e-12:
+                return CircuitOperation("SX", (target,))
+            return None
+        return CircuitOperation(
+            "P",
+            (target,),
+            {"theta": _number_expr(exponent, constants) * 3.141592653589793},
+        )
+    if gate_name == "CZPowGate" and len(op_call.args) >= 2:
+        exponent = _keyword(gate_call, "exponent")
+        if exponent is None:
+            return None
+        return CircuitOperation(
+            "CPHASE",
+            (
+                _cirq_qubit_index(op_call.args[0], qubit_ranges, qubit_vars, constants),
+                _cirq_qubit_index(op_call.args[1], qubit_ranges, qubit_vars, constants),
+            ),
+            {"theta": _number_expr(exponent, constants) * 3.141592653589793},
+        )
+    if gate_name == "ControlledGate" and gate_call.args and len(op_call.args) >= 2:
+        inner = gate_call.args[0]
+        if isinstance(inner, ast.Call):
+            inner_name = _call_name(inner.func).rsplit(".", 1)[-1]
+            if inner_name in rotations and inner.args:
+                return CircuitOperation(
+                    "C" + rotations[inner_name],
+                    (
+                        _cirq_qubit_index(op_call.args[0], qubit_ranges, qubit_vars, constants),
+                        _cirq_qubit_index(op_call.args[1], qubit_ranges, qubit_vars, constants),
+                    ),
+                    {"theta": _number_expr(inner.args[0], constants)},
+                )
     if gate_name not in rotations or not gate_call.args or not op_call.args:
         return None
     return CircuitOperation(
@@ -977,8 +1184,9 @@ def _pennylane_operation(call: ast.Call, constants: dict[str, object]) -> Circui
         "PauliZ": "Z",
         "S": "S",
         "T": "T",
+        "SX": "SX",
     }
-    rotations = {"RX": "RX", "RY": "RY", "RZ": "RZ"}
+    rotations = {"RX": "RX", "RY": "RY", "RZ": "RZ", "PhaseShift": "P"}
     two_qubit = {"CNOT": "CNOT", "CZ": "CZ", "SWAP": "SWAP"}
     wires_node = _pennylane_wires_node(call, gate_name, one_qubit, rotations, two_qubit)
     if wires_node is None:
@@ -990,8 +1198,24 @@ def _pennylane_operation(call: ast.Call, constants: dict[str, object]) -> Circui
         return CircuitOperation(
             rotations[gate_name], (wires[0],), {"theta": _number_expr(call.args[0], constants)}
         )
+    if gate_name == "U3" and len(call.args) >= 3 and len(wires) >= 1:
+        return CircuitOperation(
+            "U",
+            (wires[0],),
+            {
+                "theta": _number_expr(call.args[0], constants),
+                "phi": _number_expr(call.args[1], constants),
+                "lambda": _number_expr(call.args[2], constants),
+            },
+        )
     if gate_name in two_qubit and len(wires) >= 2:
         return CircuitOperation(two_qubit[gate_name], (wires[0], wires[1]))
+    if gate_name == "Toffoli" and len(wires) >= 3:
+        return CircuitOperation("CCX", (wires[0], wires[1], wires[2]))
+    if gate_name in {"CRX", "CRY", "CRZ"} and call.args and len(wires) >= 2:
+        return CircuitOperation(
+            gate_name, (wires[0], wires[1]), {"theta": _number_expr(call.args[0], constants)}
+        )
     if gate_name == "ControlledPhaseShift" and call.args and len(wires) >= 2:
         return CircuitOperation(
             "CPHASE",
@@ -1017,6 +1241,10 @@ def _pennylane_wires_node(
         return call.args[1]
     if gate_name in two_qubit and call.args:
         return call.args[0]
+    if gate_name in {"Toffoli", "CRX", "CRY", "CRZ"} and call.args:
+        return call.args[-1]
+    if gate_name == "U3" and len(call.args) >= 4:
+        return call.args[3]
     if gate_name == "ControlledPhaseShift" and len(call.args) >= 2:
         return call.args[1]
     return None
@@ -1059,8 +1287,8 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
 def _braket_operation(
     method: str, call: ast.Call, constants: dict[str, object]
 ) -> CircuitOperation | None:
-    one_qubit = {"h": "H", "x": "X", "y": "Y", "z": "Z", "s": "S", "t": "T"}
-    rotations = {"rx": "RX", "ry": "RY", "rz": "RZ"}
+    one_qubit = {"h": "H", "x": "X", "y": "Y", "z": "Z", "s": "S", "t": "T", "v": "SX"}
+    rotations = {"rx": "RX", "ry": "RY", "rz": "RZ", "phaseshift": "P"}
     two_qubit = {"cnot": "CNOT", "cz": "CZ", "swap": "SWAP"}
     if method in one_qubit and len(call.args) >= 1:
         return CircuitOperation(one_qubit[method], (_int_expr(call.args[0], constants),))
@@ -1073,10 +1301,38 @@ def _braket_operation(
             (_int_expr(call.args[0], constants),),
             {"theta": _number_expr(angle, constants)},
         )
+    if method == "u" and len(call.args) >= 4:
+        return CircuitOperation(
+            "U",
+            (_int_expr(call.args[0], constants),),
+            {
+                "theta": _number_expr(call.args[1], constants),
+                "phi": _number_expr(call.args[2], constants),
+                "lambda": _number_expr(call.args[3], constants),
+            },
+        )
     if method in two_qubit and len(call.args) >= 2:
         return CircuitOperation(
             two_qubit[method],
             (_int_expr(call.args[0], constants), _int_expr(call.args[1], constants)),
+        )
+    if method == "ccnot" and len(call.args) >= 3:
+        return CircuitOperation(
+            "CCX",
+            (
+                _int_expr(call.args[0], constants),
+                _int_expr(call.args[1], constants),
+                _int_expr(call.args[2], constants),
+            ),
+        )
+    if method in {"crx", "cry", "crz"} and len(call.args) >= 2:
+        angle = _keyword(call, "angle") or (call.args[2] if len(call.args) >= 3 else None)
+        if angle is None:
+            return None
+        return CircuitOperation(
+            method.upper(),
+            (_int_expr(call.args[0], constants), _int_expr(call.args[1], constants)),
+            {"theta": _number_expr(angle, constants)},
         )
     if method == "cphaseshift" and len(call.args) >= 2:
         angle = _keyword(call, "angle") or (call.args[2] if len(call.args) >= 3 else None)
@@ -1155,7 +1411,7 @@ def _literal_constant(node: ast.AST, constants: dict[str, object]) -> object | N
 
 
 def _emit_internal_json(circuit: InternalCircuit) -> str:
-    payload = {
+    payload: dict[str, object] = {
         "schema_version": NEUTRAL_SCHEMA_VERSION,
         "n_qubits": circuit.n_qubits,
         "operations": [
@@ -1163,6 +1419,19 @@ def _emit_internal_json(circuit: InternalCircuit) -> str:
             for op in circuit.operations
         ],
         "measurements": circuit.measurements,
+        "quantum_registers": circuit.quantum_registers,
+        "classical_registers": circuit.classical_registers,
+        "measurement_keys": circuit.measurement_keys,
+        "bit_order": circuit.bit_order,
+        "global_phase": circuit.global_phase,
+        "noise": [
+            {
+                "channel": item.channel,
+                "targets": list(item.targets),
+                "probability": item.probability,
+            }
+            for item in circuit.noise
+        ],
     }
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
