@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.2.10] - 2026-07-10
+
+### Added
+
+- Added circuit translation SDK adapter modules for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator with explicit import, emit, capability, and diagnostic hooks.
+- Added `scripts/check_translation_artifacts.py` to regenerate migration-audit and roundtrip-audit expected artifacts in a temporary copy and fail when committed examples drift.
+- CI now runs the translation audit artifact drift checker alongside the existing translation corpus and golden-output checks.
+- Promoted the PennyLane QNode Pauli-expectation workflow fixture into the accepted executable translation corpus.
+- Added workflow support for arithmetic parameter expressions over declared parameters, such as `theta / 2`.
+- Added tested optional-SDK version-band metadata to the compatibility report.
+
+### Changed
+
+- Circuit translation import dispatch and SDK source emitters now route through the SDK adapter registry while preserving the existing neutral translation behavior.
+- `translation-audit` capability rows now expose circuit adapter import, emit, and diagnostic hook metadata for each free local SDK target.
+
 ## [0.2.9] - 2026-07-10
 
 ### Added

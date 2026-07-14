@@ -17,35 +17,37 @@ Recently completed:
 - `translate-check --to-format`, `translate-check --save-markdown`, and
   `translate-all` now provide target-aware migration checks and
   multi-target local SDK artifacts.
+- Translation commands now report an explicit semantic contract for the
+  declared neutral subset, including preserved semantics, rewrites, rejected
+  constructs, unmodeled behavior, and verification modes.
+- Neutral schemas for `internal-circuit`, `pauli-json`, `workflow-json`, and
+  `result-json` now include `schema_version` metadata, JSON Schema files, and
+  committed examples.
+- Circuit translation now routes SDK import and emit behavior through adapter
+  modules with explicit import, emit, capability, and diagnostic hooks.
+- Workflow translation now supports arithmetic parameter expressions over
+  declared parameters and an accepted PennyLane QNode Pauli-expectation fixture.
+- `quantum-bench compatibility` now reports tested optional-SDK version bands
+  derived from CI constraints.
+- CI now checks that `migration_audit/` and `roundtrip_audit/` expected
+  artifacts regenerate cleanly.
 
 Planned work:
 
-- Make the translation promise explicit in CLI and documentation: lossless only
-  within the declared neutral semantic subset, with every command reporting the
-  supported contract before producing translated output.
-- Version the neutral schemas for `internal-circuit`, `pauli-json`,
-  `workflow-json`, and `result-json`, including explicit `schema_version`
-  fields and documented compatibility expectations.
-- Publish JSON Schema files and examples for the neutral circuit, Pauli
-  Hamiltonian, workflow, and result-object formats.
 - Expand the neutral IR before adding non-local provider integrations. Priority
   fields include named quantum/classical registers, measurement keys, bit
   ordering, global phase, symbolic parameter expressions, richer gate coverage
   (`U`, `SX`, phase gates, `CCX`, controlled rotations), reset/barrier/delay
   annotations where preservable, and optional neutral noise channels.
-- Generate a translation coverage matrix that reports supported gates,
-  parameter forms, measurements, Hamiltonian terms, result shapes, workflow
-  features, diagnostics, and verification modes per SDK target.
 - Keep translation conservative: reject unsupported dynamic Python constructs
   with structured diagnostics instead of producing approximate rewrites.
-- Extend supported semantics carefully, starting with parameter expressions,
-  controlled rotations, richer register and wire naming, a broader OpenQASM 3
-  subset, and neutral noise-model descriptions.
+- Extend supported semantics carefully, continuing with controlled rotations,
+  richer register and wire naming, a broader OpenQASM 3 subset, and neutral
+  noise-model descriptions.
 - Improve SDK-native source importers while keeping static analysis as the
   default guardrail: broader Qiskit `QuantumCircuit`/OpenQASM handling, Cirq
-  construction styles and measurement keys, PennyLane QNode/tape patterns,
-  PennyLane `qml.expval(...)`, Braket `Circuit` result types, and Braket
-  `circuit.expectation(...)`.
+  construction styles and measurement keys, broader PennyLane QNode/tape
+  patterns, Braket `Circuit` result types, and Braket `circuit.expectation(...)`.
 - Strengthen semantic verification with canonical structure checks,
   unitary/statevector comparison up to global phase, measurement-distribution
   TVD, expectation-value comparison, small density-matrix comparison for noisy
@@ -56,19 +58,16 @@ Planned work:
   syntax.
 - Grow the translation corpus with accepted and rejected real-world snippets,
   expected diagnostics, verification reports, and CI-generated per-SDK coverage
-  artifacts. Add explicit regression checks that `migration_audit/` and
-  `roundtrip_audit/` expected artifacts regenerate cleanly and that `roadmap/`
-  examples stay excluded from supported verification until implemented.
-- Refactor translation internals toward SDK adapter modules with explicit
-  import, emit, capability, and diagnostic hooks.
+  artifacts. Keep `roadmap/` examples excluded from supported verification until
+  implemented.
 - Tighten notebook artifact handling for migration-audit notebooks, including
   stable generated artifact names and path scrubbing if notebook outputs are
   later committed as docs assets.
 - Add optional self-describing `purpose` or `notes` fields to generated
   translation reports and committed expected-report examples so artifacts remain
   understandable outside the README context.
-- Tighten optional SDK compatibility with tested version ranges, constraints
-  files, and scheduled optional-SDK CI coverage.
+- Tighten optional SDK compatibility further with scheduled optional-SDK CI
+  coverage and refreshed version-band review cadence.
 
 ## Longer-Term Directions
 

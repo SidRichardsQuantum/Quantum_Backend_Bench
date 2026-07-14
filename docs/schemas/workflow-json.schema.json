@@ -117,6 +117,7 @@
             "type": "string"
           },
           "parameter": {
+            "description": "Numeric value, declared parameter name, or arithmetic expression over declared parameters.",
             "type": [
               "string",
               "number",

@@ -7,6 +7,7 @@ These fixtures exercise the SDK translation surface used by `quantum-bench trans
 ```bash
 python examples/translation/verify_examples.py
 python examples/translation/update_expected.py --check
+python scripts/check_translation_artifacts.py
 ```
 
 Regenerate pinned outputs after intentional code-generation changes:
@@ -44,6 +45,7 @@ python examples/translation/update_expected.py
 | `braket_hamiltonian.py` | observable/Hamiltonian | `braket` | `translate-hamiltonian --to-format pauli-json` | Braket observable-term import coverage. |
 | `parameterized_workflow.json` | workflow | `workflow-json` | `translate-workflow` | Parameterized circuit, bindings, measurements, execution wrapper, result object, and Pauli expectation coverage. |
 | `accepted/pennylane_qnode_probabilities.py` | workflow | `pennylane` | `translate-workflow --to-format qiskit_aer` | PennyLane QNode-style local workflow with probability measurement. |
+| `accepted/pennylane_qnode_observable.py` | workflow | `pennylane` | `translate-workflow --to-format qiskit_aer` | PennyLane QNode-style local workflow with Pauli expectation measurement. |
 | `purpose_workflows/sampler_workflow.json` | workflow | `workflow-json` | `translate-workflow --to-format cirq` | Purpose-level sampler job represented in the current workflow schema. |
 | `purpose_workflows/estimator_workflow.json` | workflow | `workflow-json` | `translate-workflow --to-format qiskit_aer` | Purpose-level Pauli expectation/estimator job. |
 | `purpose_workflows/parameter_sweep_workflow.json` | workflow | `workflow-json` | `translate-workflow --to-format pennylane` | One representative binding point from a parameter sweep. |
@@ -92,7 +94,7 @@ python examples/translation/update_expected.py
 
 ## Roadmap Fixtures
 
-`roadmap/pennylane_qnode_observable.py` and `roadmap/braket_expectation_result_type.py` document useful expectation-value workflow shapes that are not fully covered by static SDK workflow import today. They should move into `accepted/` only when canonical reimport verification supports them.
+`roadmap/braket_expectation_result_type.py` documents a useful Braket expectation-value workflow shape that is not fully covered by static SDK workflow import today. It should move into `accepted/` only when canonical reimport verification supports it.
 
 ## Notes on Redundancy
 

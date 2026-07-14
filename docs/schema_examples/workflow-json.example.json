@@ -48,7 +48,7 @@
     {
       "controls": [],
       "gate": "RX",
-      "parameter": "theta",
+      "parameter": "theta / 2",
       "targets": [
         1
       ]

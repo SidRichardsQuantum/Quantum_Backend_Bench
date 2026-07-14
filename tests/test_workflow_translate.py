@@ -91,6 +91,45 @@ def test_workflow_json_round_trip_keeps_bindings_and_requests() -> None:
     ]
 
 
+def test_workflow_parameter_expressions_round_trip() -> None:
+    source = """{
+      "name": "expression_workflow",
+      "n_qubits": 1,
+      "parameters": ["theta"],
+      "parameter_bindings": {"theta": 1.0},
+      "operations": [{"gate": "RX", "targets": [0], "parameter": "theta / 2"}],
+      "measurements": [{"type": "probabilities", "targets": [0]}],
+      "shots": 64
+    }
+    """
+
+    workflow, _ = import_workflow_source(source)
+    assert workflow.operations[0].parameter == "theta / 2"
+
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
+        result = translate_workflow_source(source, to_format=target)
+        assert "theta / 2" in result.source
+        assert result.verification is not None
+        assert result.verification.passed
+
+
+def test_pennylane_qnode_observable_fixture_imports_as_expectation() -> None:
+    root = __import__("pathlib").Path(__file__).resolve().parents[1] / "examples" / "translation"
+    source = (root / "accepted" / "pennylane_qnode_observable.py").read_text(encoding="utf-8")
+
+    workflow, detected = import_workflow_source(source, from_format="pennylane")
+
+    assert detected == "pennylane"
+    assert workflow.parameter_bindings == {"theta": 0.25}
+    assert [operation.gate for operation in workflow.operations] == ["RX", "CNOT"]
+    assert workflow.measurements[0].kind == "expectation"
+    assert workflow.measurements[0].observable is not None
+
+    result = translate_workflow_source(source, from_format="pennylane", to_format="qiskit_aer")
+    assert result.verification is not None
+    assert result.verification.passed
+
+
 def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     qiskit_result = normalize_result_source(
         json.dumps({"counts": {"0 0": 3, "1 1": 1}, "shots": 4, "backend": "qiskit_aer"}),
@@ -201,6 +240,9 @@ def test_capability_rows_include_requested_workflow_layers() -> None:
         assert row["schema_version"] == "0.1"
         assert "result-json" in row["neutral_formats"]
         assert "structured translation errors" in row["diagnostic_modes"]
+        assert row["circuit_import_hook"]
+        assert row["circuit_emit_hook"]
+        assert row["circuit_diagnostic_hooks"]
 
 
 def test_workflow_expected_outputs_are_stable_and_verifiable() -> None:

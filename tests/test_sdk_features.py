@@ -20,6 +20,11 @@ from quantum_backend_bench.core.circuit_translate import (
     translation_check_report,
     translation_result_report,
 )
+from quantum_backend_bench.core.translation_adapters import (
+    circuit_adapter_capabilities,
+    circuit_adapter_for_input,
+    circuit_adapter_for_output,
+)
 from quantum_backend_bench.core.diagnostics import diagnose_result_parity
 from quantum_backend_bench.core.exact import (
     exact_amplitudes,
@@ -279,6 +284,17 @@ def test_translation_check_report_includes_gate_inventory() -> None:
     assert "cirq" in report["supported_outputs"]
     diagnostic_codes = {item["code"] for item in report["diagnostics"]}
     assert "translation.caveat.pennylane_sampling" in diagnostic_codes
+
+
+def test_circuit_translation_adapters_expose_expected_hooks() -> None:
+    capabilities = {row["sdk"]: row for row in circuit_adapter_capabilities()}
+
+    assert set(capabilities) == {"braket_local", "cirq", "pennylane", "qiskit_aer"}
+    assert circuit_adapter_for_input("qiskit").output_format == "qiskit_aer"
+    assert circuit_adapter_for_output("braket_local").input_format == "braket"
+    assert capabilities["cirq"]["import_hook"] == "static cirq.Circuit AST"
+    assert capabilities["qiskit_aer"]["emit_hook"] == "QuantumCircuit source"
+    assert "diagnostic_hooks" in capabilities["pennylane"]
 
 
 def test_translate_exact_verification_passes() -> None:

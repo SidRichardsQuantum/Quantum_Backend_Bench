@@ -14,20 +14,20 @@ runtime expectations for the current package line.
 
 ## Backend and SDK Compatibility
 
-| Integration | Extra | Role | Account or payment required | Local runtime requirement | CI coverage |
-|---|---|---|---|---|---|
-| Cirq | `cirq` | Execution backend | No | Python package only | Main CI and smoke workflow; auditable with `sdk-parity`, `semantic-audit`, `noise-audit`, `compile-audit`, and `roundtrip-audit` |
-| PennyLane | `pennylane` | Execution backend | No | Python package only | Optional backend smoke |
-| Amazon Braket SDK | `braket` | LocalSimulator execution backend | No for `LocalSimulator` | Python package only | Optional backend smoke |
-| Qiskit Aer | `qiskit` | Execution backend | No | Python package only | Optional backend smoke |
-| QuTiP | `qutip` | Execution backend | No | Python package only | Optional backend smoke |
-| pytket | `tket` | Structural analysis and drawing | No | Python package only | Main CI install |
-| CUDA-Q | `cudaq` | Execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke |
-| pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available |
-| qBraid | `qbraid` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
-| Q# / QDK | `qsharp` | Discovery only | Not used for execution | Python package only | Dependency metadata only |
-| Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Static notebook checks plus quickstart execution smoke in main CI |
-| Documentation tooling | `docs` | Pages build and link validation | No | Python packages only | Main CI docs validation |
+| Integration | Extra | Role | Account or payment required | Local runtime requirement | CI coverage | Tested version band |
+|---|---|---|---|---|---|---|
+| Cirq | `cirq` | Execution backend | No | Python package only | Main CI and smoke workflow; auditable with `sdk-parity`, `semantic-audit`, `noise-audit`, `compile-audit`, and `roundtrip-audit` | `cirq>=1.4,<2` |
+| PennyLane | `pennylane` | Execution backend | No | Python package only | Optional backend smoke | `pennylane>=0.38,<1` |
+| Amazon Braket SDK | `braket` | LocalSimulator execution backend | No for `LocalSimulator` | Python package only | Optional backend smoke | `amazon-braket-sdk>=1.85,<2` |
+| Qiskit Aer | `qiskit` | Execution backend | No | Python package only | Optional backend smoke | `qiskit>=1,<3`, `qiskit-aer>=0.15,<1` |
+| QuTiP | `qutip` | Execution backend | No | Python package only | Optional backend smoke | `qutip>=5,<6` |
+| pytket | `tket` | Structural analysis and drawing | No | Python package only | Main CI install | `pytket>=1.30,<3` |
+| CUDA-Q | `cudaq` | Execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke | `cudaq>=0.8,<1` |
+| pyQuil QVM | `pyquil` | Execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available | `pyquil>=4,<5` |
+| qBraid | `qbraid` | Discovery only | Not used for execution | Python package only | Dependency metadata only | `qbraid>=0.9,<1` |
+| Q# / QDK | `qsharp` | Discovery only | Not used for execution | Python package only | Dependency metadata only | `qsharp>=1,<2` |
+| Notebook helpers | `notebooks` | Tutorial notebooks | No | Python packages only | Static notebook checks plus quickstart execution smoke in main CI | CI constraints for notebook extras |
+| Documentation tooling | `docs` | Pages build and link validation | No | Python packages only | Main CI docs validation | CI constraints for docs extras |
 
 ## Extras Policy
 
@@ -48,7 +48,7 @@ provider adapters if the local, free workflow remains the primary experience.
 
 ## CI Dependency Constraints
 
-Project metadata keeps optional SDK requirements broad for package users. CI installs through `constraints/ci.txt`, which applies reviewed major-version bands to tooling and optional SDK smoke jobs so upstream releases are adopted deliberately.
+Project metadata keeps optional SDK requirements broad for package users. CI installs through `constraints/ci.txt`, and `quantum-bench compatibility` reports those reviewed major-version bands so tooling and optional SDK smoke jobs adopt upstream releases deliberately.
 
 ## Validation Commands
 

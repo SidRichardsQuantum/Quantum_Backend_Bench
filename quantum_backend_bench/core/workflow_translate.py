@@ -489,11 +489,13 @@ def _validate_workflow(
             raise _workflow_error(
                 "workflow.parameter.missing", f"Gate {operation.gate} requires a parameter."
             )
-        if isinstance(operation.parameter, str) and operation.parameter not in known_parameters:
-            raise _workflow_error(
-                "workflow.parameter.unknown",
-                f"Unknown operation parameter '{operation.parameter}'.",
-            )
+        if isinstance(operation.parameter, str):
+            for parameter_name in _parameter_expression_names(operation.parameter):
+                if parameter_name not in known_parameters:
+                    raise _workflow_error(
+                        "workflow.parameter.unknown",
+                        f"Unknown operation parameter '{parameter_name}'.",
+                    )
     for measurement in measurements:
         if measurement.kind not in {"counts", "probabilities", "samples", "expectation"}:
             raise _workflow_error(
@@ -1059,6 +1061,7 @@ def _workflow_from_static_ast(
     circuit_methods: dict[str, str],
     binding_names: tuple[str, ...],
 ) -> ParameterizedWorkflow:
+    _attach_parent_links(tree)
     parameters = _static_parameters(tree, sdk)
     bindings = _static_bindings(tree, binding_names)
     n_qubits = _static_n_qubits(tree, sdk)
@@ -1067,7 +1070,9 @@ def _workflow_from_static_ast(
     measurements: list[MeasurementRequest] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
-            operation = _static_operation(node, sdk, circuit_methods)
+            operation = None
+            if not (sdk == "pennylane" and _has_ancestor(node, ast.Return)):
+                operation = _static_operation(node, sdk, circuit_methods)
             if operation is not None:
                 if operation.gate == "MEASURE":
                     measurements.append(MeasurementRequest("counts", tuple(range(n_qubits))))
@@ -1119,14 +1124,53 @@ def _pennylane_function_parameters(tree: ast.AST) -> list[str]:
 
 
 def _static_bindings(tree: ast.AST, names: tuple[str, ...]) -> dict[str, float]:
+    constants = _static_numeric_assignments(tree)
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign) and any(
             isinstance(target, ast.Name) and target.id in names for target in node.targets
         ):
+            if isinstance(node.value, ast.Dict):
+                return {
+                    str(_literal_or_constant(key, constants)): _numeric_literal_or_constant(
+                        value, constants
+                    )
+                    for key, value in zip(node.value.keys, node.value.values)
+                    if key is not None
+                }
             value = ast.literal_eval(node.value)
             if isinstance(value, dict):
                 return {str(key): float(item) for key, item in value.items()}
     return {}
+
+
+def _static_numeric_assignments(tree: ast.AST) -> dict[str, float]:
+    constants: dict[str, float] = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError):
+                continue
+            if isinstance(value, int | float):
+                constants[node.targets[0].id] = float(value)
+    return constants
+
+
+def _literal_or_constant(node: ast.AST, constants: dict[str, float]) -> object:
+    if isinstance(node, ast.Name) and node.id in constants:
+        return constants[node.id]
+    return ast.literal_eval(node)
+
+
+def _numeric_literal_or_constant(node: ast.AST, constants: dict[str, float]) -> float:
+    value = _literal_or_constant(node, constants)
+    if not isinstance(value, int | float):
+        raise _workflow_error("workflow.binding.value", "Parameter bindings must be numeric.")
+    return float(value)
 
 
 def _static_n_qubits(tree: ast.AST, sdk: str) -> int:
@@ -1283,9 +1327,60 @@ def _static_measurement_request(
         return MeasurementRequest("probabilities", tuple(_keyword_wires(node) or range(n_qubits)))
     if sdk == "pennylane" and "qml.sample" in text:
         return MeasurementRequest("samples", tuple(_keyword_wires(node) or range(n_qubits)))
+    if sdk == "pennylane" and isinstance(node.func, ast.Attribute) and node.func.attr == "expval":
+        if not node.args:
+            raise _workflow_error(
+                "workflow.expval.observable", "qml.expval requires an observable."
+            )
+        observable = _pennylane_expval_observable(node.args[0], n_qubits)
+        return MeasurementRequest("expectation", tuple(range(observable.n_qubits)), observable)
     if sdk == "braket" and isinstance(node.func, ast.Attribute) and node.func.attr == "probability":
         return MeasurementRequest("probabilities", tuple(_keyword_target(node) or range(n_qubits)))
     return None
+
+
+def _pennylane_expval_observable(node: ast.AST, n_qubits: int) -> PauliHamiltonian:
+    paulis = _pennylane_observable_paulis(node)
+    if not paulis:
+        raise _workflow_error(
+            "workflow.expval.observable", "qml.expval supports static Pauli products only."
+        )
+    return PauliHamiltonian(n_qubits, (PauliTerm(1.0, tuple(sorted(paulis.items()))),))
+
+
+def _pennylane_observable_paulis(node: ast.AST) -> dict[int, str]:
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.MatMult):
+        return {
+            **_pennylane_observable_paulis(node.left),
+            **_pennylane_observable_paulis(node.right),
+        }
+    if isinstance(node, ast.Call):
+        name = _call_name(node.func)
+        mapping = {
+            "qml.PauliX": "X",
+            "qml.PauliY": "Y",
+            "qml.PauliZ": "Z",
+            "qml.Identity": "I",
+        }
+        if name not in mapping:
+            raise _workflow_error(
+                "workflow.expval.observable", f"Unsupported PennyLane observable {name}."
+            )
+        wire = _wire_argument(node)
+        pauli = mapping[name]
+        return {} if pauli == "I" else {wire: pauli}
+    raise _workflow_error(
+        "workflow.expval.observable", "qml.expval supports static Pauli products only."
+    )
+
+
+def _wire_argument(node: ast.Call) -> int:
+    if node.args:
+        return _wire_index(node.args[0])
+    wires = _keyword_wires(node)
+    if wires:
+        return wires[0]
+    raise _workflow_error("workflow.wire", "Expected a static observable wire.")
 
 
 def _dedupe_measurements(measurements: list[MeasurementRequest]) -> list[MeasurementRequest]:
@@ -1305,6 +1400,46 @@ def _dedupe_measurements(measurements: list[MeasurementRequest]) -> list[Measure
             seen.add(key)
             output.append(measurement)
     return output
+
+
+def _attach_parent_links(tree: ast.AST) -> None:
+    for parent in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent):
+            setattr(child, "_qbb_parent", parent)
+
+
+def _has_ancestor(node: ast.AST, ancestor_type: type[ast.AST]) -> bool:
+    parent = getattr(node, "_qbb_parent", None)
+    while parent is not None:
+        if isinstance(parent, ancestor_type):
+            return True
+        parent = getattr(parent, "_qbb_parent", None)
+    return False
+
+
+def _parameter_expression_names(expression: str) -> set[str]:
+    try:
+        parsed = ast.parse(expression, mode="eval")
+    except SyntaxError as exc:
+        raise _workflow_error(
+            "workflow.parameter.expression", f"Unsupported parameter expression '{expression}'."
+        ) from exc
+    names: set[str] = set()
+    for node in ast.walk(parsed):
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Expression | ast.Load | ast.BinOp | ast.UnaryOp | ast.Constant):
+            continue
+        elif isinstance(
+            node, ast.Add | ast.Sub | ast.Mult | ast.Div | ast.Pow | ast.USub | ast.UAdd
+        ):
+            continue
+        else:
+            raise _workflow_error(
+                "workflow.parameter.expression",
+                f"Unsupported parameter expression component '{type(node).__name__}'.",
+            )
+    return names
 
 
 def _expr_name_or_float(node: ast.expr) -> str | float:
@@ -1370,6 +1505,15 @@ def _first_call_arg_name(node: ast.Call) -> str | float:
     if node.args:
         return _expr_name_or_float(node.args[0])
     return ast.unparse(node)
+
+
+def _call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _call_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else node.attr
+    return ""
 
 
 def _workflow_error(code: str, message: str) -> TranslationError:

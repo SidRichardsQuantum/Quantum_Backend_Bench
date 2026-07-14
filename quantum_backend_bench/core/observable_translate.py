@@ -249,9 +249,13 @@ def hamiltonian_check_report(
 def translation_capability_rows() -> list[dict[str, object]]:
     """Return current SDK translation capability rows."""
 
+    from quantum_backend_bench.core.translation_adapters import circuit_adapter_capabilities
+
     sdks = ["qiskit_aer", "cirq", "pennylane", "braket_local"]
+    adapter_capabilities = {str(row["sdk"]): row for row in circuit_adapter_capabilities()}
     rows = []
     for sdk in sdks:
+        adapter = adapter_capabilities[sdk]
         rows.append(
             {
                 "sdk": sdk,
@@ -279,11 +283,18 @@ def translation_capability_rows() -> list[dict[str, object]]:
                     "SWAP",
                     "CPHASE",
                 ],
-                "parameter_forms": ["static numeric rotations", "named workflow parameters"],
+                "parameter_forms": [
+                    "static numeric rotations",
+                    "named workflow parameters",
+                    "arithmetic workflow parameter expressions",
+                ],
                 "measurements": ["static computational-basis measurements"],
                 "hamiltonian_terms": ["weighted Pauli I/X/Y/Z products"],
                 "result_shapes": ["counts", "probabilities", "samples", "expectations"],
                 "diagnostic_modes": ["structured translation errors", "backend caveat warnings"],
+                "circuit_import_hook": adapter["import_hook"],
+                "circuit_emit_hook": adapter["emit_hook"],
+                "circuit_diagnostic_hooks": adapter["diagnostic_hooks"],
                 "circuits": True,
                 "parameterized_circuits": True,
                 "parameter_bindings": True,

@@ -172,7 +172,7 @@ Verification supports two modes. `canonical` reimports generated SDK source and 
 `translate-workflow` covers the next semantic layer around circuits. It accepts neutral `workflow-json` plus a first-pass static subset of Qiskit, Cirq, PennyLane, and Braket parameterized workflow snippets, then emits free local SDK Python for Qiskit Aer, Cirq, PennyLane, or Braket LocalSimulator. The workflow JSON can include:
 
 - parameterized circuits using `H`, `X`, `Y`, `Z`, `RX`, `RY`, `RZ`, and `CNOT`/`CX`
-- symbolic parameter names and numeric parameter bindings
+- symbolic parameter names, arithmetic parameter expressions over declared parameters, and numeric parameter bindings
 - counts, samples, probabilities, and Pauli expectation requests
 - local shot-count execution wrappers and result extraction snippets
 
@@ -206,7 +206,7 @@ quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json \
   --output artifacts/ising_measurement_groups.json
 ```
 
-This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, and Braket `FreeParameter`. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
+This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, and Braket `FreeParameter`. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
 
 ## Supported Gates
 
@@ -267,4 +267,5 @@ Hamiltonian golden outputs live alongside circuit golden outputs in `examples/tr
 ```bash
 python examples/translation/verify_examples.py
 python examples/translation/update_expected.py --check
+python scripts/check_translation_artifacts.py
 ```

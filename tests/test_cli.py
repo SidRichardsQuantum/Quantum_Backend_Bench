@@ -110,6 +110,8 @@ def test_cli_compatibility_command(capsys: pytest.CaptureFixture[str]) -> None:
     assert "Compatibility" in captured.out
     assert "Python:" in captured.out
     assert "cirq" in captured.out
+    assert "tested versions:" in captured.out
+    assert "cirq>=1.4,<2" in captured.out
 
 
 def test_cli_bundle_command_writes_artifacts(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
@@ -1073,6 +1075,18 @@ def test_translation_update_expected_check_script() -> None:
 
     assert result.returncode == 0
     assert "translation expected outputs are current" in result.stdout
+
+
+def test_translation_audit_artifact_check_script() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/check_translation_artifacts.py"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_cli_exact_top_k_amplitudes_and_observable(capsys: pytest.CaptureFixture[str]) -> None:

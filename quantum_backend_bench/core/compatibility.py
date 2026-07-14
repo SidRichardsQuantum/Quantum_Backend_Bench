@@ -9,6 +9,31 @@ from typing import Any
 from quantum_backend_bench.core.discovery import BackendCapability, backend_capabilities
 
 SUPPORTED_PYTHON = {(3, 11), (3, 12)}
+TESTED_VERSION_BANDS = {
+    "amazon-braket-sdk": ">=1.85,<2",
+    "cirq": ">=1.4,<2",
+    "cudaq": ">=0.8,<1",
+    "pennylane": ">=0.38,<1",
+    "pyquil": ">=4,<5",
+    "pytket": ">=1.30,<3",
+    "qbraid": ">=0.9,<1",
+    "qiskit": ">=1,<3",
+    "qiskit-aer": ">=0.15,<1",
+    "qsharp": ">=1,<2",
+    "qutip": ">=5,<6",
+}
+_INTEGRATION_TESTED_PACKAGES = {
+    "braket_local": ("amazon-braket-sdk",),
+    "cirq": ("cirq",),
+    "cudaq": ("cudaq",),
+    "pennylane": ("pennylane",),
+    "pyquil_qvm": ("pyquil",),
+    "pytket": ("pytket",),
+    "qbraid": ("qbraid",),
+    "qiskit_aer": ("qiskit", "qiskit-aer"),
+    "qsharp": ("qsharp",),
+    "qutip": ("qutip",),
+}
 
 
 def compatibility_rows() -> list[dict[str, Any]]:
@@ -25,6 +50,7 @@ def compatibility_rows() -> list[dict[str, Any]]:
             "local_runtime": "Python packages only",
             "ci_coverage": "not executed in CI",
             "notes": "Optional helpers for running tutorial notebooks.",
+            "tested_versions": "ipykernel/pandas from docs and notebook extras under CI constraints",
         }
     )
     return rows
@@ -61,6 +87,8 @@ def format_compatibility_report(rows: list[dict[str, Any]] | None = None) -> str
             f"{row['install_extra']:<11} {row['account_required']:<22} "
             f"{row['local_runtime']:<26} {row['ci_coverage']}"
         )
+        if row.get("tested_versions"):
+            lines.append(f"  tested versions: {row['tested_versions']}")
         if row.get("notes"):
             lines.append(f"  notes: {row['notes']}")
     return "\n".join(lines)
@@ -75,6 +103,7 @@ def _row_from_capability(capability: BackendCapability) -> dict[str, Any]:
         "account_required": "no" if capability.local_only else "not for core workflow",
         "local_runtime": _local_runtime(capability),
         "ci_coverage": _ci_coverage(capability),
+        "tested_versions": _tested_versions(capability.name),
         "notes": capability.notes,
     }
 
@@ -85,6 +114,15 @@ def _local_runtime(capability: BackendCapability) -> str:
     if capability.external_process:
         return "external local process"
     return "Python packages only"
+
+
+def _tested_versions(name: str) -> str:
+    packages = _INTEGRATION_TESTED_PACKAGES.get(name, ())
+    return ", ".join(
+        f"{package}{TESTED_VERSION_BANDS[package]}"
+        for package in packages
+        if package in TESTED_VERSION_BANDS
+    )
 
 
 def _ci_coverage(capability: BackendCapability) -> str:

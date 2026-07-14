@@ -104,6 +104,9 @@ def test_hamiltonian_reports_and_audit_rows() -> None:
     assert check["term_count"] == 2
     assert check["pauli_counts"] == {"X": 1, "Z": 2}
     assert all(row["pauli_hamiltonians"] for row in audit)
+    assert all(
+        "arithmetic workflow parameter expressions" in row["parameter_forms"] for row in audit
+    )
 
 
 def test_cli_translate_hamiltonian_writes_output_and_report(tmp_path, capsys) -> None:

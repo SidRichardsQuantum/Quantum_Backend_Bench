@@ -351,22 +351,20 @@ def _verification_payload(verification: TranslationVerification | None) -> dict[
 
 
 def _caveat_diagnostics() -> list[TranslationDiagnostic]:
+    from quantum_backend_bench.core.translation_adapters import circuit_adapter_diagnostics
+
+    adapter_diagnostics = circuit_adapter_diagnostics()
     return [
         TranslationDiagnostic(
             "warning",
             "translation.caveat.measurement_order",
             "SDKs may display measurement bitstrings with different endian conventions; verification compares neutral measurement probabilities.",
         ),
-        TranslationDiagnostic(
-            "warning",
-            "translation.caveat.braket_probability",
-            "Braket output emits probability targets for circuit construction; --include-runner uses LocalSimulator measurement counts.",
-        ),
-        TranslationDiagnostic(
-            "warning",
-            "translation.caveat.pennylane_sampling",
-            "PennyLane output is a QNode returning qml.sample; runner output wraps it with qml.set_shots.",
-        ),
+        *[
+            diagnostic
+            for diagnostic in adapter_diagnostics
+            if isinstance(diagnostic, TranslationDiagnostic)
+        ],
         TranslationDiagnostic(
             "warning",
             "translation.caveat.controlled_phase",
@@ -473,14 +471,12 @@ def emit_circuit_source(
         from quantum_backend_bench.core.circuit_export import export_benchmark_circuit
 
         return export_benchmark_circuit(benchmark, "openqasm")
-    if to_format == "qiskit_aer":
-        return _emit_qiskit(circuit, include_runner=include_runner, runner_shots=runner_shots)
-    if to_format == "cirq":
-        return _emit_cirq(circuit, include_runner=include_runner, runner_shots=runner_shots)
-    if to_format == "pennylane":
-        return _emit_pennylane(circuit, include_runner=include_runner, runner_shots=runner_shots)
-    if to_format == "braket_local":
-        return _emit_braket(circuit, include_runner=include_runner, runner_shots=runner_shots)
+    if to_format in FREE_LOCAL_TRANSLATION_SDKS:
+        from quantum_backend_bench.core.translation_adapters import circuit_adapter_for_output
+
+        return circuit_adapter_for_output(to_format).emit(
+            circuit, include_runner=include_runner, runner_shots=runner_shots
+        )
     raise ValueError(f"Unsupported output format: {to_format}")
 
 
@@ -584,16 +580,9 @@ def _import_python_sdk(source: str, sdk: str, *, name: str) -> BenchmarkSpec:
             [TranslationDiagnostic("error", "translation.python.syntax", str(exc))]
         ) from exc
     _reject_unsupported_constructs(tree, sdk)
-    if sdk == "qiskit":
-        circuit = _parse_qiskit_ast(tree)
-    elif sdk == "cirq":
-        circuit = _parse_cirq_ast(tree)
-    elif sdk == "pennylane":
-        circuit = _parse_pennylane_ast(tree)
-    elif sdk == "braket":
-        circuit = _parse_braket_ast(tree)
-    else:
-        raise ValueError(f"Unsupported Python SDK input: {sdk}")
+    from quantum_backend_bench.core.translation_adapters import circuit_adapter_for_input
+
+    circuit = circuit_adapter_for_input(sdk).parse_ast(tree)
     return BenchmarkSpec(
         name=name,
         n_qubits=circuit.n_qubits,
@@ -1176,204 +1165,6 @@ def _emit_internal_json(circuit: InternalCircuit) -> str:
         "measurements": circuit.measurements,
     }
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
-
-
-def _emit_qiskit(
-    circuit: InternalCircuit, *, include_runner: bool = False, runner_shots: int = 1024
-) -> str:
-    lines = [
-        "from qiskit import QuantumCircuit",
-        "",
-        f"circuit = QuantumCircuit({circuit.n_qubits}, {len(circuit.measurements)})",
-    ]
-    for operation in circuit.operations:
-        lines.append(_qiskit_line(operation))
-    for classical_index, qubit in enumerate(circuit.measurements):
-        lines.append(f"circuit.measure({qubit}, {len(circuit.measurements) - classical_index - 1})")
-    if include_runner:
-        lines.extend(_qiskit_runner_lines(runner_shots))
-    return "\n".join(lines) + "\n"
-
-
-def _qiskit_runner_lines(shots: int) -> list[str]:
-    return [
-        "",
-        'if __name__ == "__main__":',
-        "    from qiskit import transpile",
-        "    from qiskit_aer import AerSimulator",
-        "",
-        "    simulator = AerSimulator()",
-        "    compiled = transpile(circuit, simulator)",
-        f"    result = simulator.run(compiled, shots={shots}).result()",
-        "    print(result.get_counts(compiled))",
-    ]
-
-
-def _cirq_runner_lines(shots: int) -> list[str]:
-    return [
-        "",
-        'if __name__ == "__main__":',
-        "    simulator = cirq.Simulator()",
-        f"    result = simulator.run(circuit, repetitions={shots})",
-        "    counts = result.histogram(key=\"m\", fold_func=lambda bits: ''.join(str(int(bit)) for bit in bits))",
-        "    print(dict(sorted(counts.items())))",
-    ]
-
-
-def _pennylane_runner_lines(shots: int) -> list[str]:
-    return [
-        "",
-        'if __name__ == "__main__":',
-        "    from collections import Counter",
-        "",
-        f"    samples = qml.set_shots(circuit, shots={shots})()",
-        "    counts = Counter(''.join(str(int(bit)) for bit in row) for row in samples)",
-        "    print(dict(sorted(counts.items())))",
-    ]
-
-
-def _braket_runner_lines(shots: int) -> list[str]:
-    return [
-        "",
-        'if __name__ == "__main__":',
-        "    from braket.devices import LocalSimulator",
-        "",
-        f"    result = LocalSimulator().run(circuit, shots={shots}).result()",
-        "    print(dict(sorted(result.measurement_counts.items())))",
-    ]
-
-
-def _qiskit_line(operation: CircuitOperation) -> str:
-    gate = operation.gate
-    q = operation.qubits
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"circuit.{gate.lower()}({q[0]})"
-    if gate in {"RX", "RY", "RZ"}:
-        return f"circuit.{gate.lower()}({_format_number(operation.params['theta'])}, {q[0]})"
-    if gate == "CNOT":
-        return f"circuit.cx({q[0]}, {q[1]})"
-    if gate == "CZ":
-        return f"circuit.cz({q[0]}, {q[1]})"
-    if gate == "SWAP":
-        return f"circuit.swap({q[0]}, {q[1]})"
-    if gate == "CPHASE":
-        return f"circuit.cp({_format_number(operation.params['theta'])}, {q[0]}, {q[1]})"
-    raise ValueError(f"Unsupported Qiskit emit gate: {gate}")
-
-
-def _emit_cirq(
-    circuit: InternalCircuit, *, include_runner: bool = False, runner_shots: int = 1024
-) -> str:
-    lines = [
-        "import cirq",
-        "",
-        f"qubits = cirq.LineQubit.range({circuit.n_qubits})",
-        "circuit = cirq.Circuit()",
-    ]
-    for operation in circuit.operations:
-        lines.append(f"circuit.append({_cirq_expr(operation)})")
-    if circuit.measurements:
-        qubits = ", ".join(f"qubits[{qubit}]" for qubit in circuit.measurements)
-        lines.append(f'circuit.append(cirq.measure({qubits}, key="m"))')
-    if include_runner:
-        lines.extend(_cirq_runner_lines(runner_shots))
-    return "\n".join(lines) + "\n"
-
-
-def _cirq_expr(operation: CircuitOperation) -> str:
-    gate = operation.gate
-    q = operation.qubits
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"cirq.{gate}(qubits[{q[0]}])"
-    if gate in {"RX", "RY", "RZ"}:
-        return f"cirq.{gate.lower()}({_format_number(operation.params['theta'])})(qubits[{q[0]}])"
-    if gate in {"CNOT", "CZ", "SWAP"}:
-        return f"cirq.{gate}(qubits[{q[0]}], qubits[{q[1]}])"
-    if gate == "CPHASE":
-        return (
-            "cirq.CZPowGate(exponent="
-            f"{_format_number(operation.params['theta'])} / 3.141592653589793)"
-            f"(qubits[{q[0]}], qubits[{q[1]}])"
-        )
-    raise ValueError(f"Unsupported Cirq emit gate: {gate}")
-
-
-def _emit_pennylane(
-    circuit: InternalCircuit, *, include_runner: bool = False, runner_shots: int = 1024
-) -> str:
-    lines = [
-        "import pennylane as qml",
-        "",
-        f'dev = qml.device("default.qubit", wires={circuit.n_qubits})',
-        "",
-        "",
-        "@qml.qnode(dev)",
-        "def circuit():",
-    ]
-    for operation in circuit.operations:
-        lines.append(f"    {_pennylane_line(operation)}")
-    measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
-    lines.append(f"    return qml.sample(wires=[{measurements}])")
-    if include_runner:
-        lines.extend(_pennylane_runner_lines(runner_shots))
-    return "\n".join(lines) + "\n"
-
-
-def _pennylane_line(operation: CircuitOperation) -> str:
-    gate = operation.gate
-    q = operation.qubits
-    one_qubit = {
-        "H": "Hadamard",
-        "X": "PauliX",
-        "Y": "PauliY",
-        "Z": "PauliZ",
-        "S": "S",
-        "T": "T",
-    }
-    if gate in one_qubit:
-        return f"qml.{one_qubit[gate]}(wires={q[0]})"
-    if gate in {"RX", "RY", "RZ"}:
-        return f"qml.{gate}({_format_number(operation.params['theta'])}, wires={q[0]})"
-    if gate in {"CNOT", "CZ", "SWAP"}:
-        return f"qml.{gate}(wires=[{q[0]}, {q[1]}])"
-    if gate == "CPHASE":
-        return f"qml.ControlledPhaseShift({_format_number(operation.params['theta'])}, wires=[{q[0]}, {q[1]}])"
-    raise ValueError(f"Unsupported PennyLane emit gate: {gate}")
-
-
-def _emit_braket(
-    circuit: InternalCircuit, *, include_runner: bool = False, runner_shots: int = 1024
-) -> str:
-    lines = [
-        "from braket.circuits import Circuit",
-        "",
-        "circuit = Circuit()",
-    ]
-    for operation in circuit.operations:
-        lines.append(_braket_line(operation))
-    measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
-    lines.append(f"circuit.probability(target=[{measurements}])")
-    if include_runner:
-        lines.extend(_braket_runner_lines(runner_shots))
-    return "\n".join(lines) + "\n"
-
-
-def _braket_line(operation: CircuitOperation) -> str:
-    gate = operation.gate
-    q = operation.qubits
-    if gate in {"H", "X", "Y", "Z", "S", "T"}:
-        return f"circuit.{gate.lower()}({q[0]})"
-    if gate in {"RX", "RY", "RZ"}:
-        return f"circuit.{gate.lower()}({q[0]}, angle={_format_number(operation.params['theta'])})"
-    if gate == "CNOT":
-        return f"circuit.cnot({q[0]}, {q[1]})"
-    if gate == "CZ":
-        return f"circuit.cz({q[0]}, {q[1]})"
-    if gate == "SWAP":
-        return f"circuit.swap({q[0]}, {q[1]})"
-    if gate == "CPHASE":
-        return f"circuit.cphaseshift({q[0]}, {q[1]}, angle={_format_number(operation.params['theta'])})"
-    raise ValueError(f"Unsupported Braket emit gate: {gate}")
 
 
 def _internal_circuit(benchmark: BenchmarkSpec) -> InternalCircuit:

@@ -71,6 +71,8 @@ def test_ci_constraints_exist_for_reproducible_validation() -> None:
 
     for package in ("mypy", "pytest", "ruff", "cirq", "qiskit-aer", "pennylane"):
         assert package in constraints
+    assert "cirq>=1.4,<2" in constraints
+    assert "qiskit-aer>=0.15,<1" in constraints
 
 
 def test_release_policy_and_constraints_are_included_in_sdist_manifest() -> None:

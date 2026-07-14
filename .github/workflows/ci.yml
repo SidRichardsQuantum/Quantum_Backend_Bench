@@ -50,6 +50,9 @@ jobs:
           python examples/translation/verify_examples.py
           python examples/translation/update_expected.py --check
 
+      - name: Check translation audit artifact drift
+        run: python scripts/check_translation_artifacts.py
+
       - name: Run SDK audit regression gates
         run: |
           quantum-bench sdk-parity --json
