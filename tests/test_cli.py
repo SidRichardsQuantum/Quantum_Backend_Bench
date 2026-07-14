@@ -570,6 +570,79 @@ def test_cli_translate_qasm_to_sdk_file(capsys: pytest.CaptureFixture[str], tmp_
     assert "cirq.CNOT(qubits[0], qubits[1])" in translated
 
 
+def test_cli_translate_accepts_canonical_and_statevector_verification(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    source_path = tmp_path / "bell.py"
+    source_path.write_text(
+        "from qiskit import QuantumCircuit\n"
+        "circuit = QuantumCircuit(2, 2)\n"
+        "circuit.h(0)\n"
+        "circuit.cx(0, 1)\n"
+        "circuit.measure(0, 0)\n"
+        "circuit.measure(1, 1)\n",
+        encoding="utf-8",
+    )
+
+    canonical_exit = main(
+        [
+            "translate",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--to-format",
+            "qiskit_aer",
+            "--verify",
+            "canonical",
+        ]
+    )
+    canonical_output = capsys.readouterr().out
+    statevector_exit = main(
+        [
+            "translate",
+            str(source_path),
+            "--from-format",
+            "qiskit",
+            "--to-format",
+            "qiskit_aer",
+            "--verify",
+            "statevector",
+        ]
+    )
+    statevector_output = capsys.readouterr().out
+
+    assert canonical_exit == 0
+    assert "Canonical neutral structure verification passed" in canonical_output
+    assert statevector_exit == 0
+    assert "Statevector verification passed" in statevector_output
+
+
+def test_cli_roundtrip_audit_accepts_canonical_verification(
+    capsys: pytest.CaptureFixture[str], tmp_path
+) -> None:
+    json_path = tmp_path / "roundtrip.json"
+
+    exit_code = main(
+        [
+            "roundtrip-audit",
+            "--targets",
+            "qiskit_aer",
+            "--verify",
+            "canonical",
+            "--save-json",
+            str(json_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    rows = json.loads(json_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert "Roundtrip Audit" in captured.out
+    assert rows
+    assert {row["verification_mode"] for row in rows} == {"canonical"}
+    assert all(row["canonical_match"] is True for row in rows)
+
+
 def test_cli_translate_check_reports_supported_source(
     capsys: pytest.CaptureFixture[str], tmp_path
 ) -> None:

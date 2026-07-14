@@ -345,12 +345,13 @@ def roundtrip_audit(
     tolerance: float = 1e-9,
     include_hamiltonian: bool = False,
     include_workflow: bool = False,
+    circuit_verify: str = "exact",
 ) -> list[dict[str, Any]]:
     """Translate neutral objects to SDK snippets and back, then verify semantics."""
 
     selected = targets or list(FREE_LOCAL_TRANSLATION_SDKS)
     rows: list[dict[str, Any]] = []
-    rows.extend(_circuit_roundtrip_rows(selected, tolerance=tolerance))
+    rows.extend(_circuit_roundtrip_rows(selected, tolerance=tolerance, verify=circuit_verify))
     if include_hamiltonian:
         rows.extend(_hamiltonian_roundtrip_rows(selected))
     if include_workflow:
@@ -507,7 +508,9 @@ def format_audit_rows(title: str, rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _circuit_roundtrip_rows(targets: list[str], *, tolerance: float) -> list[dict[str, Any]]:
+def _circuit_roundtrip_rows(
+    targets: list[str], *, tolerance: float, verify: str
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for target in targets:
         if target not in TRANSLATION_OUTPUT_FORMATS:
@@ -524,7 +527,7 @@ def _circuit_roundtrip_rows(targets: list[str], *, tolerance: float) -> list[dic
                     benchmark,
                     source,
                     to_format=target,
-                    mode="exact",
+                    mode=verify,
                     tolerance=tolerance,
                 )
                 rows.append(
@@ -537,7 +540,10 @@ def _circuit_roundtrip_rows(targets: list[str], *, tolerance: float) -> list[dic
                         "operations": (
                             len(imported.circuit_data.operations) if imported.circuit_data else None
                         ),
+                        "verification_mode": verification.mode,
                         "total_variation_distance": verification.total_variation_distance,
+                        "canonical_match": verification.canonical_match,
+                        "statevector_distance": verification.statevector_distance,
                         "tolerance": tolerance,
                     }
                 )
@@ -706,7 +712,10 @@ def _display_keys(rows: list[dict[str, Any]]) -> list[str]:
         "noise_type",
         "status",
         "support",
+        "verification_mode",
         "total_variation_distance",
+        "canonical_match",
+        "statevector_distance",
         "success_probability",
         "depth",
         "compiled_depth",

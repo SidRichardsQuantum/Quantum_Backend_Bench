@@ -541,6 +541,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     roundtrip_parser.add_argument("--tolerance", type=float, default=1e-9)
     roundtrip_parser.add_argument(
+        "--verify",
+        choices=tuple(mode for mode in TRANSLATION_VERIFY_MODES if mode != "none"),
+        default="exact",
+        help="Circuit verification mode for neutral-to-SDK-to-neutral round trips.",
+    )
+    roundtrip_parser.add_argument(
         "--include-hamiltonian", action="store_true", help="Include Pauli Hamiltonian round trips."
     )
     roundtrip_parser.add_argument(
@@ -1478,6 +1484,7 @@ def _roundtrip_audit_command(args: argparse.Namespace) -> int:
         tolerance=args.tolerance,
         include_hamiltonian=args.include_hamiltonian,
         include_workflow=args.include_workflow,
+        circuit_verify=args.verify,
     )
     _save_audit_outputs(args, rows, title="Roundtrip Audit")
     if args.json:

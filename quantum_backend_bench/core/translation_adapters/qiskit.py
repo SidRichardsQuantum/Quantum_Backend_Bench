@@ -52,6 +52,7 @@ class QiskitCircuitAdapter:
             "import_hook": "static QuantumCircuit AST",
             "emit_hook": "QuantumCircuit source",
             "diagnostic_hooks": ["custom/composed gates", "provider/runtime calls"],
+            "supported_annotations": ["reset", "barrier", "delay"],
         }
 
     def diagnostics(self) -> list[TranslationDiagnostic]:
@@ -63,6 +64,15 @@ def _qiskit_lines(operation: CircuitOperation) -> list[str]:
     q = operation.qubits
     if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
         return [f"circuit.{gate.lower()}({q[0]})"]
+    if gate == "RESET":
+        return [f"circuit.reset({q[0]})"]
+    if gate == "BARRIER":
+        qubits = ", ".join(str(qubit) for qubit in q)
+        return [f"circuit.barrier({qubits})"] if qubits else ["circuit.barrier()"]
+    if gate == "DELAY":
+        unit = operation.params.get("unit")
+        unit_arg = f', unit="{unit}"' if isinstance(unit, str) else ""
+        return [f"circuit.delay({_format_number(operation.params['duration'])}, {q[0]}{unit_arg})"]
     if gate in {"P", "PHASE"}:
         return [f"circuit.p({_format_number(operation.params['theta'])}, {q[0]})"]
     if gate in {"RX", "RY", "RZ"}:

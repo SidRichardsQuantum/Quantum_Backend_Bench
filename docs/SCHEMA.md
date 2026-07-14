@@ -23,7 +23,7 @@ optional fields; incompatible structural changes require a new schema version.
 
 | Format | JSON Schema | Example | Purpose |
 |---|---|---|---|
-| `internal-circuit` / `internal-json` | [`internal-circuit.schema.json`](./schemas/internal-circuit.schema.json) | [`internal-circuit.example.json`](./schema_examples/internal-circuit.example.json) | Static circuit operations, numeric parameters, measurement wires, register/key metadata, global phase, and neutral local noise annotations. |
+| `internal-circuit` / `internal-json` | [`internal-circuit.schema.json`](./schemas/internal-circuit.schema.json) | [`internal-circuit.example.json`](./schema_examples/internal-circuit.example.json) | Static circuit operations, numeric/string parameters, measurement wires, register/key metadata, global phase, reset/barrier/delay annotations, and neutral local noise annotations. |
 | `pauli-json` | [`pauli-json.schema.json`](./schemas/pauli-json.schema.json) | [`pauli-json.example.json`](./schema_examples/pauli-json.example.json) | Weighted Pauli `I`, `X`, `Y`, and `Z` product terms. |
 | `workflow-json` | [`workflow-json.schema.json`](./schemas/workflow-json.schema.json) | [`workflow-json.example.json`](./schema_examples/workflow-json.example.json) | Parameterized circuits, bindings, local execution settings, and measurement requests. |
 | `result-json` | [`result-json.schema.json`](./schemas/result-json.schema.json) | [`result-json.example.json`](./schema_examples/result-json.example.json) | Portable counts, probabilities, expectations, and result metadata. |
@@ -34,11 +34,12 @@ input/output schema identifiers when the selected CLI formats are neutral format
 ### `internal-circuit`
 
 An internal circuit has `n_qubits`, ordered `operations`, and `measurements`. Operations
-contain a `gate`, integer `qubits`, and optional numeric `params`. Optional metadata
+contain a `gate`, integer `qubits`, and optional `params`; numeric values cover angles/durations and string values cover small labels such as delay units. Optional metadata
 fields preserve named quantum/classical register offsets, measurement keys, bit-order
 labels, global phase, and neutral local noise-channel annotations. The v0.1 circuit gate
 set is `H`, `X`, `Y`, `Z`, `S`, `T`, `SX`, `P`, `RX`, `RY`, `RZ`, `U`, `CNOT`,
-`CZ`, `SWAP`, `CCX`, `CRX`, `CRY`, `CRZ`, and `CPHASE`.
+`CZ`, `SWAP`, `CCX`, `CRX`, `CRY`, `CRZ`, `CPHASE`, plus preservable `RESET`,
+`BARRIER`, and `DELAY` annotations.
 
 ### `pauli-json`
 

@@ -8,7 +8,7 @@
 - details: Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.
 
 ## Diagnostics
-- `translation.scope`: Static circuit translation preserves supported gates and measurements only.
+- `translation.scope`: Static circuit translation preserves supported gates, measurements, and supported neutral annotations.
 - `translation.caveat.measurement_order`: SDKs may display measurement bitstrings with different endian conventions; verification compares neutral measurement probabilities.
 - `translation.caveat.braket_probability`: Braket output emits probability targets for circuit construction; --include-runner uses LocalSimulator measurement counts.
 - `translation.caveat.pennylane_sampling`: PennyLane output is a QNode returning qml.sample; runner output wraps it with qml.set_shots.

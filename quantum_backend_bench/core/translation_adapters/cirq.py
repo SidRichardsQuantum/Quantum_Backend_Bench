@@ -34,7 +34,10 @@ class CirqCircuitAdapter:
         ]
         for operation in circuit.operations:
             for expression in _cirq_exprs(operation):
-                lines.append(f"circuit.append({expression})")
+                if expression.startswith("#"):
+                    lines.append(expression)
+                else:
+                    lines.append(f"circuit.append({expression})")
         lines.extend(_cirq_noise_lines(circuit))
         if circuit.measurements:
             qubits = ", ".join(f"qubits[{qubit}]" for qubit in circuit.measurements)
@@ -51,6 +54,7 @@ class CirqCircuitAdapter:
             "import_hook": "static cirq.Circuit AST",
             "emit_hook": "cirq.Circuit source",
             "diagnostic_hooks": ["measurement-key caveats", "provider/runtime calls"],
+            "supported_annotations": ["reset"],
         }
 
     def diagnostics(self) -> list[TranslationDiagnostic]:
@@ -62,6 +66,16 @@ def _cirq_exprs(operation: CircuitOperation) -> list[str]:
     q = operation.qubits
     if gate in {"H", "X", "Y", "Z", "S", "T"}:
         return [f"cirq.{gate}(qubits[{q[0]}])"]
+    if gate == "RESET":
+        return [f"cirq.ResetChannel()(qubits[{q[0]}])"]
+    if gate == "BARRIER":
+        targets = ",".join(str(qubit) for qubit in q)
+        return [f"# neutral_barrier targets=[{targets}]"]
+    if gate == "DELAY":
+        targets = ",".join(str(qubit) for qubit in q)
+        duration = operation.params.get("duration")
+        unit = operation.params.get("unit", "")
+        return [f"# neutral_delay targets=[{targets}] duration={duration!r} unit={unit!r}"]
     if gate == "SX":
         return [f"cirq.XPowGate(exponent=0.5)(qubits[{q[0]}])"]
     if gate in {"P", "PHASE"}:

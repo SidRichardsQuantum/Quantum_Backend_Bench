@@ -156,9 +156,19 @@ def _qasm_operation(line: str) -> CircuitOperation:
         values = [float(item.strip()) for item in raw_param.rstrip(")").split(",")]
         if gate == "u" and len(values) >= 3:
             params.update({"theta": values[0], "phi": values[1], "lambda": values[2]})
+        elif gate == "delay":
+            params["duration"] = values[0]
         else:
             params["theta"] = values[0]
     qubits = tuple(int(part.split("[", 1)[1].split("]", 1)[0]) for part in qubit_token.split(","))
+    if gate == "reset":
+        return CircuitOperation("RESET", qubits, params)
+    if gate == "barrier":
+        return CircuitOperation("BARRIER", qubits, params)
+    if gate == "delay":
+        if "duration" not in params:
+            params["duration"] = 0.0
+        return CircuitOperation("DELAY", qubits, params)
     mapping = {
         "h": "H",
         "x": "X",
@@ -190,6 +200,13 @@ def _qasm_operation(line: str) -> CircuitOperation:
 def _operation_to_qasm(gate: str, qubits: tuple[int, ...], params: dict[str, Any]) -> str:
     if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
         return f"{gate.lower()} q[{qubits[0]}];"
+    if gate == "RESET":
+        return f"reset q[{qubits[0]}];"
+    if gate == "BARRIER":
+        targets = ",".join(f"q[{qubit}]" for qubit in qubits)
+        return f"barrier {targets};"
+    if gate == "DELAY":
+        return f"delay({params.get('duration', 0.0)}) q[{qubits[0]}];"
     if gate in {"P", "PHASE"}:
         return f"p({params['theta']}) q[{qubits[0]}];"
     if gate in {"RX", "RY", "RZ"}:
@@ -214,6 +231,13 @@ def _operation_to_qasm(gate: str, qubits: tuple[int, ...], params: dict[str, Any
 def _operation_to_qasm3(gate: str, qubits: tuple[int, ...], params: dict[str, Any]) -> str:
     if gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
         return f"{gate.lower()} q[{qubits[0]}];"
+    if gate == "RESET":
+        return f"reset q[{qubits[0]}];"
+    if gate == "BARRIER":
+        targets = ",".join(f"q[{qubit}]" for qubit in qubits)
+        return f"barrier {targets};"
+    if gate == "DELAY":
+        return f"delay({params.get('duration', 0.0)}) q[{qubits[0]}];"
     if gate in {"P", "PHASE"}:
         return f"p({params['theta']}) q[{qubits[0]}];"
     if gate in {"RX", "RY", "RZ"}:

@@ -42,11 +42,16 @@ runtime expectations for the current package line.
 
 ## Backend Scope
 
-The default project scope is local SDK comparison, translation, and verification on free local simulator workflows. SDKs that require cloud accounts, billing, remote queues, or private provider services should not be part of the default onboarding path. Discovery-only SDKs remain informational, and heavyweight or external-runtime-backed SDKs stay optional unless they can support the same neutral contract without weakening the local-first workflow.
+The default project scope is local SDK comparison, translation, and verification
+on free local simulator workflows. SDKs that require cloud accounts, billing,
+remote queues, or private provider services should not be part of the default
+onboarding path. Discovery-only SDKs remain informational, and heavyweight or
+external-runtime-backed SDKs stay optional unless they can support the same
+neutral contract without weakening the local-first workflow.
 
 ## CI Dependency Constraints
 
-Project metadata keeps optional SDK requirements broad for package users. CI installs through `constraints/ci.txt`, and `quantum-bench compatibility` reports those reviewed major-version bands so tooling and optional SDK smoke jobs adopt upstream releases deliberately.
+Project metadata keeps optional SDK requirements broad for package users. CI installs through `constraints/ci.txt`, and `quantum-bench compatibility` reports those reviewed major-version bands so tooling and optional SDK smoke jobs adopt upstream releases deliberately. Review these bands before each release that changes translation or adapter behavior, and refresh scheduled optional-SDK smoke coverage when upstream SDK major versions approach the configured upper bounds.
 
 ## Validation Commands
 

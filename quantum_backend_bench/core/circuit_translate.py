@@ -32,7 +32,7 @@ TRANSLATION_INPUT_FORMATS = (
     "qiskit",
 )
 TRANSLATION_OUTPUT_FORMATS = (*FREE_LOCAL_TRANSLATION_SDKS, "internal-json", "openqasm")
-TRANSLATION_VERIFY_MODES = ("none", "exact", "samples")
+TRANSLATION_VERIFY_MODES = ("none", "exact", "samples", "canonical", "statevector")
 
 _OUTPUT_IMPORT_FORMAT = {
     "braket_local": "braket",
@@ -62,6 +62,8 @@ class TranslationVerification:
     total_variation_distance: float | None
     tolerance: float
     details: str
+    canonical_match: bool | None = None
+    statevector_distance: float | None = None
 
 
 @dataclass(slots=True)
@@ -112,6 +114,7 @@ def translation_semantic_contract(
                     "global phase metadata",
                     "static numeric rotation parameters",
                     "static computational-basis measurements",
+                    "reset, barrier, and delay annotations where target SDKs can preserve them",
                     "neutral local noise-channel annotations",
                 ],
                 "rewritten": [
@@ -134,7 +137,12 @@ def translation_semantic_contract(
                     "provider-specific noise calibration semantics",
                     "pulse-level controls",
                 ],
-                "verification": ["exact probabilities", "sampled distributions"],
+                "verification": [
+                    "canonical neutral structure",
+                    "exact probabilities",
+                    "sampled distributions",
+                    "statevector comparison up to global phase for small noiseless circuits",
+                ],
             }
         )
     elif layer == "pauli_hamiltonian":
@@ -245,12 +253,14 @@ def circuit_migration_audit(
             "named register offset metadata",
             "measurement-key and bit-order metadata",
             "global phase metadata",
+            "reset, barrier, and delay annotations where preservable",
             "neutral noise-channel annotations",
         ],
         "rewritten": [
             "SDK imports and construction syntax",
             "wire/register names into neutral integer-wire semantics",
             "neutral noise channels into SDK-local noise syntax when emitted",
+            "non-native annotations into explicit neutral comments plus diagnostics",
         ],
         "rejected_if_present": [
             "dynamic Python control flow",
@@ -362,6 +372,8 @@ def _verification_payload(verification: TranslationVerification | None) -> dict[
         "total_variation_distance": verification.total_variation_distance,
         "tolerance": verification.tolerance,
         "details": verification.details,
+        "canonical_match": verification.canonical_match,
+        "statevector_distance": verification.statevector_distance,
     }
 
 
@@ -415,8 +427,9 @@ def translate_circuit_source(
         TranslationDiagnostic(
             "info",
             "translation.scope",
-            "Static circuit translation preserves supported gates and measurements only.",
+            "Static circuit translation preserves supported gates, measurements, and supported neutral annotations.",
         ),
+        *_annotation_diagnostics(_internal_circuit(benchmark), to_format),
         *_caveat_diagnostics(),
     ]
     verification = None
@@ -506,13 +519,43 @@ def verify_translation(
 ) -> TranslationVerification:
     """Verify translated circuit semantics via the neutral internal simulator."""
 
-    if mode not in {"exact", "samples"}:
-        raise ValueError("Verification mode must be 'exact' or 'samples'.")
+    if mode not in {"exact", "samples", "canonical", "statevector"}:
+        raise ValueError(
+            "Verification mode must be 'exact', 'samples', 'canonical', or 'statevector'."
+        )
     imported, _ = import_circuit_source(
         translated_source,
         from_format=_OUTPUT_IMPORT_FORMAT[to_format],
         name=f"{original.name}_translated",
     )
+    if mode == "canonical":
+        original_signature = canonical_circuit_signature(original)
+        translated_signature = canonical_circuit_signature(imported)
+        passed = original_signature == translated_signature
+        status = "passed" if passed else "failed"
+        return TranslationVerification(
+            mode=mode,
+            passed=passed,
+            total_variation_distance=None,
+            tolerance=tolerance,
+            details=f"Canonical neutral structure verification {status}.",
+            canonical_match=passed,
+        )
+    if mode == "statevector":
+        distance = statevector_distance_up_to_global_phase(original, imported)
+        passed = distance <= tolerance
+        status = "passed" if passed else "failed"
+        return TranslationVerification(
+            mode=mode,
+            passed=passed,
+            total_variation_distance=None,
+            tolerance=tolerance,
+            details=(
+                f"Statevector verification {status}: distance={distance} "
+                f"with tolerance={tolerance}."
+            ),
+            statevector_distance=distance,
+        )
     original_probs = exact_probabilities(original)
     translated_probs = exact_probabilities(imported)
     if mode == "samples":
@@ -539,6 +582,102 @@ def verify_translation(
             f"with tolerance={tolerance}."
         ),
     )
+
+
+def canonical_circuit_signature(benchmark: BenchmarkSpec) -> dict[str, object]:
+    """Return a stable neutral circuit signature for structure-preserving checks."""
+
+    circuit = _internal_circuit(benchmark)
+    return {
+        "n_qubits": circuit.n_qubits,
+        "operations": [
+            {
+                "gate": operation.gate,
+                "qubits": list(operation.qubits),
+                "params": _canonical_params(operation.params),
+            }
+            for operation in circuit.operations
+        ],
+        "measurements": list(circuit.measurements),
+        "global_phase": round(circuit.global_phase, 12),
+        "noise": [
+            {
+                "channel": item.channel,
+                "targets": list(item.targets),
+                "probability": round(item.probability, 12),
+            }
+            for item in circuit.noise
+        ],
+    }
+
+
+def statevector_distance_up_to_global_phase(
+    original: BenchmarkSpec, translated: BenchmarkSpec
+) -> float:
+    """Return L2 statevector distance after optimal global-phase alignment."""
+
+    from quantum_backend_bench.core.exact import _statevector
+
+    original_circuit = _internal_circuit(original)
+    translated_circuit = _internal_circuit(translated)
+    if original_circuit.noise or translated_circuit.noise:
+        raise ValueError("Statevector verification does not support noisy neutral annotations.")
+    if any(
+        operation.gate == "RESET"
+        for operation in [*original_circuit.operations, *translated_circuit.operations]
+    ):
+        raise ValueError("Statevector verification does not support RESET annotations.")
+    if original_circuit.n_qubits != translated_circuit.n_qubits:
+        return float("inf")
+    np = __import__("numpy")
+    left = _statevector(original)
+    right = _statevector(translated)
+    overlap = np.vdot(left, right)
+    if abs(overlap) > 1e-15:
+        right = right * (overlap / abs(overlap)).conjugate()
+    return float(np.linalg.norm(left - right))
+
+
+def _canonical_params(params: dict[str, object]) -> dict[str, object]:
+    canonical: dict[str, object] = {}
+    for key, value in sorted(params.items()):
+        if isinstance(value, float):
+            canonical[key] = round(value, 12)
+        else:
+            canonical[key] = value
+    return canonical
+
+
+def _annotation_diagnostics(
+    circuit: InternalCircuit, to_format: str
+) -> list[TranslationDiagnostic]:
+    annotation_gates = {operation.gate for operation in circuit.operations} & {
+        "RESET",
+        "BARRIER",
+        "DELAY",
+    }
+    native_support = {
+        "internal-json": {"RESET", "BARRIER", "DELAY"},
+        "openqasm": {"RESET", "BARRIER", "DELAY"},
+        "qiskit_aer": {"RESET", "BARRIER", "DELAY"},
+        "cirq": {"RESET"},
+        "pennylane": {"BARRIER"},
+        "braket_local": set(),
+    }
+    unsupported = annotation_gates - native_support.get(to_format, set())
+    if not unsupported:
+        return []
+    return [
+        TranslationDiagnostic(
+            "warning",
+            f"translation.annotation.{gate.lower()}",
+            (
+                f"{to_format} output represents neutral {gate.lower()} annotations "
+                "as explicit comments when no matching local SDK primitive is emitted."
+            ),
+        )
+        for gate in sorted(unsupported)
+    ]
 
 
 def _detect_format(source: str) -> str:
@@ -796,6 +935,9 @@ def _parse_qiskit_ast(tree: ast.AST) -> InternalCircuit:
         if var_name not in circuit_vars:
             continue
         method = call.func.attr
+        if method == "barrier" and not call.args:
+            operations.append(CircuitOperation("BARRIER", tuple(range(circuit_vars[var_name]))))
+            continue
         if method == "measure_all":
             measurements = list(range(circuit_vars[var_name]))
             measurement_keys = {str(qubit): f"c[{qubit}]" for qubit in measurements}
@@ -882,6 +1024,25 @@ def _qiskit_operation(
     rotations = {"rx": "RX", "ry": "RY", "rz": "RZ"}
     two_qubit = {"cx": "CNOT", "cnot": "CNOT", "cz": "CZ", "swap": "SWAP"}
     controlled_rotations = {"crx": "CRX", "cry": "CRY", "crz": "CRZ"}
+    if method == "reset" and len(call.args) >= 1:
+        return CircuitOperation(
+            "RESET", (_qiskit_index_expr(call.args[0], constants, register_offsets),)
+        )
+    if method == "barrier" and call.args:
+        qubits: list[int] = []
+        for arg in call.args:
+            qubits.extend(_qiskit_index_list(arg, constants, register_offsets))
+        return CircuitOperation("BARRIER", tuple(qubits))
+    if method == "delay" and len(call.args) >= 2:
+        params: dict[str, object] = {"duration": _number_expr(call.args[0], constants)}
+        unit = _keyword(call, "unit")
+        if isinstance(unit, ast.Constant) and isinstance(unit.value, str):
+            params["unit"] = unit.value
+        return CircuitOperation(
+            "DELAY",
+            (_qiskit_index_expr(call.args[1], constants, register_offsets),),
+            params,
+        )
     if method in one_qubit and len(call.args) >= 1:
         return CircuitOperation(
             one_qubit[method], (_qiskit_index_expr(call.args[0], constants, register_offsets),)
@@ -940,6 +1101,17 @@ def _qiskit_operation(
             {"theta": _number_expr(call.args[0], constants)},
         )
     return None
+
+
+def _qiskit_index_list(
+    node: ast.AST, constants: dict[str, object], register_offsets: dict[str, tuple[int, int]]
+) -> list[int]:
+    if isinstance(node, (ast.List, ast.Tuple)):
+        return [_qiskit_index_expr(item, constants, register_offsets) for item in node.elts]
+    if isinstance(node, ast.Name) and node.id in register_offsets:
+        offset, size = register_offsets[node.id]
+        return list(range(offset, offset + size))
+    return [_qiskit_index_expr(node, constants, register_offsets)]
 
 
 def _qiskit_index_expr(
@@ -1044,6 +1216,15 @@ def _collect_cirq_operation(
             _cirq_qubit_index(arg, qubit_ranges, qubit_vars, constants) for arg in node.args
         )
         return
+    if gate_name == "reset":
+        operations.extend(
+            CircuitOperation(
+                "RESET",
+                (_cirq_qubit_index(arg, qubit_ranges, qubit_vars, constants),),
+            )
+            for arg in node.args
+        )
+        return
     operation = _cirq_operation(gate_name, node, qubit_ranges, qubit_vars, constants)
     if operation is not None:
         operations.append(operation)
@@ -1117,6 +1298,28 @@ def _cirq_rotation_operation(
                 _cirq_qubit_index(op_call.args[1], qubit_ranges, qubit_vars, constants),
             ),
             {"theta": _number_expr(exponent, constants) * 3.141592653589793},
+        )
+    if gate_name == "ResetChannel" and op_call.args:
+        return CircuitOperation(
+            "RESET",
+            (_cirq_qubit_index(op_call.args[0], qubit_ranges, qubit_vars, constants),),
+        )
+    if gate_name == "WaitGate" and op_call.args:
+        duration = _keyword(gate_call, "duration") or (
+            gate_call.args[0] if gate_call.args else None
+        )
+        params: dict[str, object] = {}
+        if duration is not None:
+            try:
+                params["duration"] = _number_expr(duration, constants)
+            except TranslationError:
+                params["duration"] = ast.unparse(duration)
+        return CircuitOperation(
+            "DELAY",
+            tuple(
+                _cirq_qubit_index(arg, qubit_ranges, qubit_vars, constants) for arg in op_call.args
+            ),
+            params,
         )
     if gate_name == "ControlledGate" and gate_call.args and len(op_call.args) >= 2:
         inner = gate_call.args[0]
@@ -1222,6 +1425,10 @@ def _pennylane_operation(call: ast.Call, constants: dict[str, object]) -> Circui
             (wires[0], wires[1]),
             {"theta": _number_expr(call.args[0], constants)},
         )
+    if gate_name == "Barrier" and wires:
+        return CircuitOperation("BARRIER", tuple(wires))
+    if gate_name == "Reset" and wires:
+        return CircuitOperation("RESET", (wires[0],))
     return None
 
 
@@ -1274,6 +1481,10 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
             if probability_target is not None:
                 measurements = _wire_list(probability_target, constants)
             continue
+        if call.func.attr == "barrier":
+            targets = _wire_list(call.args[0], constants) if call.args else []
+            operations.append(CircuitOperation("BARRIER", tuple(targets)))
+            continue
         operation = _braket_operation(call.func.attr, call, constants)
         if operation is not None:
             operations.append(operation)
@@ -1292,6 +1503,8 @@ def _braket_operation(
     two_qubit = {"cnot": "CNOT", "cz": "CZ", "swap": "SWAP"}
     if method in one_qubit and len(call.args) >= 1:
         return CircuitOperation(one_qubit[method], (_int_expr(call.args[0], constants),))
+    if method == "reset" and len(call.args) >= 1:
+        return CircuitOperation("RESET", (_int_expr(call.args[0], constants),))
     if method in rotations and len(call.args) >= 1:
         angle = _keyword(call, "angle") or (call.args[1] if len(call.args) >= 2 else None)
         if angle is None:

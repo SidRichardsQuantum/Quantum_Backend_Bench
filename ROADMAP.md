@@ -37,12 +37,15 @@ Recently completed:
   local noise-channel annotations.
 - The Braket `circuit.expectation(...)` Pauli result-type fixture is now
   accepted workflow coverage with canonical reimport verification.
+- Neutral circuit translation now includes reset/barrier/delay annotations where
+  preservable, target-aware annotation diagnostics, and canonical/statevector
+  verification modes for stronger local interop checks.
 
 Planned work:
 
 - Continue expanding the neutral IR before adding non-local provider
-  integrations. Remaining priority fields include reset/barrier/delay
-  annotations where preservable and broader OpenQASM 3 coverage.
+  integrations. Remaining priority fields now focus on broader OpenQASM 3
+  coverage and clearer handling of target-specific annotation gaps.
 - Keep translation conservative: reject unsupported dynamic Python constructs
   with structured diagnostics instead of producing approximate rewrites.
 - Extend supported semantics carefully, continuing with a broader OpenQASM 3
@@ -52,10 +55,10 @@ Planned work:
   default guardrail: broader Qiskit `QuantumCircuit`/OpenQASM handling, Cirq
   construction styles and measurement keys, broader PennyLane QNode/tape
   patterns, broader Braket `Circuit` result types.
-- Strengthen semantic verification with canonical structure checks,
-  unitary/statevector comparison up to global phase, measurement-distribution
-  TVD, expectation-value comparison, small density-matrix comparison for noisy
-  channels, and workflow result-schema validation.
+- Continue strengthening semantic verification beyond the new canonical and
+  statevector checks with measurement-distribution TVD, expectation-value
+  comparison, small density-matrix comparison for noisy channels, and workflow
+  result-schema validation.
 - Add purpose-level workflow specs for common jobs such as sampler, estimator,
   VQE, QAOA, Hamiltonian simulation, parameter sweeps, and measurement
   grouping, so translations can preserve user intent instead of only gate

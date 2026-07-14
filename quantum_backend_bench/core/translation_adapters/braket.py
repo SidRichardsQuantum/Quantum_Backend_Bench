@@ -48,6 +48,7 @@ class BraketCircuitAdapter:
             "import_hook": "static braket.circuits.Circuit AST",
             "emit_hook": "Braket Circuit source",
             "diagnostic_hooks": ["probability-target caveats", "provider/runtime calls"],
+            "supported_annotations": [],
         }
 
     def diagnostics(self) -> list[TranslationDiagnostic]:
@@ -65,6 +66,16 @@ def _braket_lines(operation: CircuitOperation) -> list[str]:
     q = operation.qubits
     if gate in {"H", "X", "Y", "Z", "S", "T"}:
         return [f"circuit.{gate.lower()}({q[0]})"]
+    if gate == "RESET":
+        return [f"# neutral_reset targets=[{q[0]}]"]
+    if gate == "BARRIER":
+        targets = ",".join(str(qubit) for qubit in q)
+        return [f"# neutral_barrier targets=[{targets}]"]
+    if gate == "DELAY":
+        targets = ",".join(str(qubit) for qubit in q)
+        duration = operation.params.get("duration")
+        unit = operation.params.get("unit", "")
+        return [f"# neutral_delay targets=[{targets}] duration={duration!r} unit={unit!r}"]
     if gate == "SX":
         return [f"circuit.v({q[0]})"]
     if gate in {"P", "PHASE"}:

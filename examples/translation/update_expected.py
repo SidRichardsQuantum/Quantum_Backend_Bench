@@ -19,6 +19,12 @@ CIRCUIT_CASES = [
     ("qiskit_registers.py", "qiskit", "cirq", "expected/qiskit_registers_to_cirq.py"),
     ("cirq_nested.py", "cirq", "qiskit_aer", "expected/cirq_nested_to_qiskit.py"),
     ("ghz.qasm", "openqasm", "pennylane", "expected/ghz_qasm_to_pennylane.py"),
+    (
+        "accepted/qiskit_timing_annotations.py",
+        "qiskit",
+        "qiskit_aer",
+        "expected/qiskit_timing_annotations_to_qiskit.py",
+    ),
 ]
 WORKFLOW_CASES = [
     (

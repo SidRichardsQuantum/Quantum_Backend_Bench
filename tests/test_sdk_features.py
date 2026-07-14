@@ -266,6 +266,9 @@ def test_internal_json_preserves_richer_metadata_gates_and_noise() -> None:
                 },
                 {"gate": "CCX", "qubits": [0, 1, 2]},
                 {"gate": "CRZ", "qubits": [0, 1], "params": {"theta": 0.4}},
+                {"gate": "BARRIER", "qubits": [0, 1]},
+                {"gate": "DELAY", "qubits": [1], "params": {"duration": 8.0, "unit": "dt"}},
+                {"gate": "RESET", "qubits": [1]},
             ],
             "measurements": [0, 1],
             "noise": [{"channel": "depolarizing", "targets": [0, 1], "probability": 0.01}],
@@ -287,11 +290,15 @@ def test_internal_json_preserves_richer_metadata_gates_and_noise() -> None:
         "U",
         "CCX",
         "CRZ",
+        "BARRIER",
+        "DELAY",
+        "RESET",
     ]
     assert benchmark.circuit_data.global_phase == 0.125
     assert benchmark.circuit_data.noise[0].channel == "depolarizing"
     assert emitted["measurement_keys"] == {"0": "c[0]", "1": "c[1]"}
     assert emitted["noise"][0]["probability"] == 0.01
+    assert emitted["operations"][-2]["params"] == {"duration": 8.0, "unit": "dt"}
     assert "cirq.XPowGate" in cirq
     assert "cirq.depolarize" in cirq
 
@@ -326,6 +333,92 @@ circuit.measure(qb[0], c[1])
         "CCX",
         "CRX",
     ]
+
+
+def test_qiskit_timing_annotations_import_emit_and_canonical_verify() -> None:
+    source = (TRANSLATION_EXAMPLES / "accepted" / "qiskit_timing_annotations.py").read_text(
+        encoding="utf-8"
+    )
+
+    benchmark, _ = import_circuit_source(source, from_format="qiskit")
+    result = translate_circuit_source(
+        source, from_format="qiskit", to_format="qiskit_aer", verify="canonical"
+    )
+
+    assert [op.gate for op in benchmark.circuit_data.operations] == [
+        "H",
+        "BARRIER",
+        "DELAY",
+        "RESET",
+    ]
+    assert benchmark.circuit_data.operations[2].params == {"duration": 8.0, "unit": "dt"}
+    assert "circuit.barrier(0, 1)" in result.source
+    assert 'circuit.delay(8.0, 1, unit="dt")' in result.source
+    assert "circuit.reset(1)" in result.source
+    assert result.verification is not None
+    assert result.verification.passed
+    assert result.verification.canonical_match is True
+
+
+def test_openqasm_timing_annotations_import_export_and_canonical_verify() -> None:
+    source = (TRANSLATION_EXAMPLES / "accepted" / "openqasm_timing_annotations.qasm").read_text(
+        encoding="utf-8"
+    )
+
+    benchmark, detected = import_circuit_source(source, from_format="openqasm")
+    result = translate_circuit_source(
+        source, from_format="openqasm", to_format="qiskit_aer", verify="canonical"
+    )
+
+    assert detected == "openqasm"
+    assert [op.gate for op in benchmark.circuit_data.operations] == [
+        "H",
+        "BARRIER",
+        "DELAY",
+        "RESET",
+    ]
+    assert benchmark.circuit_data.operations[2].params == {"duration": 8.0}
+    assert "circuit.barrier(0, 1)" in result.source
+    assert "circuit.delay(8.0, 1)" in result.source
+    assert "circuit.reset(1)" in result.source
+    assert result.verification is not None
+    assert result.verification.passed
+
+
+def test_annotation_diagnostics_are_target_specific() -> None:
+    source = (TRANSLATION_EXAMPLES / "accepted" / "qiskit_timing_annotations.py").read_text(
+        encoding="utf-8"
+    )
+
+    cirq_result = translate_circuit_source(source, from_format="qiskit", to_format="cirq")
+    pennylane_result = translate_circuit_source(source, from_format="qiskit", to_format="pennylane")
+
+    cirq_codes = {item.code for item in cirq_result.diagnostics}
+    pennylane_codes = {item.code for item in pennylane_result.diagnostics}
+    assert "translation.annotation.reset" not in cirq_codes
+    assert "translation.annotation.barrier" in cirq_codes
+    assert "translation.annotation.delay" in cirq_codes
+    assert "translation.annotation.barrier" not in pennylane_codes
+    assert "translation.annotation.reset" in pennylane_codes
+
+
+def test_translate_statevector_verification_passes_up_to_global_phase() -> None:
+    source = """
+from qiskit import QuantumCircuit
+
+circuit = QuantumCircuit(1, 1, global_phase=0.5)
+circuit.h(0)
+circuit.rz(0.25, 0)
+circuit.measure(0, 0)
+"""
+
+    result = translate_circuit_source(
+        source, from_format="qiskit", to_format="qiskit_aer", verify="statevector"
+    )
+
+    assert result.verification is not None
+    assert result.verification.passed
+    assert result.verification.statevector_distance == pytest.approx(0.0)
 
 
 def test_translation_reports_include_caveats_and_verification() -> None:
@@ -519,6 +612,12 @@ def test_translation_example_expected_outputs_are_stable() -> None:
         ("qiskit_registers.py", "qiskit", "cirq", "expected/qiskit_registers_to_cirq.py"),
         ("cirq_nested.py", "cirq", "qiskit_aer", "expected/cirq_nested_to_qiskit.py"),
         ("ghz.qasm", "openqasm", "pennylane", "expected/ghz_qasm_to_pennylane.py"),
+        (
+            "accepted/qiskit_timing_annotations.py",
+            "qiskit",
+            "qiskit_aer",
+            "expected/qiskit_timing_annotations_to_qiskit.py",
+        ),
     ]
 
     for source_name, from_format, to_format, expected_name in cases:
@@ -620,6 +719,8 @@ def test_translation_example_corpus_verifies() -> None:
         ("accepted/qiskit_static_rotations.py", "qiskit", "cirq"),
         ("accepted/cirq_measurement_keys.py", "cirq", "qiskit_aer"),
         ("accepted/braket_probability_result_type.py", "braket", "pennylane"),
+        ("accepted/qiskit_timing_annotations.py", "qiskit", "qiskit_aer"),
+        ("accepted/openqasm_timing_annotations.qasm", "openqasm", "qiskit_aer"),
         ("portable/custom_gate_decomposed_qiskit.py", "qiskit", "cirq"),
         ("portable/runtime_removed_qiskit.py", "qiskit", "cirq"),
     ]
@@ -645,6 +746,8 @@ def test_translation_example_corpus_verifies() -> None:
         ("function_built_cirq.py", "cirq", "python.function_built_circuit"),
         ("dynamic_wires_pennylane.py", "pennylane", "python.dynamic_wires"),
         ("wire_arithmetic_qiskit.py", "qiskit", "python.dynamic_integer"),
+        ("dynamic_delay_qiskit.py", "qiskit", "python.dynamic_parameter"),
+        ("dynamic_reset_qiskit.py", "qiskit", "python.dynamic_integer"),
     ],
 )
 def test_rejected_translation_fixtures_have_stable_diagnostics(

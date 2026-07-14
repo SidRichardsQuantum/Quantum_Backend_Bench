@@ -71,6 +71,8 @@ def _statevector(benchmark: BenchmarkSpec) -> Any:
     state[0] = 1.0
     for operation in circuit_data.operations:
         state = _apply_operation(state, circuit_data.n_qubits, operation)
+    if circuit_data.global_phase:
+        state = state * np.exp(1j * circuit_data.global_phase)
     return state
 
 

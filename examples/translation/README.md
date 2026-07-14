@@ -34,6 +34,8 @@ python examples/translation/update_expected.py
 | `accepted/qiskit_static_rotations.py` | circuit | `qiskit` | `translate --to-format cirq` | Realistic static constants, loops, rotations, entanglers, and measurements. |
 | `accepted/cirq_measurement_keys.py` | circuit | `cirq` | `translate --to-format qiskit_aer` | Cirq measurement-key syntax normalized through neutral measurements. |
 | `accepted/braket_probability_result_type.py` | circuit | `braket` | `translate --to-format pennylane` | Braket probability result-type target handling. |
+| `accepted/qiskit_timing_annotations.py` | circuit | `qiskit` | `translate --to-format qiskit_aer --verify canonical` | Reset, barrier, and delay annotations preserved through the neutral timeline. |
+| `accepted/openqasm_timing_annotations.qasm` | circuit | `openqasm` | `translate --to-format qiskit_aer --verify canonical` | OpenQASM import/export coverage for reset, barrier, and delay annotations. |
 | `portable/custom_gate_decomposed_qiskit.py` | circuit | `qiskit` | `translate --to-format cirq` | Portable rewrite of an unsupported custom-gate fixture. |
 | `portable/runtime_removed_qiskit.py` | circuit | `qiskit` | `translate --to-format cirq` | Portable rewrite of an unsupported provider-runtime fixture. |
 | `ghz.qasm` | circuit | `openqasm` | `translate --to-format cirq` | OpenQASM import coverage. |
@@ -91,6 +93,8 @@ python examples/translation/update_expected.py
 | `dynamic_hamiltonian_coeff_qiskit.py` | Nonliteral Hamiltonian coefficient. |
 | `non_pauli_hamiltonian_qiskit.py` | Non-Pauli operator content. |
 | `symbolic_hamiltonian_pennylane.py` | Symbolic Hamiltonian coefficient. |
+| `dynamic_delay_qiskit.py` | Nonliteral delay duration. |
+| `dynamic_reset_qiskit.py` | Nonliteral reset target. |
 
 ## Roadmap Fixtures
 

@@ -50,6 +50,31 @@
         0,
         1
       ]
+    },
+    {
+      "gate": "BARRIER",
+      "params": {},
+      "qubits": [
+        0,
+        1
+      ]
+    },
+    {
+      "gate": "DELAY",
+      "params": {
+        "duration": 8.0,
+        "unit": "dt"
+      },
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "gate": "RESET",
+      "params": {},
+      "qubits": [
+        1
+      ]
     }
   ],
   "quantum_registers": {

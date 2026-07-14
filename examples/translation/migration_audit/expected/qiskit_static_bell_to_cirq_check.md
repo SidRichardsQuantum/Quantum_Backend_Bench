@@ -14,12 +14,14 @@
 - named register offset metadata
 - measurement-key and bit-order metadata
 - global phase metadata
+- reset, barrier, and delay annotations where preservable
 - neutral noise-channel annotations
 
 ## Rewritten
 - SDK imports and construction syntax
 - wire/register names into neutral integer-wire semantics
 - neutral noise channels into SDK-local noise syntax when emitted
+- non-native annotations into explicit neutral comments plus diagnostics
 
 ## Rejected If Present
 - dynamic Python control flow

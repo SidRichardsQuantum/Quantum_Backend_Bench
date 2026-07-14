@@ -2,6 +2,28 @@
   "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/internal-circuit.schema.json",
   "additionalProperties": false,
   "properties": {
+    "bit_order": {
+      "type": "string"
+    },
+    "classical_registers": {
+      "additionalProperties": {
+        "items": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "global_phase": {
+      "type": "number"
+    },
+    "measurement_keys": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
     "measurements": {
       "items": {
         "minimum": 0,
@@ -12,6 +34,41 @@
     "n_qubits": {
       "minimum": 1,
       "type": "integer"
+    },
+    "noise": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "depolarizing",
+              "bit_flip",
+              "phase_flip",
+              "amplitude_damping",
+              "readout_error"
+            ],
+            "type": "string"
+          },
+          "probability": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "targets": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel",
+          "targets",
+          "probability"
+        ],
+        "type": "object"
+      },
+      "type": "array"
     },
     "operations": {
       "items": {
@@ -39,13 +96,23 @@
               "CCX",
               "CRX",
               "CRY",
-              "CRZ"
+              "CRZ",
+              "RESET",
+              "BARRIER",
+              "DELAY"
             ],
             "type": "string"
           },
           "params": {
             "additionalProperties": {
-              "type": "number"
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
             },
             "type": "object"
           },
@@ -66,9 +133,6 @@
       },
       "type": "array"
     },
-    "schema_version": {
-      "const": "0.1"
-    },
     "quantum_registers": {
       "additionalProperties": {
         "items": {
@@ -79,62 +143,8 @@
       },
       "type": "object"
     },
-    "classical_registers": {
-      "additionalProperties": {
-        "items": {
-          "minimum": 0,
-          "type": "integer"
-        },
-        "type": "array"
-      },
-      "type": "object"
-    },
-    "measurement_keys": {
-      "additionalProperties": {
-        "type": "string"
-      },
-      "type": "object"
-    },
-    "bit_order": {
-      "type": "string"
-    },
-    "global_phase": {
-      "type": "number"
-    },
-    "noise": {
-      "items": {
-        "additionalProperties": false,
-        "properties": {
-          "channel": {
-            "enum": [
-              "depolarizing",
-              "bit_flip",
-              "phase_flip",
-              "amplitude_damping",
-              "readout_error"
-            ],
-            "type": "string"
-          },
-          "targets": {
-            "items": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "type": "array"
-          },
-          "probability": {
-            "minimum": 0,
-            "type": "number"
-          }
-        },
-        "required": [
-          "channel",
-          "targets",
-          "probability"
-        ],
-        "type": "object"
-      },
-      "type": "array"
+    "schema_version": {
+      "const": "0.1"
     }
   },
   "required": [

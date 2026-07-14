@@ -49,6 +49,15 @@ def test_roundtrip_audit_passes_for_free_translation_targets():
     assert "workflow_roundtrip" in {row["audit"] for row in rows}
 
 
+def test_roundtrip_audit_supports_canonical_verification_mode():
+    rows = roundtrip_audit(targets=["qiskit_aer"], circuit_verify="canonical")
+
+    assert rows
+    assert audit_passed(rows)
+    assert {row["verification_mode"] for row in rows} == {"canonical"}
+    assert all(row["canonical_match"] is True for row in rows)
+
+
 def test_audit_artifact_writers(tmp_path):
     rows = roundtrip_audit(targets=["cirq"])
 

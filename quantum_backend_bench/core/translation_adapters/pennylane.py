@@ -54,6 +54,7 @@ class PennyLaneCircuitAdapter:
             "import_hook": "static QNode-style AST",
             "emit_hook": "PennyLane QNode source",
             "diagnostic_hooks": ["sampling caveats", "provider/runtime calls"],
+            "supported_annotations": ["barrier"],
         }
 
     def diagnostics(self) -> list[TranslationDiagnostic]:
@@ -79,6 +80,16 @@ def _pennylane_lines(operation: CircuitOperation) -> list[str]:
     }
     if gate in one_qubit:
         return [f"qml.{one_qubit[gate]}(wires={q[0]})"]
+    if gate == "RESET":
+        return [f"# neutral_reset targets=[{q[0]}]"]
+    if gate == "BARRIER":
+        wires = ", ".join(str(qubit) for qubit in q)
+        return [f"qml.Barrier(wires=[{wires}])"]
+    if gate == "DELAY":
+        targets = ",".join(str(qubit) for qubit in q)
+        duration = operation.params.get("duration")
+        unit = operation.params.get("unit", "")
+        return [f"# neutral_delay targets=[{targets}] duration={duration!r} unit={unit!r}"]
     if gate == "SX":
         return [f"qml.SX(wires={q[0]})"]
     if gate in {"P", "PHASE"}:

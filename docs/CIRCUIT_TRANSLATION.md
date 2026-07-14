@@ -208,15 +208,16 @@ quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json \
 
 This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, Braket `FreeParameter`, and Braket `circuit.expectation(...)` Pauli result types. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
 
-## Supported Gates
+## Supported Gates and Annotations
 
-The first supported gate set matches the existing internal circuit model:
+The supported gate and annotation set matches the existing internal circuit model:
 
 - Single-qubit gates: `H`, `X`, `Y`, `Z`, `S`, `T`, `SX`, phase/`P`, and `U`
 - Rotations: `RX`, `RY`, `RZ` with static numeric parameters
 - Two-qubit gates: `CNOT`, `CZ`, `SWAP`
 - Three-qubit and controlled gates: `CCX`, `CRX`, `CRY`, `CRZ`, and `CPHASE`
 - Measurements over static integer wires, with measurement-key and bit-order metadata where importers can preserve it
+- Preservable neutral `RESET`, `BARRIER`, and `DELAY` annotations. Qiskit emits these with native syntax; Cirq emits reset natively; PennyLane emits barrier natively; other unsupported annotation/target pairs are represented as explicit neutral comments with structured warnings.
 - Optional neutral local noise-channel annotations for depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error requests
 
 ## Static Python Support
@@ -232,13 +233,17 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 ## Reports
 
-`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance for translations, and supported outputs. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
+`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance, canonical match, or statevector distance for translations, and supported outputs. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
 
 ## Verification
 
 `--verify exact` reimports the generated circuit source and compares exact measurement probabilities with total variation distance.
 
 `--verify samples` samples both neutral distributions with a deterministic local sampler and compares the sampled distributions. Use `--sample-shots` and `--verify-tolerance` to tune this check.
+
+`--verify canonical` compares the reimported neutral operation timeline, measurement targets, global phase, and neutral noise annotations. It is stricter than probability checks and is useful when target syntax should preserve reset/barrier/delay annotations.
+
+`--verify statevector` compares small noiseless final statevectors up to global phase. It rejects noisy annotations and reset because those are not unitary statevector semantics.
 
 A failed verification exits with status 1. The translated source is still produced so users can inspect it, but the command reports the failed semantic check.
 
@@ -248,7 +253,7 @@ Translation reports include warning diagnostics for backend-specific behavior th
 
 ## Golden Outputs
 
-`quantum-bench translation-audit --json` emits the current SDK translation coverage matrix, including neutral schema version, supported gates, parameter forms, measurements, Hamiltonian terms, result shapes, diagnostics, caveats, and verification modes per local SDK target.
+`quantum-bench translation-audit --json` emits the current SDK translation coverage matrix, including neutral schema version, supported gates, parameter forms, measurements, Hamiltonian terms, result shapes, diagnostics, caveats, and verification modes per local SDK target. `quantum-bench roundtrip-audit --verify canonical` can use the stricter circuit-structure verifier for neutral-to-SDK-to-neutral checks.
 
 Expected generated outputs for selected fixtures live in `examples/translation/expected/`. Regenerate them intentionally after codegen changes:
 

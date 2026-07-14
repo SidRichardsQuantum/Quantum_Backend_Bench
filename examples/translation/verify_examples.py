@@ -27,6 +27,8 @@ CIRCUIT_CASES = [
     ("accepted/qiskit_static_rotations.py", "qiskit", "cirq"),
     ("accepted/cirq_measurement_keys.py", "cirq", "qiskit_aer"),
     ("accepted/braket_probability_result_type.py", "braket", "pennylane"),
+    ("accepted/qiskit_timing_annotations.py", "qiskit", "qiskit_aer"),
+    ("accepted/openqasm_timing_annotations.qasm", "openqasm", "qiskit_aer"),
     ("portable/custom_gate_decomposed_qiskit.py", "qiskit", "cirq"),
     ("portable/runtime_removed_qiskit.py", "qiskit", "cirq"),
 ]

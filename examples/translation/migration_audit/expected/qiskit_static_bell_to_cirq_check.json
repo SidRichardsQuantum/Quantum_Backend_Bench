@@ -53,6 +53,7 @@
       "named register offset metadata",
       "measurement-key and bit-order metadata",
       "global phase metadata",
+      "reset, barrier, and delay annotations where preservable",
       "neutral noise-channel annotations"
     ],
     "rejected_if_present": [
@@ -66,7 +67,8 @@
     "rewritten": [
       "SDK imports and construction syntax",
       "wire/register names into neutral integer-wire semantics",
-      "neutral noise channels into SDK-local noise syntax when emitted"
+      "neutral noise channels into SDK-local noise syntax when emitted",
+      "non-native annotations into explicit neutral comments plus diagnostics"
     ],
     "status": "target_supported",
     "target": "cirq",
@@ -107,6 +109,7 @@
       "global phase metadata",
       "static numeric rotation parameters",
       "static computational-basis measurements",
+      "reset, barrier, and delay annotations where target SDKs can preserve them",
       "neutral local noise-channel annotations"
     ],
     "rejected": [
@@ -124,8 +127,10 @@
       "neutral noise channels mapped to supported local SDK noise syntax"
     ],
     "verification": [
+      "canonical neutral structure",
       "exact probabilities",
-      "sampled distributions"
+      "sampled distributions",
+      "statevector comparison up to global phase for small noiseless circuits"
     ]
   },
   "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/migration_audit/qiskit_static_bell.py",

@@ -2,7 +2,7 @@
   "diagnostics": [
     {
       "code": "translation.scope",
-      "message": "Static circuit translation preserves supported gates and measurements only.",
+      "message": "Static circuit translation preserves supported gates, measurements, and supported neutral annotations.",
       "severity": "info"
     },
     {
@@ -70,6 +70,7 @@
       "global phase metadata",
       "static numeric rotation parameters",
       "static computational-basis measurements",
+      "reset, barrier, and delay annotations where target SDKs can preserve them",
       "neutral local noise-channel annotations"
     ],
     "rejected": [
@@ -87,16 +88,20 @@
       "neutral noise channels mapped to supported local SDK noise syntax"
     ],
     "verification": [
+      "canonical neutral structure",
       "exact probabilities",
-      "sampled distributions"
+      "sampled distributions",
+      "statevector comparison up to global phase for small noiseless circuits"
     ]
   },
   "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/migration_audit/qiskit_static_bell.py",
   "to_format": "cirq",
   "verification": {
+    "canonical_match": null,
     "details": "Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.",
     "mode": "exact",
     "passed": true,
+    "statevector_distance": null,
     "tolerance": 1e-09,
     "total_variation_distance": 0.0
   }

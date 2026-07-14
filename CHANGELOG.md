@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.2.12]
+
+### Added
+
+- Added neutral `RESET`, `BARRIER`, and `DELAY` circuit annotations across internal JSON, OpenQASM import/export, static SDK importers, and target-aware SDK emitters where local syntax can preserve them.
+- Added `canonical` and `statevector` circuit verification modes for neutral structure checks and small noiseless statevector comparison up to global phase.
+- Added accepted and rejected translation fixtures for annotation preservation, OpenQASM annotation import/export, nonliteral delay diagnostics, and nonliteral reset-target diagnostics.
+
+### Changed
+
+- Updated the internal-circuit JSON Schema, schema example, translation semantic contract, migration-audit guidance, and circuit translation docs for reset/barrier/delay annotations.
+- Tightened annotation diagnostics so SDK outputs warn when reset, barrier, or delay annotations are represented only as neutral comments.
+- Extended `roundtrip-audit` with `--verify` for circuit round trips and reports canonical/statevector verification fields when selected.
+- Clarified the optional-SDK compatibility review cadence around the checked-in CI constraint bands.
+
 ## [0.2.11] - 2026-07-14
 
 ### Added

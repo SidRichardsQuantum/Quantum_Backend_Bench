@@ -90,6 +90,10 @@ def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> 
     q = operation.qubits
     params = operation.params
 
+    if gate in {"BARRIER", "DELAY"}:
+        return state
+    if gate == "RESET":
+        return _reset_qubit(state, n_qubits, q[0])
     if gate in {"H", "X", "Y", "Z", "S", "T", "SX", "P", "PHASE", "RX", "RY", "RZ", "U"}:
         return _single_qubit_operator(n_qubits, q[0], _single_qubit_gate(gate, params)) @ state
     if gate == "CNOT":
@@ -108,6 +112,17 @@ def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> 
     if gate == "CPHASE":
         return _controlled_phase(state, n_qubits, q[0], q[1], phase=np.exp(1j * params["theta"]))
     raise ValueError(f"Unsupported QuTiP gate: {gate}")
+
+
+def _reset_qubit(state: Any, n_qubits: int, qubit: int) -> Any:
+    np = _numpy()
+    output = np.zeros_like(state)
+    for index, amplitude in enumerate(state):
+        bits = list(format(index, f"0{n_qubits}b"))
+        bits[qubit] = "0"
+        output[int("".join(bits), 2)] += amplitude
+    norm = np.linalg.norm(output)
+    return output / norm if norm else output
 
 
 def _single_qubit_gate(gate: str, params: dict[str, Any]) -> Any:
