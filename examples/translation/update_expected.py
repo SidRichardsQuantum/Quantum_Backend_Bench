@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 import sys
 
+import black
+
 ROOT = Path(__file__).resolve().parent
 REPO_ROOT = ROOT.parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -69,6 +71,21 @@ HAMILTONIAN_CASES = [
     ),
 ]
 
+BLACK_MODE = black.Mode(
+    line_length=100,
+    target_versions={black.TargetVersion.PY311},
+)
+
+
+def _check_or_write_expected(path: Path, source: str, *, check: bool, changed: list[Path]) -> None:
+    formatted_source = black.format_str(source, mode=BLACK_MODE)
+    if check:
+        if path.read_text(encoding="utf-8") != formatted_source:
+            changed.append(path)
+        return
+    path.write_text(formatted_source, encoding="utf-8")
+    print(f"updated {path.relative_to(ROOT)}")
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Regenerate translation expected outputs.")
@@ -86,39 +103,21 @@ def main(argv: list[str] | None = None) -> int:
             source, from_format=from_format, to_format=to_format, verify="exact"
         )
         expected_path = ROOT / expected_name
-        if args.check:
-            existing = expected_path.read_text(encoding="utf-8")
-            if existing != result.source:
-                changed.append(expected_path)
-        else:
-            expected_path.write_text(result.source, encoding="utf-8")
-            print(f"updated {expected_path.relative_to(ROOT)}")
+        _check_or_write_expected(expected_path, result.source, check=args.check, changed=changed)
     for source_name, from_format, to_format, expected_name in HAMILTONIAN_CASES:
         source = (ROOT / source_name).read_text(encoding="utf-8")
         result = translate_hamiltonian_source(
             source, from_format=from_format, to_format=to_format, verify="matrix"
         )
         expected_path = ROOT / expected_name
-        if args.check:
-            existing = expected_path.read_text(encoding="utf-8")
-            if existing != result.source:
-                changed.append(expected_path)
-        else:
-            expected_path.write_text(result.source, encoding="utf-8")
-            print(f"updated {expected_path.relative_to(ROOT)}")
+        _check_or_write_expected(expected_path, result.source, check=args.check, changed=changed)
     for source_name, from_format, to_format, expected_name in WORKFLOW_CASES:
         source = (ROOT / source_name).read_text(encoding="utf-8")
         result = translate_workflow_source(
             source, from_format=from_format, to_format=to_format, verify="canonical"
         )
         expected_path = ROOT / expected_name
-        if args.check:
-            existing = expected_path.read_text(encoding="utf-8")
-            if existing != result.source:
-                changed.append(expected_path)
-        else:
-            expected_path.write_text(result.source, encoding="utf-8")
-            print(f"updated {expected_path.relative_to(ROOT)}")
+        _check_or_write_expected(expected_path, result.source, check=args.check, changed=changed)
 
     if changed:
         for path in changed:

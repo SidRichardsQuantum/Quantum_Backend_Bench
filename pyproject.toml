@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.2.12"
+version = "0.2.13"
 description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -58,6 +58,7 @@ dev = [
   "build",
   "black",
   "cirq",
+  "jsonschema",
   "mypy",
   "pandas",
   "pytest",

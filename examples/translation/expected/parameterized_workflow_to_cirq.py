@@ -9,22 +9,29 @@ theta = sympy.Symbol("theta")
 circuit.append(cirq.H(qubits[0]))
 circuit.append(cirq.rx(theta)(qubits[1]))
 circuit.append(cirq.CNOT(qubits[0], qubits[1]))
-circuit.append(cirq.measure(*qubits, key="m"))
 parameter_resolver = {"theta": 1.5707963267948966}
 shots = 512
-simulator = cirq.Simulator()
-result = simulator.run(circuit, repetitions=shots, param_resolver=parameter_resolver)
-histogram = result.histogram(key="m") if "m" in result.measurements else {}
-counts = {format(key, "02b"): value for key, value in histogram.items()}
-probabilities = {state: count / shots for state, count in counts.items()}
-probability_targets_1 = [0, 1]
+simulator = cirq.Simulator(seed=1234)
+expectations = {}
 observable_2 = 1.0 * cirq.Z(qubits[0]) * cirq.Z(qubits[1])
-# simulator.simulate_expectation_values can evaluate observable_2.
+expectations["expectation_2"] = float(
+    simulator.simulate_expectation_values(
+        circuit, observables=[observable_2], param_resolver=parameter_resolver
+    )[0].real
+)
+distribution_targets = [0, 1]
+measurement_qubits = [qubits[index] for index in distribution_targets]
+measurement_circuit = circuit + cirq.measure(*measurement_qubits, key="m")
+result = simulator.run(measurement_circuit, repetitions=shots, param_resolver=parameter_resolver)
+histogram = result.histogram(key="m")
+counts = {format(key, "02b"): int(value) for key, value in histogram.items()}
+probabilities = {state: count / shots for state, count in counts.items()}
 neutral_result = {
+    "schema_version": "0.1",
     "counts": counts,
     "shots": shots,
     "probabilities": probabilities,
-    "expectations": {},
+    "expectations": expectations,
     "metadata": {"source_format": "cirq"},
 }
 print(json.dumps(neutral_result, indent=2, sort_keys=True))

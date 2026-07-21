@@ -96,9 +96,9 @@ python examples/translation/update_expected.py
 | `dynamic_delay_qiskit.py` | Nonliteral delay duration. |
 | `dynamic_reset_qiskit.py` | Nonliteral reset target. |
 
-## Roadmap Fixtures
+## Accepted Workflow Fixtures
 
-`accepted/braket_expectation_result_type.py` covers a Braket expectation-value workflow shape with canonical workflow reimport verification.
+`accepted/braket_expectation_result_type.py` covers a Braket expectation-value workflow shape with canonical workflow reimport verification. Neutral workflow fixtures can also use semantic verification to compare measurement distributions, Pauli expectations, and result-schema validity.
 
 ## Notes on Redundancy
 

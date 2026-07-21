@@ -406,7 +406,19 @@ def _build_parser() -> argparse.ArgumentParser:
         "--verify",
         choices=WORKFLOW_VERIFY_MODES,
         default="canonical",
-        help="Reimport generated workflow source and compare canonical workflow semantics.",
+        help="Verify canonical structure or exact neutral distribution/expectation semantics.",
+    )
+    workflow_parser.add_argument(
+        "--verify-tolerance",
+        type=float,
+        default=1e-9,
+        help="Maximum distribution TVD for semantic workflow verification.",
+    )
+    workflow_parser.add_argument(
+        "--expectation-tolerance",
+        type=float,
+        default=1e-9,
+        help="Maximum expectation-value absolute error for semantic verification.",
     )
     workflow_parser.set_defaults(func=_translate_workflow_command)
 
@@ -545,6 +557,12 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=tuple(mode for mode in TRANSLATION_VERIFY_MODES if mode != "none"),
         default="exact",
         help="Circuit verification mode for neutral-to-SDK-to-neutral round trips.",
+    )
+    roundtrip_parser.add_argument(
+        "--workflow-verify",
+        choices=tuple(mode for mode in WORKFLOW_VERIFY_MODES if mode != "none"),
+        default="canonical",
+        help="Workflow verification mode when --include-workflow is selected.",
     )
     roundtrip_parser.add_argument(
         "--include-hamiltonian", action="store_true", help="Include Pauli Hamiltonian round trips."
@@ -1275,6 +1293,8 @@ def _translate_workflow_command(args: argparse.Namespace) -> int:
             from_format=args.from_format,
             to_format=args.to_format,
             verify=args.verify,
+            verification_tolerance=args.verify_tolerance,
+            expectation_tolerance=args.expectation_tolerance,
         )
     except TranslationError as exc:
         print("Workflow translation failed")
@@ -1485,6 +1505,7 @@ def _roundtrip_audit_command(args: argparse.Namespace) -> int:
         include_hamiltonian=args.include_hamiltonian,
         include_workflow=args.include_workflow,
         circuit_verify=args.verify,
+        workflow_verify=args.workflow_verify,
     )
     _save_audit_outputs(args, rows, title="Roundtrip Audit")
     if args.json:

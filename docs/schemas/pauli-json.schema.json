@@ -1,5 +1,6 @@
 {
-  "": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/pauli-json.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sidrichardsquantum.github.io/Quantum_Backend_Bench/schemas/pauli-json.schema.json",
   "additionalProperties": false,
   "properties": {
     "n_qubits": {

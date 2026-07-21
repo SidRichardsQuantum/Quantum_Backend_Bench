@@ -9,6 +9,7 @@ black>=24,<26
 build>=1,<2
 cirq>=1.4,<2
 cudaq>=0.8,<1
+jsonschema>=4.23,<5
 markdown>=3.6,<4
 matplotlib>=3.8,<4
 mypy>=1.10,<2

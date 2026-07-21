@@ -64,6 +64,9 @@ class TranslationVerification:
     details: str
     canonical_match: bool | None = None
     statevector_distance: float | None = None
+    expectation_max_abs_error: float | None = None
+    expectation_tolerance: float | None = None
+    result_schema_valid: bool | None = None
 
 
 @dataclass(slots=True)
@@ -190,7 +193,12 @@ def translation_semantic_contract(
                     "unsupported dynamic parameter or wire construction",
                 ],
                 "not_modeled": ["cloud execution", "optimizer loops", "full application state"],
-                "verification": ["canonical workflow reimport"],
+                "verification": [
+                    "canonical workflow reimport",
+                    "exact neutral measurement-distribution TVD",
+                    "exact Pauli expectation-value comparison",
+                    "neutral result-schema and cross-field validation",
+                ],
             }
         )
     elif layer == "result":
@@ -204,7 +212,11 @@ def translation_semantic_contract(
                     "backend job lifecycle",
                     "raw provider metadata outside known fields",
                 ],
-                "verification": ["shot totals and probability normalization"],
+                "verification": [
+                    "result schema version and field types",
+                    "shot totals and probability normalization",
+                    "count/probability cross-field consistency",
+                ],
             }
         )
     elif layer == "measurement_grouping":
@@ -374,6 +386,9 @@ def _verification_payload(verification: TranslationVerification | None) -> dict[
         "details": verification.details,
         "canonical_match": verification.canonical_match,
         "statevector_distance": verification.statevector_distance,
+        "expectation_max_abs_error": verification.expectation_max_abs_error,
+        "expectation_tolerance": verification.expectation_tolerance,
+        "result_schema_valid": verification.result_schema_valid,
     }
 
 

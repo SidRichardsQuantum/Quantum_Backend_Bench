@@ -181,11 +181,15 @@ Example:
 ```bash
 quantum-bench translate-workflow examples/translation/parameterized_workflow.json \
   --to-format qiskit_aer \
-  --verify canonical \
+  --verify semantic \
+  --verify-tolerance 1e-9 \
+  --expectation-tolerance 1e-9 \
   --output artifacts/parameterized_workflow_qiskit.py
 ```
 
-Generated workflow scripts define `neutral_result` and print it as JSON with `counts`, `shots`, `probabilities`, `expectations`, and `metadata`. They also embed `workflow_spec`, which lets the verifier reimport generated snippets and compare canonical workflow semantics. Golden workflow outputs live in `examples/translation/expected/parameterized_workflow_to_*.py`.
+Generated workflow scripts define a schema-versioned `neutral_result` and print actual normalized `counts`, `shots`, `probabilities`, Pauli `expectations`, and `metadata`. They also embed `workflow_spec`, which lets the verifier reimport generated snippets for canonical or exact neutral semantic comparison. `--verify semantic` reports measurement-distribution TVD, maximum expectation-value absolute error, and result-schema validity without requiring the target SDK to be installed. Golden workflow outputs live in `examples/translation/expected/parameterized_workflow_to_*.py`.
+
+The portable result contract represents one distribution target set per workflow. Requests for multiple distinct distribution target sets, execution workflows without a result request, and explicit measurements without a distribution request fail with structured diagnostics instead of producing incomplete result JSON. `translate-result` also checks field types, shot totals, probability normalization, count/probability consistency, and finite expectation values.
 
 `translate-result` normalizes SDK-shaped result JSON into the same portable result object with `counts`, `shots`, `probabilities`, optional `expectations`, and `metadata`:
 
@@ -233,7 +237,7 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 ## Reports
 
-`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance, canonical match, or statevector distance for translations, and supported outputs. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
+`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance, canonical match, statevector distance, workflow expectation error, and result-schema validity where applicable. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
 
 ## Verification
 
@@ -244,6 +248,8 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 `--verify canonical` compares the reimported neutral operation timeline, measurement targets, global phase, and neutral noise annotations. It is stricter than probability checks and is useful when target syntax should preserve reset/barrier/delay annotations.
 
 `--verify statevector` compares small noiseless final statevectors up to global phase. It rejects noisy annotations and reset because those are not unitary statevector semantics.
+
+For `translate-workflow`, `--verify canonical` compares the reimported workflow structure, while `--verify semantic` evaluates the original and generated workflow specs with the neutral simulator. Semantic mode reports distribution TVD, expectation-value maximum absolute error, and result-schema validity; tune its thresholds with `--verify-tolerance` and `--expectation-tolerance`.
 
 A failed verification exits with status 1. The translated source is still produced so users can inspect it, but the command reports the failed semantic check.
 

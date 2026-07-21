@@ -249,7 +249,15 @@ def test_cli_translation_audit_filters(capsys) -> None:
     assert exit_code == 0
     assert [row["sdk"] for row in payload] == ["qiskit_aer"]
     assert payload[0]["schema_version"] == "0.1"
-    assert payload[0]["verification_modes"] == ["exact", "samples", "canonical", "matrix"]
+    assert payload[0]["verification_modes"] == [
+        "exact",
+        "samples",
+        "canonical",
+        "statevector",
+        "matrix",
+        "semantic",
+        "result-schema",
+    ]
     assert "CPHASE" in payload[0]["supported_gates"]
     assert payload[0]["noise_models"] is True
     assert "provider-specific calibrated noise semantics" in payload[0]["planned_layers"]

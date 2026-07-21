@@ -19,7 +19,6 @@ on:
       - docs/pages/**
       - examples/reference_results/sdk_audits_2026-06-05/**
       - .github/workflows/pages.yml
-  workflow_dispatch:
 
 permissions:
   contents: read

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import builtins
+import json
 import shutil
 
 import pytest
@@ -19,6 +20,7 @@ from quantum_backend_bench.benchmarks.bernstein_vazirani import (
     build_benchmark as build_bernstein_vazirani,
 )
 from quantum_backend_bench.benchmarks.ghz import build_benchmark
+from quantum_backend_bench.core.workflow_translate import translate_workflow_source
 
 
 def _has_module(name: str) -> bool:
@@ -31,6 +33,92 @@ def _has_pyquil_runtime() -> bool:
         and shutil.which("qvm") is not None
         and shutil.which("quilc") is not None
     )
+
+
+WORKFLOW_EXECUTION_JSON = json.dumps(
+    {
+        "schema_version": "0.1",
+        "name": "optional_sdk_result_contract",
+        "n_qubits": 2,
+        "parameters": [],
+        "parameter_bindings": {},
+        "operations": [
+            {"gate": "H", "targets": [0]},
+            {"gate": "CNOT", "controls": [0], "targets": [1]},
+        ],
+        "measurements": [
+            {"type": "counts", "targets": [0, 1]},
+            {
+                "type": "expectation",
+                "targets": [0, 1],
+                "observable": {
+                    "schema_version": "0.1",
+                    "n_qubits": 2,
+                    "terms": [
+                        {
+                            "coefficient": 1.0,
+                            "paulis": {"0": "Z", "1": "Z"},
+                        }
+                    ],
+                },
+            },
+        ],
+        "shots": 64,
+        "seed": 1234,
+    }
+)
+
+
+def _execute_generated_workflow(target: str) -> dict[str, object]:
+    translated = translate_workflow_source(
+        WORKFLOW_EXECUTION_JSON, to_format=target, verify="semantic"
+    )
+    assert translated.verification is not None
+    assert translated.verification.passed
+    namespace: dict[str, object] = {}
+    exec(compile(translated.source, f"<generated-{target}-workflow>", "exec"), namespace)
+    result = namespace["neutral_result"]
+    assert isinstance(result, dict)
+    return result
+
+
+def _assert_generated_workflow_result(result: dict[str, object]) -> None:
+    assert result["schema_version"] == "0.1"
+    assert result["shots"] == 64
+    counts = result["counts"]
+    assert isinstance(counts, dict)
+    assert sum(counts.values()) == 64
+    assert set(counts).issubset({"00", "11"})
+    expectations = result["expectations"]
+    assert isinstance(expectations, dict)
+    assert expectations["expectation_1"] == pytest.approx(1.0)
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
+def test_cirq_generated_workflow_emits_valid_neutral_result() -> None:
+    _assert_generated_workflow_result(_execute_generated_workflow("cirq"))
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("pennylane"), reason="PennyLane not installed")
+def test_pennylane_generated_workflow_emits_valid_neutral_result() -> None:
+    _assert_generated_workflow_result(_execute_generated_workflow("pennylane"))
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("braket"), reason="Braket SDK not installed")
+def test_braket_generated_workflow_emits_valid_neutral_result() -> None:
+    _assert_generated_workflow_result(_execute_generated_workflow("braket_local"))
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(
+    not (_has_module("qiskit") and _has_module("qiskit_aer")),
+    reason="Qiskit Aer not installed",
+)
+def test_qiskit_generated_workflow_emits_valid_neutral_result() -> None:
+    _assert_generated_workflow_result(_execute_generated_workflow("qiskit_aer"))
 
 
 @pytest.mark.optional_sdk

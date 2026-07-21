@@ -40,6 +40,9 @@ Recently completed:
 - Neutral circuit translation now includes reset/barrier/delay annotations where
   preservable, target-aware annotation diagnostics, and canonical/statevector
   verification modes for stronger local interop checks.
+- Workflow emitters now produce schema-versioned counts, probabilities, and
+  Pauli expectation values; semantic workflow verification reports exact
+  distribution TVD, expectation-value error, and neutral result-schema validity.
 
 Planned work:
 
@@ -55,10 +58,9 @@ Planned work:
   default guardrail: broader Qiskit `QuantumCircuit`/OpenQASM handling, Cirq
   construction styles and measurement keys, broader PennyLane QNode/tape
   patterns, broader Braket `Circuit` result types.
-- Continue strengthening semantic verification beyond the new canonical and
-  statevector checks with measurement-distribution TVD, expectation-value
-  comparison, small density-matrix comparison for noisy channels, and workflow
-  result-schema validation.
+- Continue strengthening semantic verification beyond canonical, statevector,
+  distribution, expectation-value, and result-schema checks with small
+  density-matrix comparison for neutral noisy channels.
 - Add purpose-level workflow specs for common jobs such as sampler, estimator,
   VQE, QAOA, Hamiltonian simulation, parameter sweeps, and measurement
   grouping, so translations can preserve user intent instead of only gate

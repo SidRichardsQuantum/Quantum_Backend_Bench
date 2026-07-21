@@ -68,3 +68,18 @@ def test_audit_artifact_writers(tmp_path):
     assert json_path.read_text(encoding="utf-8").startswith("[\n")
     assert "audit,target,case" in csv_path.read_text(encoding="utf-8")
     assert "# Audit" in report_path.read_text(encoding="utf-8")
+
+
+def test_roundtrip_audit_reports_workflow_semantic_metrics():
+    rows = roundtrip_audit(
+        targets=["cirq"],
+        include_workflow=True,
+        workflow_verify="semantic",
+    )
+    workflow_rows = [row for row in rows if row["audit"] == "workflow_roundtrip"]
+
+    assert audit_passed(workflow_rows)
+    assert {row["verification_mode"] for row in workflow_rows} == {"semantic"}
+    assert all(row["total_variation_distance"] == 0.0 for row in workflow_rows)
+    assert all(row["expectation_max_abs_error"] == 0.0 for row in workflow_rows)
+    assert all(row["result_schema_valid"] is True for row in workflow_rows)

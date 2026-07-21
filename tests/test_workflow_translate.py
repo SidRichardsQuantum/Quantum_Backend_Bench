@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 
+import black
+import pytest
 from quantum_backend_bench.cli import main
+from quantum_backend_bench.core.circuit_translate import TranslationError
 from quantum_backend_bench.core.observable_translate import translation_capability_rows
 from quantum_backend_bench.core.workflow_translate import (
+    evaluate_workflow_result,
     group_pauli_terms,
     group_pauli_terms_source,
     import_result_source,
@@ -14,6 +18,7 @@ from quantum_backend_bench.core.workflow_translate import (
     normalize_result_source,
     translate_workflow_source,
     verify_workflow_translation,
+    workflow_translation_report,
 )
 
 WORKFLOW_JSON = """{
@@ -278,7 +283,14 @@ def test_workflow_expected_outputs_are_stable_and_verifiable() -> None:
         expected = (root / expected_name).read_text(encoding="utf-8")
         verification = verify_workflow_translation(workflow, result.source, to_format=to_format)
 
-        assert result.source == expected
+        formatted_source = black.format_str(
+            result.source,
+            mode=black.Mode(
+                line_length=100,
+                target_versions={black.TargetVersion.PY311},
+            ),
+        )
+        assert formatted_source == expected
         assert result.verification is not None
         assert result.verification.passed
         assert verification.passed
@@ -364,3 +376,94 @@ def test_result_normalization_example_fixtures() -> None:
             assert payload["metadata"]["measurement_key"] == "m"
         if from_format == "braket-counts-json":
             assert payload["metadata"]["result_type"] == "measurement_counts"
+
+
+def test_workflow_semantic_verification_reports_distribution_and_expectation_metrics() -> None:
+    workflow, _ = import_workflow_source(WORKFLOW_JSON)
+    evaluated = evaluate_workflow_result(workflow)
+
+    assert sum(evaluated.probabilities.values()) == pytest.approx(1.0)
+    assert evaluated.expectations["expectation_2"] == pytest.approx(0.0)
+
+    markers = {
+        "qiskit_aer": "Statevector.from_instruction",
+        "cirq": "simulate_expectation_values",
+        "pennylane": "raw_results",
+        "braket_local": "result.values",
+    }
+    for target, marker in markers.items():
+        result = translate_workflow_source(WORKFLOW_JSON, to_format=target, verify="semantic")
+        report = workflow_translation_report(result, from_format="workflow-json", to_format=target)
+
+        assert result.verification is not None
+        assert result.verification.passed
+        assert result.verification.total_variation_distance == pytest.approx(0.0)
+        assert result.verification.expectation_max_abs_error == pytest.approx(0.0)
+        assert result.verification.result_schema_valid is True
+        assert marker in result.source
+        assert '"schema_version": "0.1"' in result.source
+        assert '"expectations": expectations' in result.source
+        assert report["verification"]["result_schema_valid"] is True
+        assert report["verification"]["expectation_max_abs_error"] == pytest.approx(0.0)
+
+
+def test_workflow_rejects_result_shapes_that_neutral_json_cannot_represent() -> None:
+    payload = json.loads(WORKFLOW_JSON)
+    payload["measurements"][1]["targets"] = [0]
+
+    with pytest.raises(TranslationError) as exc_info:
+        translate_workflow_source(json.dumps(payload), to_format="cirq", verify="none")
+
+    assert exc_info.value.diagnostics[0].code == "workflow.result.multiple_distributions"
+
+
+def test_result_normalization_rejects_cross_field_and_type_mismatches() -> None:
+    mismatched = {
+        "schema_version": "0.1",
+        "counts": {"0": 2},
+        "shots": 2,
+        "probabilities": {"1": 1.0},
+        "expectations": {},
+        "metadata": {},
+    }
+    with pytest.raises(TranslationError) as mismatch_info:
+        normalize_result_source(json.dumps(mismatched), from_format="result-json")
+    assert {diagnostic.code for diagnostic in mismatch_info.value.diagnostics} == {
+        "result.schema.count_probability_mismatch"
+    }
+
+    invalid_counts = {
+        **mismatched,
+        "counts": {"0": 1.5},
+        "probabilities": {"0": 1.0},
+    }
+    with pytest.raises(TranslationError) as type_info:
+        normalize_result_source(json.dumps(invalid_counts), from_format="result-json")
+    assert type_info.value.diagnostics[0].code == "result.schema.counts"
+
+
+def test_cli_workflow_semantic_verification_writes_metrics(tmp_path, capsys) -> None:
+    workflow_path = tmp_path / "workflow.json"
+    report_path = tmp_path / "workflow-report.json"
+    workflow_path.write_text(WORKFLOW_JSON, encoding="utf-8")
+
+    exit_code = main(
+        [
+            "translate-workflow",
+            str(workflow_path),
+            "--to-format",
+            "cirq",
+            "--verify",
+            "semantic",
+            "--save-report",
+            str(report_path),
+        ]
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert report["verification"]["mode"] == "semantic"
+    assert report["verification"]["total_variation_distance"] == pytest.approx(0.0)
+    assert report["verification"]["expectation_max_abs_error"] == pytest.approx(0.0)
+    assert report["verification"]["result_schema_valid"] is True
+    capsys.readouterr()

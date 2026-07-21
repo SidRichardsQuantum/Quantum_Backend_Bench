@@ -99,8 +99,11 @@
   "verification": {
     "canonical_match": null,
     "details": "Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
     "mode": "exact",
     "passed": true,
+    "result_schema_valid": null,
     "statevector_distance": null,
     "tolerance": 1e-09,
     "total_variation_distance": 0.0

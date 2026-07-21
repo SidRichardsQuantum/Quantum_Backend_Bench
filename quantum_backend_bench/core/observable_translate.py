@@ -312,7 +312,15 @@ def translation_capability_rows() -> list[dict[str, object]]:
                 "noise_models": True,
                 "execution_wrappers": True,
                 "result_objects": True,
-                "verification_modes": ["exact", "samples", "canonical", "matrix"],
+                "verification_modes": [
+                    "exact",
+                    "samples",
+                    "canonical",
+                    "statevector",
+                    "matrix",
+                    "semantic",
+                    "result-schema",
+                ],
                 "caveats": [
                     "static source only for SDK imports",
                     "workflow-json required for precise parameterized/execution layers",

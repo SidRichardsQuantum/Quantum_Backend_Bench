@@ -7,13 +7,19 @@ neutral result payloads, and Pauli-term measurement grouping.
 
 from __future__ import annotations
 
+import ast
 import json
+import math
 import pprint
 from collections import Counter
-import ast
 from dataclasses import dataclass, field
 from typing import Any
 
+from quantum_backend_bench.core.benchmark_spec import (
+    BenchmarkSpec,
+    CircuitOperation,
+    InternalCircuit,
+)
 from quantum_backend_bench.core.circuit_translate import (
     TranslationDiagnostic,
     TranslationError,
@@ -27,6 +33,7 @@ from quantum_backend_bench.core.observable_translate import (
     canonical_hamiltonian,
     import_hamiltonian_source,
 )
+from quantum_backend_bench.core.metrics import total_variation_distance
 from quantum_backend_bench.core.neutral_schema import (
     NEUTRAL_SCHEMA_VERSION,
     report_schema_metadata,
@@ -34,7 +41,7 @@ from quantum_backend_bench.core.neutral_schema import (
 
 WORKFLOW_INPUT_FORMATS = ("workflow-json", "qiskit", "cirq", "pennylane", "braket")
 WORKFLOW_OUTPUT_FORMATS = ("qiskit_aer", "cirq", "pennylane", "braket_local", "workflow-json")
-WORKFLOW_VERIFY_MODES = ("none", "canonical")
+WORKFLOW_VERIFY_MODES = ("none", "canonical", "semantic")
 RESULT_INPUT_FORMATS = (
     "result-json",
     "qiskit-counts-json",
@@ -96,6 +103,8 @@ def translate_workflow_source(
     from_format: str = "workflow-json",
     to_format: str,
     verify: str = "canonical",
+    verification_tolerance: float = 1e-9,
+    expectation_tolerance: float = 1e-9,
 ) -> TranslationResult:
     """Translate a neutral parameterized workflow into local SDK code or JSON."""
 
@@ -103,6 +112,7 @@ def translate_workflow_source(
         available = ", ".join(WORKFLOW_VERIFY_MODES)
         raise ValueError(f"Unknown workflow verification mode '{verify}'. Available: {available}")
     workflow, detected_format = import_workflow_source(source, from_format=from_format)
+    _validate_target_result_support(workflow, to_format)
     output = emit_workflow_source(workflow, to_format)
     diagnostics = [
         TranslationDiagnostic(
@@ -119,7 +129,14 @@ def translate_workflow_source(
     verification = None
     notes = [f"input_format={detected_format}", f"output_format={to_format}"]
     if verify != "none":
-        verification = verify_workflow_translation(workflow, output, to_format=to_format)
+        verification = verify_workflow_translation(
+            workflow,
+            output,
+            to_format=to_format,
+            mode=verify,
+            distribution_tolerance=verification_tolerance,
+            expectation_tolerance=expectation_tolerance,
+        )
         status = "passed" if verification.passed else "failed"
         notes.append(f"verification={status}")
         diagnostics.append(
@@ -152,20 +169,82 @@ def import_workflow_source(
 
 
 def verify_workflow_translation(
-    expected: ParameterizedWorkflow, source: str, *, to_format: str
+    expected: ParameterizedWorkflow,
+    source: str,
+    *,
+    to_format: str,
+    mode: str = "canonical",
+    distribution_tolerance: float = 1e-9,
+    expectation_tolerance: float = 1e-9,
 ) -> TranslationVerification:
-    """Verify generated workflow source by reimporting neutral workflow semantics."""
+    """Verify generated workflow structure or exact neutral result semantics."""
+
+    if mode not in {"canonical", "semantic"}:
+        raise ValueError("Workflow verification mode must be 'canonical' or 'semantic'.")
 
     imported, _ = import_workflow_source(
         source, from_format=_workflow_output_import_format(to_format)
     )
-    passed = canonical_workflow(expected) == canonical_workflow(imported)
-    details = (
-        "Canonical workflow verification passed."
-        if passed
-        else "Canonical workflow verification failed."
+    if mode == "canonical":
+        passed = canonical_workflow(expected) == canonical_workflow(imported)
+        details = (
+            "Canonical workflow verification passed."
+            if passed
+            else "Canonical workflow verification failed."
+        )
+        return TranslationVerification(
+            mode="canonical",
+            passed=passed,
+            total_variation_distance=None,
+            tolerance=0.0,
+            details=details,
+            canonical_match=passed,
+        )
+
+    expected_result = evaluate_workflow_result(expected)
+    imported_result = evaluate_workflow_result(imported)
+    expected_diagnostics = _result_contract_diagnostics(expected_result)
+    imported_diagnostics = _result_contract_diagnostics(imported_result)
+    result_schema_valid = not expected_diagnostics and not imported_diagnostics
+
+    if expected_result.probabilities or imported_result.probabilities:
+        tvd = total_variation_distance(imported_result.probabilities, expected_result.probabilities)
+        distribution_passed = tvd is not None and tvd <= distribution_tolerance
+    else:
+        tvd = None
+        distribution_passed = True
+
+    expectation_keys = set(expected_result.expectations) | set(imported_result.expectations)
+    expectation_error = (
+        max(
+            abs(
+                imported_result.expectations.get(key, float("inf"))
+                - expected_result.expectations.get(key, float("inf"))
+            )
+            for key in expectation_keys
+        )
+        if expectation_keys
+        else None
     )
-    return TranslationVerification("canonical", passed, None, 0.0, details)
+    expectation_passed = expectation_error is None or expectation_error <= expectation_tolerance
+    passed = distribution_passed and expectation_passed and result_schema_valid
+    status = "passed" if passed else "failed"
+    details = (
+        f"Workflow semantic verification {status}: distribution TVD={tvd} "
+        f"(tolerance={distribution_tolerance}), expectation max abs error="
+        f"{expectation_error} (tolerance={expectation_tolerance}), "
+        f"result_schema_valid={result_schema_valid}."
+    )
+    return TranslationVerification(
+        mode="semantic",
+        passed=passed,
+        total_variation_distance=tvd,
+        tolerance=distribution_tolerance,
+        details=details,
+        expectation_max_abs_error=expectation_error,
+        expectation_tolerance=expectation_tolerance,
+        result_schema_valid=result_schema_valid,
+    )
 
 
 def canonical_workflow(workflow: ParameterizedWorkflow) -> dict[str, object]:
@@ -202,6 +281,255 @@ def canonical_workflow(workflow: ParameterizedWorkflow) -> dict[str, object]:
     }
 
 
+def evaluate_workflow_result(workflow: ParameterizedWorkflow) -> NeutralResult:
+    """Evaluate exact neutral distributions and Pauli expectations for a workflow."""
+
+    distribution_targets = _workflow_distribution_targets(workflow)
+    circuit = _workflow_internal_circuit(workflow, distribution_targets)
+    benchmark = BenchmarkSpec(
+        name=f"{workflow.name}_semantic_verification",
+        n_qubits=workflow.n_qubits,
+        parameters={"seed": workflow.seed},
+        circuit_data=circuit,
+    )
+    if distribution_targets:
+        from quantum_backend_bench.core.exact import exact_probabilities
+
+        probabilities = exact_probabilities(benchmark)
+    else:
+        probabilities = {}
+
+    state = None
+    expectations: dict[str, float] = {}
+    for index, request in enumerate(workflow.measurements):
+        if request.kind != "expectation" or request.observable is None:
+            continue
+        if state is None:
+            from quantum_backend_bench.core.exact import _statevector
+
+            state = _statevector(benchmark)
+        expectations[f"expectation_{index}"] = _hamiltonian_expectation(state, request.observable)
+
+    result = NeutralResult(
+        counts={},
+        shots=workflow.shots,
+        probabilities=probabilities,
+        expectations=expectations,
+        metadata={"source_format": "neutral-verifier"},
+    )
+    validate_neutral_result(result)
+    return result
+
+
+def validate_neutral_result(result: NeutralResult, *, tolerance: float = 1e-9) -> None:
+    """Raise a structured error when a neutral result violates its contract."""
+
+    diagnostics = _result_contract_diagnostics(result, tolerance=tolerance)
+    if diagnostics:
+        raise TranslationError(diagnostics)
+
+
+def _result_contract_diagnostics(
+    result: NeutralResult, *, tolerance: float = 1e-9
+) -> list[TranslationDiagnostic]:
+    diagnostics: list[TranslationDiagnostic] = []
+    if result.shots < 0:
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error", "result.schema.shots", "Result shots cannot be negative."
+            )
+        )
+    if any(
+        not isinstance(value, int) or isinstance(value, bool) or value < 0
+        for value in result.counts.values()
+    ):
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.counts",
+                "Result counts must contain non-negative integers.",
+            )
+        )
+    if any(not key or set(key) - {"0", "1"} for key in result.counts):
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.bitstring",
+                "Result count keys must be non-empty binary strings.",
+            )
+        )
+    if result.counts and sum(result.counts.values()) != result.shots:
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.shot_total",
+                "Result count totals must equal shots.",
+            )
+        )
+    if any(
+        not math.isfinite(value) or value < 0.0 or value > 1.0
+        for value in result.probabilities.values()
+    ):
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.probabilities",
+                "Result probabilities must be finite values between 0 and 1.",
+            )
+        )
+    probability_total = sum(result.probabilities.values())
+    if result.probabilities and abs(probability_total - 1.0) > tolerance:
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.probability_total",
+                "Result probabilities must sum to 1 within tolerance.",
+            )
+        )
+    if result.counts and result.probabilities:
+        expected = _counts_to_probabilities(result.counts, result.shots)
+        keys = set(expected) | set(result.probabilities)
+        if any(
+            abs(expected.get(key, 0.0) - result.probabilities.get(key, 0.0)) > tolerance
+            for key in keys
+        ):
+            diagnostics.append(
+                TranslationDiagnostic(
+                    "error",
+                    "result.schema.count_probability_mismatch",
+                    "Result probabilities must agree with counts and shots.",
+                )
+            )
+    if any(not math.isfinite(value) for value in result.expectations.values()):
+        diagnostics.append(
+            TranslationDiagnostic(
+                "error",
+                "result.schema.expectations",
+                "Result expectations must contain finite numeric values.",
+            )
+        )
+    return diagnostics
+
+
+def _workflow_distribution_targets(workflow: ParameterizedWorkflow) -> tuple[int, ...]:
+    requests = [
+        request
+        for request in workflow.measurements
+        if request.kind in {"counts", "probabilities", "samples"}
+    ]
+    if not requests:
+        return ()
+    target_sets = {request.targets for request in requests}
+    if len(target_sets) != 1:
+        raise _workflow_error(
+            "workflow.result.multiple_distributions",
+            "Neutral result JSON supports one distribution target set per workflow.",
+        )
+    targets = requests[0].targets or tuple(range(workflow.n_qubits))
+    return tuple(targets)
+
+
+def _validate_target_result_support(workflow: ParameterizedWorkflow, to_format: str) -> None:
+    if to_format not in WORKFLOW_OUTPUT_FORMATS or to_format == "workflow-json":
+        return
+    if not workflow.measurements:
+        raise _workflow_error(
+            "workflow.result.missing_request",
+            "SDK workflow outputs require at least one result request.",
+        )
+    _workflow_distribution_targets(workflow)
+    has_explicit_measure = any(operation.gate == "MEASURE" for operation in workflow.operations)
+    has_distribution = any(
+        request.kind in {"counts", "probabilities", "samples"} for request in workflow.measurements
+    )
+    if has_explicit_measure and not has_distribution:
+        raise _workflow_error(
+            "workflow.result.measure_without_request",
+            "MEASURE operations require a counts, probabilities, or samples result request.",
+        )
+
+
+def _workflow_internal_circuit(
+    workflow: ParameterizedWorkflow, measurements: tuple[int, ...]
+) -> InternalCircuit:
+    operations: list[CircuitOperation] = []
+    for operation in workflow.operations:
+        if operation.gate == "MEASURE":
+            continue
+        gate = "CNOT" if operation.gate == "CX" else operation.gate
+        qubits = (
+            (*operation.controls, *operation.targets) if operation.controls else operation.targets
+        )
+        params: dict[str, object] = {}
+        if operation.parameter is not None:
+            params["theta"] = _resolve_parameter_value(
+                operation.parameter, workflow.parameter_bindings
+            )
+        operations.append(CircuitOperation(gate, tuple(qubits), params))
+    return InternalCircuit(workflow.n_qubits, operations, list(measurements))
+
+
+def _resolve_parameter_value(value: str | float, bindings: dict[str, float]) -> float:
+    if isinstance(value, float):
+        return value
+    parsed = ast.parse(value, mode="eval")
+
+    def evaluate(node: ast.AST) -> float:
+        if isinstance(node, ast.Expression):
+            return evaluate(node.body)
+        if isinstance(node, ast.Constant) and isinstance(node.value, int | float):
+            return float(node.value)
+        if isinstance(node, ast.Name):
+            if node.id not in bindings:
+                raise _workflow_error(
+                    "workflow.binding.missing",
+                    f"Parameter '{node.id}' requires a numeric binding for semantic verification.",
+                )
+            return float(bindings[node.id])
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.UAdd | ast.USub):
+            operand = evaluate(node.operand)
+            return operand if isinstance(node.op, ast.UAdd) else -operand
+        if isinstance(node, ast.BinOp):
+            left = evaluate(node.left)
+            right = evaluate(node.right)
+            if isinstance(node.op, ast.Add):
+                return left + right
+            if isinstance(node.op, ast.Sub):
+                return left - right
+            if isinstance(node.op, ast.Mult):
+                return left * right
+            if isinstance(node.op, ast.Div):
+                return left / right
+            if isinstance(node.op, ast.Pow):
+                return left**right
+        raise _workflow_error(
+            "workflow.parameter.expression",
+            f"Unsupported parameter expression component '{type(node).__name__}'.",
+        )
+
+    try:
+        result = float(evaluate(parsed))
+    except ZeroDivisionError as exc:
+        raise _workflow_error(
+            "workflow.parameter.expression", "Parameter expressions cannot divide by zero."
+        ) from exc
+    if not math.isfinite(result):
+        raise _workflow_error(
+            "workflow.parameter.expression",
+            "Parameter expressions must evaluate to a finite value.",
+        )
+    return result
+
+
+def _hamiltonian_expectation(state: Any, hamiltonian: PauliHamiltonian) -> float:
+    from quantum_backend_bench.core.observable_translate import _hamiltonian_matrix
+
+    np = __import__("numpy")
+    matrix = np.asarray(_hamiltonian_matrix(hamiltonian), dtype=complex)
+    value = np.vdot(state, matrix @ state)
+    return float(value.real)
+
+
 def _workflow_output_import_format(to_format: str) -> str:
     return {
         "qiskit_aer": "qiskit",
@@ -218,6 +546,7 @@ def emit_workflow_source(workflow: ParameterizedWorkflow, to_format: str) -> str
     if to_format not in WORKFLOW_OUTPUT_FORMATS:
         available = ", ".join(WORKFLOW_OUTPUT_FORMATS)
         raise ValueError(f"Unknown workflow output format '{to_format}'. Available: {available}")
+    _validate_target_result_support(workflow, to_format)
     if to_format == "workflow-json":
         return json.dumps(_workflow_payload(workflow), indent=2, sort_keys=True) + "\n"
     if to_format == "qiskit_aer":
@@ -251,7 +580,16 @@ def normalize_result_source(
         available = ", ".join(RESULT_OUTPUT_FORMATS)
         raise ValueError(f"Unknown result output format '{to_format}'. Available: {available}")
     result = import_result_source(source, from_format=from_format)
+    validate_neutral_result(result)
     output = json.dumps(_result_payload(result), indent=2, sort_keys=True) + "\n"
+    verification = TranslationVerification(
+        mode="schema",
+        passed=True,
+        total_variation_distance=None,
+        tolerance=1e-9,
+        details="Neutral result schema and cross-field validation passed.",
+        result_schema_valid=True,
+    )
     return TranslationResult(
         output,
         [f"input_format={from_format}", f"output_format={to_format}", "normalized=result-json"],
@@ -260,46 +598,79 @@ def normalize_result_source(
                 "info",
                 "translation.scope.result_object",
                 "Result translation normalizes counts, shots, probabilities, expectations, and metadata into portable JSON.",
-            )
+            ),
+            TranslationDiagnostic(
+                "info",
+                "translation.verify.result_schema",
+                verification.details,
+            ),
         ],
+        verification,
     )
 
 
 def import_result_source(source: str, *, from_format: str = "result-json") -> NeutralResult:
-    """Import supported result JSON shapes into a neutral result object."""
+    """Import and validate supported result JSON shapes."""
 
     if from_format not in RESULT_INPUT_FORMATS:
         available = ", ".join(RESULT_INPUT_FORMATS)
         raise ValueError(f"Unknown result input format '{from_format}'. Available: {available}")
-    payload = json.loads(source)
+    try:
+        payload = json.loads(source)
+    except json.JSONDecodeError as exc:
+        raise _workflow_error("result.invalid_json", f"Could not parse result JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise _workflow_error("result.schema.object", "Result JSON must contain an object.")
+
     if from_format == "result-json":
+        schema_version = payload.get("schema_version")
+        if schema_version is not None and schema_version != NEUTRAL_SCHEMA_VERSION:
+            raise _workflow_error(
+                "result.schema.version",
+                f"Unsupported result schema_version '{schema_version}'.",
+            )
         counts = _counts_from_mapping(payload.get("counts", {}))
-        shots = int(payload.get("shots", sum(counts.values())))
+        shots = _shots_from_payload(payload, sum(counts.values()))
         probabilities = _probabilities_from_payload(payload.get("probabilities"), counts, shots)
-        expectations = {
-            str(key): float(value) for key, value in payload.get("expectations", {}).items()
-        }
-        metadata = dict(payload.get("metadata", {}))
-        return NeutralResult(counts, shots, probabilities, expectations, metadata)
-    if from_format in {"qiskit-counts-json", "cirq-counts-json", "braket-counts-json"}:
+        expectations_payload = payload.get("expectations", {})
+        if not isinstance(expectations_payload, dict):
+            raise _workflow_error(
+                "result.schema.expectations", "Result expectations must be an object."
+            )
+        if any(
+            not isinstance(value, int | float) or isinstance(value, bool)
+            for value in expectations_payload.values()
+        ):
+            raise _workflow_error(
+                "result.schema.expectations", "Expectation values must be numeric."
+            )
+        expectations = {str(key): float(value) for key, value in expectations_payload.items()}
+        metadata_payload = payload.get("metadata", {})
+        if not isinstance(metadata_payload, dict):
+            raise _workflow_error("result.schema.metadata", "Result metadata must be an object.")
+        result = NeutralResult(counts, shots, probabilities, expectations, dict(metadata_payload))
+    elif from_format in {"qiskit-counts-json", "cirq-counts-json", "braket-counts-json"}:
         counts_payload = _counts_payload_for_format(payload, from_format)
         counts = _counts_from_mapping(counts_payload)
-        shots = int(payload.get("shots", sum(counts.values())))
-        return NeutralResult(
+        shots = _shots_from_payload(payload, sum(counts.values()))
+        result = NeutralResult(
             counts,
             shots,
             _counts_to_probabilities(counts, shots),
             metadata=_result_metadata(payload, from_format),
         )
-    samples = payload.get("samples", payload)
-    counts = _counts_from_samples(samples)
-    shots = int(payload.get("shots", sum(counts.values())))
-    return NeutralResult(
-        counts,
-        shots,
-        _counts_to_probabilities(counts, shots),
-        metadata={"source_format": from_format},
-    )
+    else:
+        samples = payload.get("samples", payload)
+        counts = _counts_from_samples(samples)
+        shots = _shots_from_payload(payload, sum(counts.values()))
+        result = NeutralResult(
+            counts,
+            shots,
+            _counts_to_probabilities(counts, shots),
+            metadata={"source_format": from_format},
+        )
+    validate_neutral_result(result)
+    return result
 
 
 def group_pauli_terms_source(
@@ -371,6 +742,12 @@ def workflow_translation_report(
             "mode": result.verification.mode,
             "passed": result.verification.passed,
             "details": result.verification.details,
+            "total_variation_distance": result.verification.total_variation_distance,
+            "tolerance": result.verification.tolerance,
+            "canonical_match": result.verification.canonical_match,
+            "expectation_max_abs_error": result.verification.expectation_max_abs_error,
+            "expectation_tolerance": result.verification.expectation_tolerance,
+            "result_schema_valid": result.verification.result_schema_valid,
         }
     return {
         "source_path": source_path,
@@ -528,6 +905,17 @@ def _validate_workflow(
                 "workflow.measurement.unsupported",
                 f"Unsupported measurement request '{measurement.kind}'.",
             )
+        for wire in measurement.targets:
+            if wire < 0 or wire >= n_qubits:
+                raise _workflow_error(
+                    "workflow.measurement.wire",
+                    f"Measurement wire {wire} is outside n_qubits={n_qubits}.",
+                )
+        if measurement.observable is not None and measurement.observable.n_qubits != n_qubits:
+            raise _workflow_error(
+                "workflow.measurement.observable_qubits",
+                "Expectation observable n_qubits must match the workflow.",
+            )
 
 
 def _workflow_payload(workflow: ParameterizedWorkflow) -> dict[str, object]:
@@ -574,34 +962,47 @@ def _hamiltonian_payload(hamiltonian: PauliHamiltonian) -> dict[str, object]:
 
 
 def _emit_qiskit_workflow(workflow: ParameterizedWorkflow) -> str:
+    distribution_targets = _workflow_distribution_targets(workflow)
     lines = [
         "import json",
         "",
         "from qiskit import QuantumCircuit, transpile",
         "from qiskit.circuit import Parameter",
         "from qiskit_aer import AerSimulator",
-        "from qiskit.quantum_info import SparsePauliOp",
+        "from qiskit.quantum_info import SparsePauliOp, Statevector",
         "",
         *[f"{parameter} = Parameter({parameter!r})" for parameter in workflow.parameters],
-        f"circuit = QuantumCircuit({workflow.n_qubits}, {workflow.n_qubits})",
+        f"circuit = QuantumCircuit({workflow.n_qubits})",
     ]
     lines.extend(_emit_qiskit_operations(workflow))
     if workflow.parameter_bindings:
-        lines.append(f"parameter_bindings = {_python_dict(workflow.parameter_bindings)}")
+        lines.append(f"parameter_bindings = {_qiskit_parameter_dict(workflow.parameter_bindings)}")
         lines.append("bound_circuit = circuit.assign_parameters(parameter_bindings)")
     else:
         lines.append("bound_circuit = circuit")
-    lines.extend(
-        [
-            f"shots = {workflow.shots}",
-            "simulator = AerSimulator()",
-            "compiled_circuit = transpile(bound_circuit, simulator)",
-            "result = simulator.run(compiled_circuit, shots=shots).result()",
-            "counts = result.get_counts()",
-            "probabilities = {state: count / shots for state, count in counts.items()}",
-        ]
-    )
-    lines.extend(_emit_qiskit_measurement_comments(workflow))
+    lines.extend([f"shots = {workflow.shots}", "expectations = {}"])
+    lines.extend(_emit_qiskit_expectations(workflow))
+    if distribution_targets:
+        run_options = f"shots=shots, seed_simulator={workflow.seed!r}"
+        lines.extend(
+            [
+                "sampling_circuit = bound_circuit.copy()",
+                "sampling_circuit.measure_all()",
+                "simulator = AerSimulator()",
+                f"compiled_circuit = transpile(sampling_circuit, simulator, seed_transpiler={workflow.seed!r})",
+                f"result = simulator.run(compiled_circuit, {run_options}).result()",
+                "raw_counts = result.get_counts()",
+                "full_counts = {state.replace(' ', '')[::-1]: int(count) for state, count in raw_counts.items()}",
+                "counts = {}",
+                f"distribution_targets = {list(distribution_targets)!r}",
+                "for state, count in full_counts.items():",
+                "    key = ''.join(state[index] for index in distribution_targets)",
+                "    counts[key] = counts.get(key, 0) + count",
+                "probabilities = {state: count / shots for state, count in counts.items()}",
+            ]
+        )
+    else:
+        lines.extend(["counts = {}", "probabilities = {}"])
     lines.extend(_neutral_result_lines("qiskit_aer"))
     lines.extend(_workflow_spec_lines(workflow))
     lines.append("")
@@ -610,7 +1011,6 @@ def _emit_qiskit_workflow(workflow: ParameterizedWorkflow) -> str:
 
 def _emit_qiskit_operations(workflow: ParameterizedWorkflow) -> list[str]:
     lines = []
-    measured = False
     for operation in workflow.operations:
         gate = "cx" if operation.gate == "CNOT" else operation.gate.lower()
         if operation.gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
@@ -645,15 +1045,10 @@ def _emit_qiskit_operations(workflow: ParameterizedWorkflow) -> list[str]:
             control = operation.controls[0] if operation.controls else operation.targets[0]
             target = operation.targets[-1]
             lines.append(f"circuit.cp({_parameter_expr(operation.parameter)}, {control}, {target})")
-        elif operation.gate == "MEASURE":
-            measured = True
-            lines.append(f"circuit.measure({operation.targets[0]}, {operation.targets[0]})")
-    if not measured and any(item.kind in {"counts", "samples"} for item in workflow.measurements):
-        lines.append("circuit.measure(range(circuit.num_qubits), range(circuit.num_qubits))")
     return lines
 
 
-def _emit_qiskit_measurement_comments(workflow: ParameterizedWorkflow) -> list[str]:
+def _emit_qiskit_expectations(workflow: ParameterizedWorkflow) -> list[str]:
     lines = []
     for index, request in enumerate(workflow.measurements):
         if request.kind == "expectation" and request.observable is not None:
@@ -661,14 +1056,13 @@ def _emit_qiskit_measurement_comments(workflow: ParameterizedWorkflow) -> list[s
                 f"observable_{index} = SparsePauliOp.from_list({_qiskit_pauli_terms(request.observable)})"
             )
             lines.append(
-                f"# Evaluate observable_{index} with qiskit.quantum_info estimator tooling when available."
+                f"expectations['expectation_{index}'] = float(Statevector.from_instruction(bound_circuit).expectation_value(observable_{index}).real)"
             )
-        elif request.kind == "probabilities":
-            lines.append(f"probability_targets_{index} = {list(request.targets)!r}")
     return lines
 
 
 def _emit_cirq_workflow(workflow: ParameterizedWorkflow) -> str:
+    distribution_targets = _workflow_distribution_targets(workflow)
     lines = [
         "import json",
         "",
@@ -680,21 +1074,31 @@ def _emit_cirq_workflow(workflow: ParameterizedWorkflow) -> str:
         *[f"{parameter} = sympy.Symbol({parameter!r})" for parameter in workflow.parameters],
     ]
     for operation in workflow.operations:
-        lines.append(_cirq_operation_line(operation))
-    if any(item.kind in {"counts", "samples"} for item in workflow.measurements):
-        lines.append("circuit.append(cirq.measure(*qubits, key='m'))")
+        if operation.gate != "MEASURE":
+            lines.append(_cirq_operation_line(operation))
     lines.extend(
         [
             f"parameter_resolver = {_python_dict(workflow.parameter_bindings)}",
             f"shots = {workflow.shots}",
-            "simulator = cirq.Simulator()",
-            "result = simulator.run(circuit, repetitions=shots, param_resolver=parameter_resolver)",
-            "histogram = result.histogram(key='m') if 'm' in result.measurements else {}",
-            f"counts = {{format(key, '0{workflow.n_qubits}b'): value for key, value in histogram.items()}}",
-            "probabilities = {state: count / shots for state, count in counts.items()}",
+            f"simulator = cirq.Simulator(seed={workflow.seed!r})",
+            "expectations = {}",
         ]
     )
-    lines.extend(_emit_cirq_measurement_comments(workflow))
+    lines.extend(_emit_cirq_expectations(workflow))
+    if distribution_targets:
+        lines.extend(
+            [
+                f"distribution_targets = {list(distribution_targets)!r}",
+                "measurement_qubits = [qubits[index] for index in distribution_targets]",
+                "measurement_circuit = circuit + cirq.measure(*measurement_qubits, key='m')",
+                "result = simulator.run(measurement_circuit, repetitions=shots, param_resolver=parameter_resolver)",
+                "histogram = result.histogram(key='m')",
+                f"counts = {{format(key, '0{len(distribution_targets)}b'): int(value) for key, value in histogram.items()}}",
+                "probabilities = {state: count / shots for state, count in counts.items()}",
+            ]
+        )
+    else:
+        lines.extend(["counts = {}", "probabilities = {}"])
     lines.extend(_neutral_result_lines("cirq"))
     lines.extend(_workflow_spec_lines(workflow))
     lines.append("")
@@ -738,16 +1142,14 @@ def _cirq_operation_line(operation: WorkflowOperation) -> str:
     raise AssertionError(operation.gate)
 
 
-def _emit_cirq_measurement_comments(workflow: ParameterizedWorkflow) -> list[str]:
+def _emit_cirq_expectations(workflow: ParameterizedWorkflow) -> list[str]:
     lines = []
     for index, request in enumerate(workflow.measurements):
         if request.kind == "expectation" and request.observable is not None:
             lines.append(f"observable_{index} = {_cirq_observable_expr(request.observable)}")
             lines.append(
-                f"# simulator.simulate_expectation_values can evaluate observable_{index}."
+                f"expectations['expectation_{index}'] = float(simulator.simulate_expectation_values(circuit, observables=[observable_{index}], param_resolver=parameter_resolver)[0].real)"
             )
-        elif request.kind == "probabilities":
-            lines.append(f"probability_targets_{index} = {list(request.targets)!r}")
     return lines
 
 
@@ -773,8 +1175,43 @@ def _emit_pennylane_workflow(workflow: ParameterizedWorkflow) -> str:
         [
             "",
             "raw_result = circuit()",
+            "raw_results = raw_result if isinstance(raw_result, tuple) else (raw_result,)",
             "counts = {}",
             "probabilities = {}",
+            "expectations = {}",
+        ]
+    )
+    for index, request in enumerate(workflow.measurements):
+        if request.kind == "expectation":
+            lines.append(f"expectations['expectation_{index}'] = float(raw_results[{index}])")
+        elif request.kind == "probabilities":
+            width = len(request.targets)
+            lines.extend(
+                [
+                    f"probability_values_{index} = raw_results[{index}].tolist()",
+                    f"probabilities = {{format(state, '0{width}b'): float(value) for state, value in enumerate(probability_values_{index})}}",
+                ]
+            )
+        else:
+            width = len(request.targets)
+            lines.extend(
+                [
+                    f"samples_{index} = raw_results[{index}].tolist()",
+                    (
+                        f"sample_rows_{index} = [[value] for value in samples_{index}]"
+                        if width == 1
+                        else f"sample_rows_{index} = samples_{index} if samples_{index} and isinstance(samples_{index}[0], list) else [samples_{index}]"
+                    ),
+                    "counts = {}",
+                    f"for sample in sample_rows_{index}:",
+                    "    state = ''.join(str(int(bit)) for bit in sample)",
+                    "    counts[state] = counts.get(state, 0) + 1",
+                ]
+            )
+    lines.extend(
+        [
+            "if counts:",
+            "    probabilities = {state: count / shots for state, count in counts.items()}",
         ]
     )
     lines.extend(_neutral_result_lines("pennylane"))
@@ -850,6 +1287,7 @@ def _pennylane_return_expr(workflow: ParameterizedWorkflow) -> str:
 
 
 def _emit_braket_workflow(workflow: ParameterizedWorkflow) -> str:
+    distribution_targets = _workflow_distribution_targets(workflow)
     lines = [
         "import json",
         "",
@@ -860,17 +1298,23 @@ def _emit_braket_workflow(workflow: ParameterizedWorkflow) -> str:
         "circuit = Circuit()",
     ]
     for operation in workflow.operations:
-        lines.append(_braket_operation_line(operation))
-    for request in workflow.measurements:
-        if request.kind == "probabilities":
-            lines.append(f"circuit.probability(target={list(request.targets)!r})")
-        elif request.kind == "expectation" and request.observable is not None:
+        if operation.gate != "MEASURE":
+            lines.append(_braket_operation_line(operation))
+    result_type_index = 0
+    expectation_terms: dict[int, list[tuple[int, float]]] = {}
+    for request_index, request in enumerate(workflow.measurements):
+        if request.kind == "expectation" and request.observable is not None:
+            expectation_terms[request_index] = []
             for term_index, term in enumerate(request.observable.terms):
                 observable, targets = _braket_term_expr(term)
-                lines.append(f"expectation_observable_{term_index} = {observable}")
+                lines.append(f"expectation_observable_{request_index}_{term_index} = {observable}")
                 lines.append(
-                    f"circuit.expectation(observable=expectation_observable_{term_index}, target={targets!r})"
+                    f"circuit.expectation(observable=expectation_observable_{request_index}_{term_index}, target={targets!r})"
                 )
+                expectation_terms[request_index].append(
+                    (result_type_index, float(term.coefficient))
+                )
+                result_type_index += 1
     lines.extend(
         [
             f"inputs = {_python_dict(workflow.parameter_bindings)}",
@@ -878,10 +1322,29 @@ def _emit_braket_workflow(workflow: ParameterizedWorkflow) -> str:
             "device = LocalSimulator()",
             "task = device.run(circuit, shots=shots, inputs=inputs)",
             "result = task.result()",
-            "counts = dict(result.measurement_counts)",
-            "probabilities = {state: count / shots for state, count in counts.items()}",
+            "expectations = {}",
         ]
     )
+    for request_index, terms in expectation_terms.items():
+        expression = " + ".join(
+            f"{coefficient!r} * float(result.values[{value_index}])"
+            for value_index, coefficient in terms
+        )
+        lines.append(f"expectations['expectation_{request_index}'] = {expression}")
+    if distribution_targets:
+        lines.extend(
+            [
+                "full_counts = {str(state): int(count) for state, count in result.measurement_counts.items()}",
+                "counts = {}",
+                f"distribution_targets = {list(distribution_targets)!r}",
+                "for state, count in full_counts.items():",
+                "    key = ''.join(state[index] for index in distribution_targets)",
+                "    counts[key] = counts.get(key, 0) + count",
+                "probabilities = {state: count / shots for state, count in counts.items()}",
+            ]
+        )
+    else:
+        lines.extend(["counts = {}", "probabilities = {}"])
     lines.extend(_neutral_result_lines("braket_local"))
     lines.extend(_workflow_spec_lines(workflow))
     lines.append("")
@@ -926,10 +1389,11 @@ def _braket_operation_line(operation: WorkflowOperation) -> str:
 def _neutral_result_lines(source_format: str) -> list[str]:
     return [
         "neutral_result = {",
+        f"    'schema_version': {NEUTRAL_SCHEMA_VERSION!r},",
         "    'counts': counts,",
         "    'shots': shots,",
         "    'probabilities': probabilities,",
-        "    'expectations': {},",
+        "    'expectations': expectations,",
         f"    'metadata': {{'source_format': {source_format!r}}},",
         "}",
         "print(json.dumps(neutral_result, indent=2, sort_keys=True))",
@@ -951,6 +1415,10 @@ def _parameter_expr(value: str | float | None) -> str:
 
 def _python_dict(values: dict[str, float]) -> str:
     return "{" + ", ".join(f"{key!r}: {value!r}" for key, value in sorted(values.items())) + "}"
+
+
+def _qiskit_parameter_dict(values: dict[str, float]) -> str:
+    return "{" + ", ".join(f"{key}: {value!r}" for key, value in sorted(values.items())) + "}"
 
 
 def _qiskit_pauli_terms(hamiltonian: PauliHamiltonian) -> str:
@@ -990,7 +1458,9 @@ def _braket_term_expr(term: PauliTerm) -> tuple[str, list[int]]:
             continue
         factors.append(f"Observable.{pauli}()")
         targets.append(wire)
-    return " @ ".join(factors) if factors else "Observable.I()", targets
+    if not factors:
+        return "Observable.I()", [0]
+    return " @ ".join(factors), targets
 
 
 def _counts_payload_for_format(payload: dict[str, Any], from_format: str) -> object:
@@ -1007,10 +1477,25 @@ def _result_metadata(payload: dict[str, Any], from_format: str) -> dict[str, obj
     return metadata
 
 
+def _shots_from_payload(payload: dict[str, Any], default: int) -> int:
+    value = payload.get("shots", default)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise _workflow_error("result.schema.shots", "Result shots must be a non-negative integer.")
+    return value
+
+
 def _counts_from_mapping(payload: object) -> dict[str, int]:
     if not isinstance(payload, dict):
         raise _workflow_error("result.counts", "Counts payload must be an object.")
-    return {str(key).replace(" ", ""): int(value) for key, value in payload.items()}
+    counts: dict[str, int] = {}
+    for key, value in payload.items():
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise _workflow_error(
+                "result.schema.counts",
+                "Counts values must be non-negative integers.",
+            )
+        counts[str(key).replace(" ", "")] = value
+    return counts
 
 
 def _counts_from_samples(samples: object) -> dict[str, int]:
@@ -1018,10 +1503,15 @@ def _counts_from_samples(samples: object) -> dict[str, int]:
         raise _workflow_error("result.samples", "PennyLane sample payload must be a list.")
     counter: Counter[str] = Counter()
     for sample in samples:
-        if isinstance(sample, list):
-            counter["".join(str(int(bit)) for bit in sample)] += 1
-        else:
-            counter[str(int(sample))] += 1
+        bits = sample if isinstance(sample, list) else [sample]
+        if not bits or any(
+            not isinstance(bit, int) or isinstance(bit, bool) or bit not in {0, 1} for bit in bits
+        ):
+            raise _workflow_error(
+                "result.schema.samples",
+                "Samples must contain non-empty lists of binary integers.",
+            )
+        counter["".join(str(bit) for bit in bits)] += 1
     return dict(sorted(counter.items()))
 
 
@@ -1032,7 +1522,15 @@ def _probabilities_from_payload(
         return _counts_to_probabilities(counts, shots)
     if not isinstance(payload, dict):
         raise _workflow_error("result.probabilities", "Probabilities payload must be an object.")
-    return {str(key).replace(" ", ""): float(value) for key, value in payload.items()}
+    probabilities: dict[str, float] = {}
+    for key, value in payload.items():
+        if not isinstance(value, int | float) or isinstance(value, bool):
+            raise _workflow_error(
+                "result.schema.probabilities",
+                "Probability values must be numeric.",
+            )
+        probabilities[str(key).replace(" ", "")] = float(value)
+    return probabilities
 
 
 def _counts_to_probabilities(counts: dict[str, int], shots: int) -> dict[str, float]:

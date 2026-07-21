@@ -346,6 +346,7 @@ def roundtrip_audit(
     include_hamiltonian: bool = False,
     include_workflow: bool = False,
     circuit_verify: str = "exact",
+    workflow_verify: str = "canonical",
 ) -> list[dict[str, Any]]:
     """Translate neutral objects to SDK snippets and back, then verify semantics."""
 
@@ -355,7 +356,7 @@ def roundtrip_audit(
     if include_hamiltonian:
         rows.extend(_hamiltonian_roundtrip_rows(selected))
     if include_workflow:
-        rows.extend(_workflow_roundtrip_rows(selected))
+        rows.extend(_workflow_roundtrip_rows(selected, verify=workflow_verify, tolerance=tolerance))
     return rows
 
 
@@ -585,7 +586,9 @@ def _hamiltonian_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
     return rows
 
 
-def _workflow_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
+def _workflow_roundtrip_rows(
+    targets: list[str], *, verify: str, tolerance: float
+) -> list[dict[str, Any]]:
     expected, _ = import_workflow_source(DEFAULT_WORKFLOW_SOURCE, from_format="workflow-json")
     rows: list[dict[str, Any]] = []
     for target in targets:
@@ -597,7 +600,14 @@ def _workflow_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
             imported, detected = import_workflow_source(
                 source, from_format=_workflow_import_format(target)
             )
-            verification = verify_workflow_translation(expected, source, to_format=target)
+            verification = verify_workflow_translation(
+                expected,
+                source,
+                to_format=target,
+                mode=verify,
+                distribution_tolerance=tolerance,
+                expectation_tolerance=tolerance,
+            )
             canonical = canonical_workflow(imported)
             operations = canonical["operations"]
             measurements = canonical["measurements"]
@@ -610,6 +620,13 @@ def _workflow_roundtrip_rows(targets: list[str]) -> list[dict[str, Any]]:
                     "detected_format": detected,
                     "operations": len(operations) if isinstance(operations, list) else 0,
                     "measurements": len(measurements) if isinstance(measurements, list) else 0,
+                    "verification_mode": verification.mode,
+                    "total_variation_distance": verification.total_variation_distance,
+                    "tolerance": verification.tolerance,
+                    "canonical_match": verification.canonical_match,
+                    "expectation_max_abs_error": verification.expectation_max_abs_error,
+                    "expectation_tolerance": verification.expectation_tolerance,
+                    "result_schema_valid": verification.result_schema_valid,
                     "details": verification.details,
                 }
             )

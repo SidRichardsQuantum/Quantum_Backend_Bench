@@ -6,6 +6,8 @@ import json
 import py_compile
 import tomllib
 from pathlib import Path
+from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
 
 REQUIRED_SDIST_DOCS = {
     "README.md",
@@ -36,6 +38,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
     assert extras["cudaq"] == ["cudaq"]
     assert "cirq" in extras["dev"]
+    assert "jsonschema" in extras["dev"]
     assert "mypy" in extras["dev"]
     assert "pandas" in extras["dev"]
     assert extras["docs"] == ["markdown", "matplotlib", "pymdown-extensions"]
@@ -69,7 +72,15 @@ def test_required_docs_are_included_in_sdist_manifest() -> None:
 def test_ci_constraints_exist_for_reproducible_validation() -> None:
     constraints = Path("constraints/ci.txt").read_text(encoding="utf-8")
 
-    for package in ("mypy", "pytest", "ruff", "cirq", "qiskit-aer", "pennylane"):
+    for package in (
+        "mypy",
+        "pytest",
+        "ruff",
+        "jsonschema",
+        "cirq",
+        "qiskit-aer",
+        "pennylane",
+    ):
         assert package in constraints
     assert "cirq>=1.4,<2" in constraints
     assert "qiskit-aer>=0.15,<1" in constraints
@@ -125,3 +136,44 @@ def test_example_scripts_compile() -> None:
 def test_release_scripts_compile() -> None:
     for path in sorted(Path("scripts").glob("*.py")):
         py_compile.compile(path, doraise=True)
+
+
+def test_neutral_json_schemas_publish_draft_ids_and_shared_references() -> None:
+    schemas = {
+        path.stem.removesuffix(".schema"): json.loads(path.read_text(encoding="utf-8"))
+        for path in Path("docs/schemas").glob("*.schema.json")
+    }
+
+    assert set(schemas) == {"internal-circuit", "pauli-json", "result-json", "workflow-json"}
+    for name, schema in schemas.items():
+        assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+        assert schema["$id"].endswith(f"/schemas/{name}.schema.json")
+        assert "" not in schema
+
+    observable = schemas["workflow-json"]["properties"]["measurements"]["items"]["properties"][
+        "observable"
+    ]
+    assert observable == {"$ref": "pauli-json.schema.json"}
+
+
+def test_neutral_schema_examples_validate_against_published_schemas() -> None:
+    schema_paths = sorted(Path("docs/schemas").glob("*.schema.json"))
+    example_paths = sorted(Path("docs/schema_examples").glob("*.example.json"))
+    schemas = {
+        path.name.removesuffix(".schema.json"): json.loads(path.read_text(encoding="utf-8"))
+        for path in schema_paths
+    }
+    examples = {
+        path.name.removesuffix(".example.json"): json.loads(path.read_text(encoding="utf-8"))
+        for path in example_paths
+    }
+
+    assert schemas.keys() == examples.keys()
+    for schema in schemas.values():
+        Draft202012Validator.check_schema(schema)
+
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema)) for schema in schemas.values()
+    )
+    for name, example in examples.items():
+        Draft202012Validator(schemas[name], registry=registry).validate(example)

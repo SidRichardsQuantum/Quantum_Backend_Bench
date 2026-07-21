@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.2.13] - 2026-07-21
+
+### Added
+
+- Added `translate-workflow --verify semantic` with exact neutral measurement-distribution TVD, Pauli expectation-value maximum absolute error, configurable distribution/expectation tolerances, result-schema validity, and report fields.
+- Added `roundtrip-audit --workflow-verify` plus optional-SDK execution fixtures that run generated Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator workflows and inspect their neutral results.
+- Added public neutral workflow evaluation and result-contract validation helpers.
+- Added CI validation for every committed neutral JSON Schema and matching example, including local cross-schema `$ref` resolution.
+
+### Changed
+
+- Generated Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator workflow scripts now emit schema-versioned runtime counts, normalized probabilities, and populated Pauli expectations instead of placeholder result fields.
+- Updated workflow golden outputs, round-trip audit artifacts, semantic contracts, roadmap guidance, and translation/schema documentation for executable result fidelity.
+- Repaired all neutral JSON Schemas with Draft 2020-12 `$schema` and stable `$id` declarations; `workflow-json` now references the shared `pauli-json` schema.
+
+### Fixed
+
+- Golden translation generation now applies the repository's Black configuration so regeneration and `black .` produce identical Python fixtures.
+- Result normalization now rejects invalid field types, count/shot mismatches, non-normalized probabilities, count/probability inconsistencies, non-finite expectations, and unsupported schema versions with structured diagnostics.
+- Workflow emission now rejects multiple distinct distribution target sets, missing result requests, and explicit measurements without a portable distribution result request.
+
 ## [0.2.12]
 
 ### Added

@@ -20,6 +20,10 @@ Translation workflows use four neutral JSON formats. Each format is versioned wi
 `schema_version: "0.1"`. Importers remain tolerant of older local examples that omit the
 field, but newly emitted neutral JSON includes it. Patch releases may clarify docs or add
 optional fields; incompatible structural changes require a new schema version.
+The published files declare JSON Schema Draft 2020-12 with stable `$id` values, and the
+workflow schema references the shared Pauli schema rather than duplicating it.
+CI checks each schema itself and validates every matching committed example through a
+local schema registry, so relative cross-schema references are exercised without network access.
 
 | Format | JSON Schema | Example | Purpose |
 |---|---|---|---|
@@ -58,7 +62,10 @@ Expectation requests embed a `pauli-json` observable payload.
 ### `result-json`
 
 A neutral result object contains `counts`, `shots`, normalized `probabilities`, optional
-`expectations`, and free-form `metadata`.
+`expectations`, and free-form `metadata`. Runtime validation checks field types, non-negative
+integer counts and shots, normalized finite probabilities, count totals equal to shots,
+probabilities consistent with counts when both are present, and finite expectation values.
+Expectation-only results may leave counts and probabilities empty.
 
 ## Experiment Bundle
 
