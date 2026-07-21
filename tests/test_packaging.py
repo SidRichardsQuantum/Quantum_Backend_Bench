@@ -83,6 +83,8 @@ def test_ci_constraints_exist_for_reproducible_validation() -> None:
     ):
         assert package in constraints
     assert "cirq>=1.4,<2" in constraints
+    assert "matplotlib==3.11.1" in constraints
+    assert "pillow==12.3.0" in constraints
     assert "qiskit-aer>=0.15,<1" in constraints
 
 

@@ -21,6 +21,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Fixed
 
+- Pinned the CI notebook PNG render stack and removed version-dependent Matplotlib metadata so committed documentation plots regenerate byte-for-byte.
 - Golden translation generation now applies the repository's Black configuration so regeneration and `black .` produce identical Python fixtures.
 - Result normalization now rejects invalid field types, count/shot mismatches, non-normalized probabilities, count/probability inconsistencies, non-finite expectations, and unsupported schema versions with structured diagnostics.
 - Workflow emission now rejects multiple distinct distribution target sets, missing result requests, and explicit measurements without a portable distribution result request.

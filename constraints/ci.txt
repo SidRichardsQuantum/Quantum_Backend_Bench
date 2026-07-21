@@ -11,11 +11,13 @@ cirq>=1.4,<2
 cudaq>=0.8,<1
 jsonschema>=4.23,<5
 markdown>=3.6,<4
-matplotlib>=3.8,<4
+# Exact render-stack pins keep committed notebook PNGs byte-reproducible.
+matplotlib==3.11.1
 mypy>=1.10,<2
 numpy>=1.26,<2.3
 pandas>=2.2,<3
 pennylane>=0.38,<1
+pillow==12.3.0
 pymdown-extensions>=10,<11
 pytest>=8,<10
 pyquil>=4,<5

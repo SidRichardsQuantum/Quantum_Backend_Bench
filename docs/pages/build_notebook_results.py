@@ -12,6 +12,7 @@ NOTEBOOK_ARTIFACTS = ROOT / "artifacts" / "notebooks"
 DOC_ASSETS = ROOT / "docs" / "pages" / "assets" / "notebooks"
 RESULTS_DOC = ROOT / "docs" / "RESULTS.md"
 
+PNG_METADATA = {"Software": "quantum-backend-bench"}
 NOTEBOOK_RESULT_FILES = {
     "quickstart": "quickstart_cirq_smoke.json",
     "comparison": "local_simulator_comparison.json",
@@ -205,7 +206,12 @@ def _plot_sdk_tvd(results: list[dict[str, Any]], plt: Any) -> None:
 
 
 def _save_plot(figure: Any, plt: Any, file_name: str) -> None:
-    figure.savefig(DOC_ASSETS / file_name, dpi=150, bbox_inches="tight")
+    figure.savefig(
+        DOC_ASSETS / file_name,
+        dpi=150,
+        bbox_inches="tight",
+        metadata=PNG_METADATA,
+    )
     plt.close(figure)
 
 
