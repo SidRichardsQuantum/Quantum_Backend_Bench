@@ -39,13 +39,6 @@ class BackendCapability:
 
 
 BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
-    "amplitude-estimation": BenchmarkInfo(
-        cli_name="amplitude-estimation",
-        result_name="amplitude_estimation",
-        family="estimation",
-        description="Run a compact amplitude amplification workload.",
-        key_parameters=("n_qubits", "probability", "iterations"),
-    ),
     "bernstein-vazirani": BenchmarkInfo(
         cli_name="bernstein-vazirani",
         result_name="bernstein_vazirani",
@@ -81,13 +74,6 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         description="Run first-order Trotterized Ising-style evolution.",
         key_parameters=("n_qubits", "time", "trotter_steps"),
     ),
-    "phase-estimation": BenchmarkInfo(
-        cli_name="phase-estimation",
-        result_name="phase_estimation",
-        family="estimation",
-        description="Run a small phase-kickback and inverse-QFT-style workload.",
-        key_parameters=("n_qubits", "phase"),
-    ),
     "qft": BenchmarkInfo(
         cli_name="qft",
         result_name="qft",
@@ -102,13 +88,6 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         description="Run a single-layer QAOA MaxCut workload on a line or ring graph.",
         key_parameters=("n_qubits", "gamma", "beta", "graph"),
     ),
-    "quantum-kernel": BenchmarkInfo(
-        cli_name="quantum-kernel",
-        result_name="quantum_kernel",
-        family="machine_learning",
-        description="Run a repeated feature-map circuit for kernel-method examples.",
-        key_parameters=("n_qubits", "depth", "feature_scale"),
-    ),
     "quantum-volume": BenchmarkInfo(
         cli_name="quantum-volume",
         result_name="quantum_volume",
@@ -122,13 +101,6 @@ BENCHMARK_INFOS: dict[str, BenchmarkInfo] = {
         family="synthetic",
         description="Build a reproducible random circuit with fixed gate choices.",
         key_parameters=("n_qubits", "depth", "seed"),
-    ),
-    "vqe-ansatz": BenchmarkInfo(
-        cli_name="vqe-ansatz",
-        result_name="vqe_ansatz",
-        family="chemistry",
-        description="Run a hardware-efficient ansatz used in VQE-style workflows.",
-        key_parameters=("n_qubits", "depth", "theta"),
     ),
 }
 
@@ -216,19 +188,6 @@ def backend_capabilities() -> list[BackendCapability]:
             notes="Uses pyQuil with local QVM/quilc runtime.",
         ),
         BackendCapability(
-            name="qutip",
-            role="execution",
-            installed=_is_module_installed("qutip"),
-            install_extra="qutip",
-            noise_support="not injected",
-            shot_sampling=True,
-            exact_statevector=True,
-            external_process=False,
-            includes_transpilation_time=False,
-            local_only=True,
-            notes="Uses a QuTiP-compatible local statevector simulation.",
-        ),
-        BackendCapability(
             name="pytket",
             role="analysis/draw",
             installed=_is_module_installed("pytket"),
@@ -266,32 +225,6 @@ def backend_capabilities() -> list[BackendCapability]:
             includes_transpilation_time=False,
             local_only=True,
             notes="Required for YAML experiment manifests.",
-        ),
-        BackendCapability(
-            name="qbraid",
-            role="interop/runtime",
-            installed=_is_module_installed("qbraid"),
-            install_extra="qbraid",
-            noise_support="n/a",
-            shot_sampling=False,
-            exact_statevector=False,
-            external_process=True,
-            includes_transpilation_time=False,
-            local_only=False,
-            notes="Pip-installable SDK; reported for interop, not used as a local execution backend.",
-        ),
-        BackendCapability(
-            name="qsharp",
-            role="language/runtime",
-            installed=_is_module_installed("qsharp"),
-            install_extra="qsharp",
-            noise_support="n/a",
-            shot_sampling=False,
-            exact_statevector=False,
-            external_process=False,
-            includes_transpilation_time=False,
-            local_only=True,
-            notes="Pip-installable Q# runtime; reported for interop, not used as a circuit backend.",
         ),
     ]
     known_execution = {

@@ -108,7 +108,7 @@ def _slug(value: str) -> str:
     [
         ("translation.html", "Circuit Translation", "translate-check"),
         ("sdk-audits.html", "SDK Audits", "roundtrip-audit"),
-        ("roadmap.html", "Roadmap", "translate-all"),
+        ("roadmap.html", "Roadmap", "OpenQASM 3"),
     ],
 )
 def test_generated_site_includes_expected_pages(

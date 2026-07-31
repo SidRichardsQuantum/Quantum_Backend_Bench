@@ -14,7 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "notebooks"
 EXPECTED_KERNEL = {"display_name": "Python 3", "language": "python", "name": "python3"}
-SDK_NOTEBOOK_PATTERN = re.compile(r"^0[4-8]_sdk_.*_workflow\.ipynb$")
+SDK_NOTEBOOK_PATTERN = re.compile(r"^04_compare_sdk_workflows\.ipynb$")
 
 
 def test_notebook_numbering_is_unique_and_contiguous() -> None:
@@ -56,11 +56,7 @@ def test_sdk_notebooks_use_shared_notebook_helpers() -> None:
         if SDK_NOTEBOOK_PATTERN.match(path.name)
     ]
     assert [path.name for path in sdk_notebooks] == [
-        "04_sdk_cirq_workflow.ipynb",
-        "05_sdk_qiskit_workflow.ipynb",
-        "06_sdk_pennylane_workflow.ipynb",
-        "07_sdk_braket_workflow.ipynb",
-        "08_sdk_qutip_workflow.ipynb",
+        "04_compare_sdk_workflows.ipynb",
     ]
 
     for path in sdk_notebooks:
@@ -140,7 +136,7 @@ def _code_source(notebook: dict[str, Any]) -> str:
 
 
 def test_translation_notebook_uses_translation_helpers() -> None:
-    path = NOTEBOOK_DIR / "09_circuit_translation_workflow.ipynb"
+    path = NOTEBOOK_DIR / "05_circuit_translation_workflow.ipynb"
     notebook = _load_notebook(path)
     source = _code_source(notebook)
 
@@ -157,7 +153,7 @@ def test_translation_notebook_uses_translation_helpers() -> None:
 
 
 def test_hamiltonian_translation_notebook_uses_translation_helpers() -> None:
-    path = NOTEBOOK_DIR / "10_observable_hamiltonian_translation_workflow.ipynb"
+    path = NOTEBOOK_DIR / "06_observable_hamiltonian_translation_workflow.ipynb"
     notebook = _load_notebook(path)
     source = _code_source(notebook)
 
@@ -174,7 +170,7 @@ def test_hamiltonian_translation_notebook_uses_translation_helpers() -> None:
 
 
 def test_workflow_translation_notebook_uses_workflow_helpers() -> None:
-    path = NOTEBOOK_DIR / "11_parameterized_workflow_translation.ipynb"
+    path = NOTEBOOK_DIR / "07_parameterized_workflow_translation.ipynb"
     notebook = _load_notebook(path)
     source = _code_source(notebook)
 
@@ -191,7 +187,7 @@ def test_workflow_translation_notebook_uses_workflow_helpers() -> None:
 
 
 def test_migration_audit_notebook_uses_new_example_corpus() -> None:
-    path = NOTEBOOK_DIR / "12_translation_migration_audit_workflow.ipynb"
+    path = NOTEBOOK_DIR / "08_translation_migration_audit_workflow.ipynb"
     notebook = _load_notebook(path)
     source = _code_source(notebook)
 
@@ -205,5 +201,4 @@ def test_migration_audit_notebook_uses_new_example_corpus() -> None:
     assert "portable" in source
     assert "results" in source
     assert "purpose_workflows" in source
-    assert "roadmap" in source
     assert "verification_frame" in source

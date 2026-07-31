@@ -1,117 +1,46 @@
 # Roadmap
 
-This roadmap tracks the next product direction for `quantum-backend-bench`. The
-project remains local-first and reproducibility-focused, but the next major area
-of work is making the package more useful for users moving small quantum
-workloads across multiple SDKs.
+This roadmap tracks planned work for `quantum-backend-bench`. The project is
+centered on local quantum SDK comparison, translation, and semantic verification.
+Completed work and release history belong in [CHANGELOG.md](./CHANGELOG.md).
 
-## Interop and Translation Stabilization
+## Translation and Interop Priorities
 
-The recommended next release theme is a verified SDK interop layer:
-
-> Define a neutral, verified contract for moving small quantum workloads across
-> Qiskit, Cirq, PennyLane, and Braket LocalSimulator.
-
-Recently completed:
-
-- `translate-check --to-format`, `translate-check --save-markdown`, and
-  `translate-all` now provide target-aware migration checks and
-  multi-target local SDK artifacts.
-- Translation commands now report an explicit semantic contract for the
-  declared neutral subset, including preserved semantics, rewrites, rejected
-  constructs, unmodeled behavior, and verification modes.
-- Neutral schemas for `internal-circuit`, `pauli-json`, `workflow-json`, and
-  `result-json` now include `schema_version` metadata, JSON Schema files, and
-  committed examples.
-- Circuit translation now routes SDK import and emit behavior through adapter
-  modules with explicit import, emit, capability, and diagnostic hooks.
-- Workflow translation now supports arithmetic parameter expressions over
-  declared parameters and an accepted PennyLane QNode Pauli-expectation fixture.
-- `quantum-bench compatibility` now reports tested optional-SDK version bands
-  derived from CI constraints.
-- CI now checks that `migration_audit/` and `roundtrip_audit/` expected
-  artifacts regenerate cleanly.
-- Neutral circuit metadata now preserves named quantum/classical register
-  offsets, measurement keys, bit-order labels, global phase, richer gates (`U`,
-  `SX`, phase gates, `CCX`, and controlled rotations), and optional neutral
-  local noise-channel annotations.
-- The Braket `circuit.expectation(...)` Pauli result-type fixture is now
-  accepted workflow coverage with canonical reimport verification.
-- Neutral circuit translation now includes reset/barrier/delay annotations where
-  preservable, target-aware annotation diagnostics, and canonical/statevector
-  verification modes for stronger local interop checks.
-- Workflow emitters now produce schema-versioned counts, probabilities, and
-  Pauli expectation values; semantic workflow verification reports exact
-  distribution TVD, expectation-value error, and neutral result-schema validity.
-
-Planned work:
-
-- Continue expanding the neutral IR before adding non-local provider
-  integrations. Remaining priority fields now focus on broader OpenQASM 3
-  coverage and clearer handling of target-specific annotation gaps.
+- Broaden the portable OpenQASM 3 subset and make target-specific annotation
+  gaps explicit, while keeping neutral local noise channels distinct from
+  SDK-specific or provider-calibrated noise semantics.
+- Improve static SDK source importers for common Qiskit `QuantumCircuit`, Cirq
+  construction and measurement-key, PennyLane QNode/tape, and Braket `Circuit`
+  result-type patterns.
 - Keep translation conservative: reject unsupported dynamic Python constructs
   with structured diagnostics instead of producing approximate rewrites.
-- Extend supported semantics carefully, continuing with a broader OpenQASM 3
-  subset and clearer distinctions between neutral local noise channels and
-  provider-calibrated noise semantics.
-- Improve SDK-native source importers while keeping static analysis as the
-  default guardrail: broader Qiskit `QuantumCircuit`/OpenQASM handling, Cirq
-  construction styles and measurement keys, broader PennyLane QNode/tape
-  patterns, broader Braket `Circuit` result types.
-- Continue strengthening semantic verification beyond canonical, statevector,
-  distribution, expectation-value, and result-schema checks with small
-  density-matrix comparison for neutral noisy channels.
-- Add purpose-level workflow specs for common jobs such as sampler, estimator,
-  VQE, QAOA, Hamiltonian simulation, parameter sweeps, and measurement
-  grouping, so translations can preserve user intent instead of only gate
-  syntax.
-- Grow the translation corpus with accepted and rejected real-world snippets,
-  expected diagnostics, verification reports, and CI-generated per-SDK coverage
-  artifacts. Keep `roadmap/` examples excluded from supported verification until
-  implemented.
-- Tighten notebook artifact handling for migration-audit notebooks, including
-  stable generated artifact names and path scrubbing if notebook outputs are
-  later committed as docs assets.
-- Add optional self-describing `purpose` or `notes` fields to generated
-  translation reports and committed expected-report examples so artifacts remain
-  understandable outside the README context.
-- Tighten optional SDK compatibility further with scheduled optional-SDK CI
-  coverage and refreshed version-band review cadence.
+- Add small density-matrix comparisons for neutral noisy channels to strengthen
+  verification beyond canonical, statevector, distribution, expectation-value,
+  and result-schema checks.
+- Grow the accepted and rejected translation corpus with real-world snippets,
+  expected diagnostics, verification reports, and per-SDK coverage artifacts.
+- Add scheduled optional-SDK compatibility runs and continue reviewing tested
+  version bands as upstream SDKs evolve.
 
 ## Scope Guardrails
 
-- Keep the core centered on local SDK comparison, translation, and verification.
-- Freeze broad benchmark-family expansion: add new benchmark families only
-  when they directly strengthen SDK parity checks, translation validation, or
-  reproducible semantic audits.
-- Keep plotting, notebooks, reference bundles, generated Pages assets, and
-  hardware-preparation exports framed as research/reproducibility support
-  material rather than core API expansion.
-- Keep qBraid and Q# / QDK discovery-only until they can participate in
-  execution, translation, or verification under the same neutral contract.
-
-## Longer-Term Directions
-
-- Consider additional local SDK targets only when they fit the same neutral
-  contract and verification model.
-- Prefer deeper support for free, instantly accessible local SDKs first:
-  Qiskit Aer, Cirq, PennyLane, Braket `LocalSimulator`, and QuTiP as an
-  independent reference/verifier. Treat CUDA-Q as local-optional when install
-  friction is acceptable, and keep pyQuil optional because local QVM/quilc
-  runtime requirements make it less instant-accessible.
-- Keep cloud hardware and provider-service workflows optional and outside the
-  default onboarding path.
-- Revisit non-free or non-instant SDK/provider integrations only if a required
-  translation capability cannot be modeled or verified with the local/free SDK
-  set.
-- Add new benchmark families only when they strengthen reproducible SDK
-  comparison, translation validation, or semantic audit coverage; avoid turning
-  the project into a general quantum algorithm benchmark collection.
+- Keep the core centered on free, local SDK comparison, translation, and
+  verification.
+- Prefer deeper support for Qiskit Aer, Cirq, PennyLane, and Braket
+  `LocalSimulator` before adding another SDK target.
+- Consider another local SDK only when it supports the same neutral contract and
+  verification model. Keep CUDA-Q platform-optional and pyQuil optional because
+  it requires local QVM/quilc runtimes.
+- Add a benchmark family only when it directly strengthens SDK parity,
+  translation validation, or a reproducible semantic audit.
 
 ## Non-Goals
 
 - Arbitrary Python program migration.
-- Hardware performance claims, cloud queue benchmarking, or provider billing
-  workflows in the default path.
-- Broad speed rankings that are not tied to captured environment metadata and
+- Cloud job submission, provider credentials, billing workflows, or queue
+  benchmarking.
+- Quantum hardware performance or certification claims.
+- Broad simulator speed rankings without captured environment metadata and
   explicit adapter caveats.
+- General quantum algorithm benchmark expansion unrelated to SDK comparison or
+  translation verification.

@@ -41,11 +41,8 @@
           "pennylane": "0.44.1",
           "pyquil": "4.17.0",
           "pytket": "2.16.0",
-          "qbraid": "0.11.1",
           "qiskit": "2.4.1",
-          "qiskit-aer": "0.17.2",
-          "qsharp": "1.27.0",
-          "qutip": "5.2.3"
+          "qiskit-aer": "0.17.2"
         },
         "platform": {
           "machine": "x86_64",
@@ -156,11 +153,8 @@
           "pennylane": "0.44.1",
           "pyquil": "4.17.0",
           "pytket": "2.16.0",
-          "qbraid": "0.11.1",
           "qiskit": "2.4.1",
-          "qiskit-aer": "0.17.2",
-          "qsharp": "1.27.0",
-          "qutip": "5.2.3"
+          "qiskit-aer": "0.17.2"
         },
         "platform": {
           "machine": "x86_64",
@@ -279,11 +273,8 @@
           "pennylane": "0.44.1",
           "pyquil": "4.17.0",
           "pytket": "2.16.0",
-          "qbraid": "0.11.1",
           "qiskit": "2.4.1",
-          "qiskit-aer": "0.17.2",
-          "qsharp": "1.27.0",
-          "qutip": "5.2.3"
+          "qiskit-aer": "0.17.2"
         },
         "platform": {
           "machine": "x86_64",
@@ -403,11 +394,8 @@
           "pennylane": "0.44.1",
           "pyquil": "4.17.0",
           "pytket": "2.16.0",
-          "qbraid": "0.11.1",
           "qiskit": "2.4.1",
-          "qiskit-aer": "0.17.2",
-          "qsharp": "1.27.0",
-          "qutip": "5.2.3"
+          "qiskit-aer": "0.17.2"
         },
         "platform": {
           "machine": "x86_64",

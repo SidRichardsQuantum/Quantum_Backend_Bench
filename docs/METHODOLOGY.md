@@ -38,7 +38,7 @@ For background on qubits, circuits, shots, distributions, noise, benchmark famil
 Adapters differ in what their runtime includes:
 
 - Qiskit Aer and pyQuil include compilation/transpilation work in the adapter runtime.
-- Cirq, PennyLane, Braket LocalSimulator, CUDA-Q, and QuTiP primarily measure local sample/simulation execution inside the adapter.
+- Cirq, PennyLane, Braket LocalSimulator, and CUDA-Q primarily measure local sample/simulation execution inside the adapter.
 - pyQuil may start or connect to local QVM/quilc processes through its local Forest runtime helper.
 
 These differences are reported by `quantum-bench info` and should be disclosed when comparing backends.

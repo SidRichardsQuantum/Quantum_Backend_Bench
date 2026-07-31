@@ -94,29 +94,5 @@
     "shot_sampling": true,
     "unsupported_noise_models": {},
     "workflow_translation": true
-  },
-  {
-    "circuit_translation": false,
-    "exact_statevector": true,
-    "execution_backend": true,
-    "installed": true,
-    "local_only": true,
-    "measurement_grouping": false,
-    "noise_models": {},
-    "notes": "Uses a QuTiP-compatible local statevector simulation.",
-    "pauli_hamiltonians": false,
-    "python_package_only": true,
-    "result_normalization": false,
-    "runtime_includes_transpilation": false,
-    "sdk": "qutip",
-    "shot_sampling": true,
-    "unsupported_noise_models": {
-      "amplitude_damping": "not injected",
-      "bit_flip": "not injected",
-      "depolarizing": "not injected",
-      "phase_flip": "not injected",
-      "readout_error": "not injected"
-    },
-    "workflow_translation": false
   }
 ]

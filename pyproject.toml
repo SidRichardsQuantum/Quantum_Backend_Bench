@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-backend-bench"
-version = "0.2.13"
-description = "Backend-agnostic benchmarking toolkit for local quantum SDK simulators."
+version = "0.2.14"
+description = "Compare local quantum SDKs and translate circuits and workflows between them."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -19,6 +19,7 @@ keywords = [
   "pennylane",
   "qiskit",
   "quantum-computing",
+  "quantum-sdk-translation",
   "quantum-simulation",
   "reproducibility",
 ]
@@ -36,6 +37,10 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Software Development :: Testing",
+]
+
+dependencies = [
+  "numpy>=1.26",
 ]
 
 [project.urls]
@@ -84,18 +89,9 @@ plot = [
 pyquil = [
   "pyquil",
 ]
-qbraid = [
-  "qbraid",
-]
 qiskit = [
   "qiskit",
   "qiskit-aer",
-]
-qsharp = [
-  "qsharp",
-]
-qutip = [
-  "qutip",
 ]
 tket = [
   "pytket",
@@ -109,11 +105,8 @@ all = [
   "matplotlib",
   "pennylane",
   "pytket",
-  "qbraid",
   "qiskit",
   "qiskit-aer",
-  "qsharp",
-  "qutip",
   "PyYAML",
 ]
 full = [
@@ -124,11 +117,8 @@ full = [
   "pennylane",
   "pyquil",
   "pytket",
-  "qbraid",
   "qiskit",
   "qiskit-aer",
-  "qsharp",
-  "qutip",
   "PyYAML",
 ]
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-import json
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 
@@ -11,13 +10,15 @@ from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
     CircuitOperation,
     InternalCircuit,
-    NoiseInstruction,
 )
 from quantum_backend_bench.core.circuit_export import import_openqasm_circuit
 from quantum_backend_bench.core.exact import exact_probabilities
 from quantum_backend_bench.core.metrics import normalize_counts, total_variation_distance
+from quantum_backend_bench.core.neutral_circuit import (
+    internal_circuit_from_json,
+    internal_circuit_to_json,
+)
 from quantum_backend_bench.core.neutral_schema import (
-    NEUTRAL_SCHEMA_VERSION,
     report_schema_metadata,
 )
 
@@ -574,10 +575,10 @@ def verify_translation(
     original_probs = exact_probabilities(original)
     translated_probs = exact_probabilities(imported)
     if mode == "samples":
-        from quantum_backend_bench.backends.qutip_backend import _sample_counts
+        from quantum_backend_bench.core.neutral_simulator import sample_counts
 
-        original_counts = _sample_counts(original_probs, shots=sample_shots, seed=0)
-        translated_counts = _sample_counts(translated_probs, shots=sample_shots, seed=0)
+        original_counts = sample_counts(original_probs, shots=sample_shots, seed=0)
+        translated_counts = sample_counts(translated_probs, shots=sample_shots, seed=0)
         original_distribution = normalize_counts(original_counts, shots=sample_shots)
         translated_distribution = normalize_counts(translated_counts, shots=sample_shots)
         tvd = total_variation_distance(translated_distribution, original_distribution)
@@ -721,51 +722,14 @@ def _detect_format(source: str) -> str:
 
 
 def _import_internal_json(source: str, *, name: str) -> BenchmarkSpec:
-    payload = json.loads(source)
-    operations = [
-        CircuitOperation(
-            str(item["gate"]).upper(),
-            tuple(int(qubit) for qubit in item["qubits"]),
-            dict(item.get("params", {})),
-        )
-        for item in payload.get("operations", [])
-    ]
-    n_qubits = int(payload["n_qubits"])
-    measurements = [int(qubit) for qubit in payload.get("measurements", [])]
-    noise = [
-        NoiseInstruction(
-            str(item["channel"]).lower(),
-            tuple(int(target) for target in item.get("targets", range(n_qubits))),
-            float(item.get("probability", item.get("p", 0.0))),
-        )
-        for item in payload.get("noise", [])
-    ]
-    circuit = InternalCircuit(
-        n_qubits,
-        operations,
-        measurements or list(range(n_qubits)),
-        quantum_registers=_register_payload(payload.get("quantum_registers")),
-        classical_registers=_register_payload(payload.get("classical_registers")),
-        measurement_keys={
-            str(key): str(value) for key, value in payload.get("measurement_keys", {}).items()
-        },
-        bit_order=str(payload.get("bit_order", "measurement-list")),
-        global_phase=float(payload.get("global_phase", 0.0)),
-        noise=noise,
-    )
+    circuit = internal_circuit_from_json(source)
     return BenchmarkSpec(
         name=name,
-        n_qubits=n_qubits,
+        n_qubits=circuit.n_qubits,
         parameters={"source": "internal-json"},
         circuit_data=circuit,
         metadata={"family": "imported", "format": "internal-json"},
     )
-
-
-def _register_payload(payload: object) -> dict[str, list[int]]:
-    if not isinstance(payload, dict):
-        return {}
-    return {str(key): [int(item) for item in value] for key, value in payload.items()}
 
 
 def _import_python_sdk(source: str, sdk: str, *, name: str) -> BenchmarkSpec:
@@ -1639,29 +1603,7 @@ def _literal_constant(node: ast.AST, constants: dict[str, object]) -> object | N
 
 
 def _emit_internal_json(circuit: InternalCircuit) -> str:
-    payload: dict[str, object] = {
-        "schema_version": NEUTRAL_SCHEMA_VERSION,
-        "n_qubits": circuit.n_qubits,
-        "operations": [
-            {"gate": op.gate, "qubits": list(op.qubits), "params": op.params}
-            for op in circuit.operations
-        ],
-        "measurements": circuit.measurements,
-        "quantum_registers": circuit.quantum_registers,
-        "classical_registers": circuit.classical_registers,
-        "measurement_keys": circuit.measurement_keys,
-        "bit_order": circuit.bit_order,
-        "global_phase": circuit.global_phase,
-        "noise": [
-            {
-                "channel": item.channel,
-                "targets": list(item.targets),
-                "probability": item.probability,
-            }
-            for item in circuit.noise
-        ],
-    }
-    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    return internal_circuit_to_json(circuit)
 
 
 def _internal_circuit(benchmark: BenchmarkSpec) -> InternalCircuit:

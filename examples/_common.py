@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from quantum_backend_bench import backend_capabilities
 
-DEFAULT_BACKEND_ORDER = ("cirq", "pennylane", "qiskit_aer", "braket_local", "qutip")
+DEFAULT_BACKEND_ORDER = ("cirq", "pennylane", "qiskit_aer", "braket_local")
 NOISE_BACKEND_ORDER = ("cirq", "pennylane", "qiskit_aer")
 
 

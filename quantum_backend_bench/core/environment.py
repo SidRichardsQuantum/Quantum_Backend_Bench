@@ -20,11 +20,8 @@ PACKAGE_NAMES = {
     "pennylane": "pennylane",
     "pyquil": "pyquil",
     "pytket": "pytket",
-    "qbraid": "qbraid",
     "qiskit": "qiskit",
     "qiskit-aer": "qiskit-aer",
-    "qsharp": "qsharp",
-    "qutip": "qutip",
 }
 
 

@@ -16,11 +16,8 @@ TESTED_VERSION_BANDS = {
     "pennylane": ">=0.38,<1",
     "pyquil": ">=4,<5",
     "pytket": ">=1.30,<3",
-    "qbraid": ">=0.9,<1",
     "qiskit": ">=1,<3",
     "qiskit-aer": ">=0.15,<1",
-    "qsharp": ">=1,<2",
-    "qutip": ">=5,<6",
 }
 _INTEGRATION_TESTED_PACKAGES = {
     "braket_local": ("amazon-braket-sdk",),
@@ -29,10 +26,7 @@ _INTEGRATION_TESTED_PACKAGES = {
     "pennylane": ("pennylane",),
     "pyquil_qvm": ("pyquil",),
     "pytket": ("pytket",),
-    "qbraid": ("qbraid",),
     "qiskit_aer": ("qiskit", "qiskit-aer"),
-    "qsharp": ("qsharp",),
-    "qutip": ("qutip",),
 }
 
 
@@ -130,7 +124,7 @@ def _ci_coverage(capability: BackendCapability) -> str:
         return "main CI"
     if capability.name == "pytket":
         return "main CI install"
-    if capability.name in {"pennylane", "braket_local", "qiskit_aer", "qutip"}:
+    if capability.name in {"pennylane", "braket_local", "qiskit_aer"}:
         return "optional smoke"
     if capability.name == "cudaq":
         return "experimental optional smoke"

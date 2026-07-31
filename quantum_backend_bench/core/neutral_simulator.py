@@ -1,81 +1,42 @@
-"""QuTiP-backed local statevector simulator backend."""
+"""Small neutral statevector simulator used for translation verification."""
 
 from __future__ import annotations
 
-import math
 import cmath
+import math
 import random
-import time
 from collections import Counter
 from typing import Any
 
-from quantum_backend_bench.backends.base_backend import BaseBackend
-from quantum_backend_bench.core.benchmark_spec import (
-    BenchmarkSpec,
-    CircuitOperation,
-    InternalCircuit,
-)
+from quantum_backend_bench.core.benchmark_spec import CircuitOperation
 
 
-class QuTiPBackend(BaseBackend):
-    """Execute benchmarks with a QuTiP-compatible local statevector simulation."""
+def simulate_statevector(
+    n_qubits: int,
+    operations: list[CircuitOperation],
+    *,
+    global_phase: float = 0.0,
+) -> Any:
+    """Return the exact statevector for a neutral circuit."""
 
-    name = "qutip"
-
-    def build_native_circuit(self, benchmark: BenchmarkSpec) -> Any:
-        try:
-            import qutip
-        except ImportError as exc:
-            raise RuntimeError(
-                'QuTiP is not installed. Install with: pip install "quantum-backend-bench[qutip]"'
-            ) from exc
-
-        circuit_data = _unwrap_noise_benchmark(benchmark)
-        if not isinstance(circuit_data, InternalCircuit):
-            raise TypeError("QuTiP backend requires InternalCircuit benchmark data.")
-        return {
-            "qutip": qutip,
-            "n_qubits": circuit_data.n_qubits,
-            "operations": circuit_data.operations,
-            "measurements": circuit_data.measurements or list(range(circuit_data.n_qubits)),
-        }
-
-    def run(self, benchmark: BenchmarkSpec, shots: int = 1024) -> dict[str, Any]:
-        native = self.build_native_circuit(benchmark)
-        metadata = benchmark.metadata or {}
-
-        start = time.perf_counter()
-        probabilities = _simulate_probabilities(
-            native["n_qubits"], native["operations"], native["measurements"]
-        )
-        counts = _sample_counts(probabilities, shots=shots, seed=benchmark.parameters.get("seed"))
-        runtime = time.perf_counter() - start
-        seed = benchmark.parameters.get("seed")
-
-        return {
-            "counts": counts,
-            "runtime_seconds": runtime,
-            "noise_supported": False,
-            "noise_applied": False,
-            "seed_supported": True,
-            "seed_applied": seed is not None,
-            "notes": (
-                "QuTiP statevector execution completed without noise injection in this adapter."
-                if metadata.get("noise_level", 0.0) > 0
-                else "QuTiP statevector execution completed."
-            ),
-        }
-
-
-def _simulate_probabilities(
-    n_qubits: int, operations: list[CircuitOperation], measurements: list[int]
-) -> dict[str, float]:
     np = _numpy()
     state = np.zeros(2**n_qubits, dtype=complex)
     state[0] = 1.0
     for operation in operations:
-        state = _apply_operation(state, n_qubits, operation)
+        state = apply_operation(state, n_qubits, operation)
+    if global_phase:
+        state = state * np.exp(1j * global_phase)
+    return state
 
+
+def simulate_probabilities(
+    n_qubits: int,
+    operations: list[CircuitOperation],
+    measurements: list[int],
+) -> dict[str, float]:
+    """Return exact probabilities for the selected measurement wires."""
+
+    state = simulate_statevector(n_qubits, operations)
     probabilities: dict[str, float] = {}
     for index, amplitude in enumerate(state):
         basis = format(index, f"0{n_qubits}b")
@@ -84,7 +45,24 @@ def _simulate_probabilities(
     return probabilities
 
 
-def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> Any:
+def sample_counts(
+    probabilities: dict[str, float],
+    shots: int,
+    seed: object | None = None,
+) -> dict[str, int]:
+    """Sample counts from a neutral probability distribution."""
+
+    rng_seed = seed if isinstance(seed, (int, float, str, bytes, bytearray)) else 0
+    rng = random.Random(rng_seed)
+    states = sorted(probabilities)
+    weights = [max(0.0, probabilities[state]) for state in states]
+    samples = rng.choices(states, weights=weights, k=shots)
+    return dict(Counter(samples))
+
+
+def apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> Any:
+    """Apply one supported neutral operation to a statevector."""
+
     np = _numpy()
     gate = operation.gate
     q = operation.qubits
@@ -97,13 +75,16 @@ def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> 
     if gate in {"H", "X", "Y", "Z", "S", "T", "SX", "P", "PHASE", "RX", "RY", "RZ", "U"}:
         return _single_qubit_operator(n_qubits, q[0], _single_qubit_gate(gate, params)) @ state
     if gate == "CNOT":
-        return _controlled_permutation(state, n_qubits, q[0], q[1], target_gate="X")
+        return _controlled_permutation(state, n_qubits, q[0], q[1])
     if gate == "CCX":
         return _toffoli(state, n_qubits, q[0], q[1], q[2])
     if gate in {"CRX", "CRY", "CRZ"}:
-        target_gate = gate[1:]
         return _controlled_single_qubit(
-            state, n_qubits, q[0], q[1], _single_qubit_gate(target_gate, params)
+            state,
+            n_qubits,
+            q[0],
+            q[1],
+            _single_qubit_gate(gate[1:], params),
         )
     if gate == "CZ":
         return _controlled_phase(state, n_qubits, q[0], q[1], phase=-1.0)
@@ -111,7 +92,7 @@ def _apply_operation(state: Any, n_qubits: int, operation: CircuitOperation) -> 
         return _swap(state, n_qubits, q[0], q[1])
     if gate == "CPHASE":
         return _controlled_phase(state, n_qubits, q[0], q[1], phase=np.exp(1j * params["theta"]))
-    raise ValueError(f"Unsupported QuTiP gate: {gate}")
+    raise ValueError(f"Unsupported neutral simulator gate: {gate}")
 
 
 def _reset_qubit(state: Any, n_qubits: int, qubit: int) -> Any:
@@ -178,7 +159,7 @@ def _single_qubit_gate(gate: str, params: dict[str, Any]) -> Any:
     if gate == "RZ":
         theta = params["theta"]
         return np.array([[np.exp(-0.5j * theta), 0], [0, np.exp(0.5j * theta)]], dtype=complex)
-    raise ValueError(f"Unsupported one-qubit gate: {gate}")
+    raise ValueError(f"Unsupported neutral one-qubit gate: {gate}")
 
 
 def _single_qubit_operator(n_qubits: int, qubit: int, gate: Any) -> Any:
@@ -190,12 +171,8 @@ def _single_qubit_operator(n_qubits: int, qubit: int, gate: Any) -> Any:
     return operator
 
 
-def _controlled_permutation(
-    state: Any, n_qubits: int, control: int, target: int, target_gate: str
-) -> Any:
+def _controlled_permutation(state: Any, n_qubits: int, control: int, target: int) -> Any:
     np = _numpy()
-    if target_gate != "X":
-        raise ValueError(f"Unsupported controlled target gate: {target_gate}")
     output = np.zeros_like(state)
     for index, amplitude in enumerate(state):
         bits = list(format(index, f"0{n_qubits}b"))
@@ -206,7 +183,11 @@ def _controlled_permutation(
 
 
 def _controlled_single_qubit(
-    state: Any, n_qubits: int, control: int, target: int, gate: Any
+    state: Any,
+    n_qubits: int,
+    control: int,
+    target: int,
+    gate: Any,
 ) -> Any:
     output = state.copy()
     affected_indexes = []
@@ -223,7 +204,13 @@ def _controlled_single_qubit(
     return output
 
 
-def _toffoli(state: Any, n_qubits: int, left_control: int, right_control: int, target: int) -> Any:
+def _toffoli(
+    state: Any,
+    n_qubits: int,
+    left_control: int,
+    right_control: int,
+    target: int,
+) -> Any:
     np = _numpy()
     output = np.zeros_like(state)
     for index, amplitude in enumerate(state):
@@ -234,7 +221,13 @@ def _toffoli(state: Any, n_qubits: int, left_control: int, right_control: int, t
     return output
 
 
-def _controlled_phase(state: Any, n_qubits: int, control: int, target: int, phase: complex) -> Any:
+def _controlled_phase(
+    state: Any,
+    n_qubits: int,
+    control: int,
+    target: int,
+    phase: complex,
+) -> Any:
     output = state.copy()
     for index in range(len(output)):
         bits = format(index, f"0{n_qubits}b")
@@ -253,26 +246,12 @@ def _swap(state: Any, n_qubits: int, left: int, right: int) -> Any:
     return output
 
 
-def _sample_counts(
-    probabilities: dict[str, float], shots: int, seed: object | None = None
-) -> dict[str, int]:
-    rng_seed = seed if isinstance(seed, (int, float, str, bytes, bytearray)) else 0
-    rng = random.Random(rng_seed)
-    states = sorted(probabilities)
-    weights = [max(0.0, probabilities[state]) for state in states]
-    samples = rng.choices(states, weights=weights, k=shots)
-    return dict(Counter(samples))
-
-
-def _unwrap_noise_benchmark(benchmark: BenchmarkSpec) -> Any:
-    return (benchmark.metadata or {}).get("base_circuit", benchmark.circuit_data)
-
-
 def _numpy() -> Any:
     try:
         import numpy as np
     except ImportError as exc:
         raise RuntimeError(
-            'NumPy is required by the QuTiP backend. Install with: pip install "quantum-backend-bench[qutip]"'
+            "NumPy is required for exact neutral-circuit verification. "
+            'Install with: pip install "numpy".'
         ) from exc
     return np

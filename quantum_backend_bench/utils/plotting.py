@@ -210,7 +210,6 @@ def _backend_color(backend: str) -> str:
         "qiskit_aer": "#6f4bb2",
         "cudaq": "#76b900",
         "pyquil_qvm": "#9c6644",
-        "qutip": "#bc5090",
     }.get(backend, "#6c757d")
 
 

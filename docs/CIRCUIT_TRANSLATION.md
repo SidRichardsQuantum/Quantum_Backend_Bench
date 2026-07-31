@@ -126,11 +126,11 @@ quantum-bench translate examples/translation/ghz.qasm \
 
 ## Tutorial Notebook
 
-`notebooks/09_circuit_translation_workflow.ipynb` provides the end-to-end local workflow: import one static Qiskit circuit, preflight it, draw SDK-native diagrams for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, translate to all four local SDK targets, verify exact probabilities, save per-target source artifacts and a combined report, emit a runnable Cirq script, and inspect unsupported diagnostics.
+`notebooks/05_circuit_translation_workflow.ipynb` provides the end-to-end local workflow: import one static Qiskit circuit, preflight it, draw SDK-native diagrams for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, translate to all four local SDK targets, verify exact probabilities, save per-target source artifacts and a combined report, emit a runnable Cirq script, and inspect unsupported diagnostics.
 
 ## Observable and Hamiltonian Translation
 
-`translate-hamiltonian` and `translate-observable` extend SDK translation beyond circuits for the first safe semantic layer: weighted sums of Pauli `I`, `X`, `Y`, and `Z` products. Observables are represented as the single-term case of the same neutral model.
+`translate-hamiltonian` extends SDK translation beyond circuits for the first safe semantic layer: weighted sums of Pauli `I`, `X`, `Y`, and `Z` products. Observables are represented as the single-term case of the same neutral model.
 
 Supported inputs:
 
@@ -157,7 +157,7 @@ quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json 
   --output artifacts/ising_pennylane.py \
   --save-report artifacts/ising_translation_report.json
 
-quantum-bench translate-observable examples/translation/ising_hamiltonian.json \
+quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json \
   --from-format pauli-json \
   --to-format qiskit_aer
 

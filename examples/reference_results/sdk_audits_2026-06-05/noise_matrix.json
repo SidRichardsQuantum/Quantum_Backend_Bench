@@ -70,17 +70,5 @@
       "phase_flip": "implemented",
       "readout_error": "implemented"
     }
-  },
-  {
-    "backend": "qutip",
-    "comparison_scope": "reported only; noise is not injected by this project",
-    "installed": true,
-    "models": {
-      "amplitude_damping": "not injected",
-      "bit_flip": "not injected",
-      "depolarizing": "not injected",
-      "phase_flip": "not injected",
-      "readout_error": "not injected"
-    }
   }
 ]

@@ -14,7 +14,6 @@ BACKEND_DISTRIBUTIONS: dict[str, tuple[str, ...]] = {
     "pennylane": ("pennylane",),
     "pyquil_qvm": ("pyquil",),
     "qiskit_aer": ("qiskit", "qiskit-aer"),
-    "qutip": ("qutip",),
 }
 
 

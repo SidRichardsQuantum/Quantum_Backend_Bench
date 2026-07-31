@@ -1,6 +1,6 @@
 {
   "description": "Small SDK smoke comparison for installed local execution backends.",
-  "backends": ["cirq", "pennylane", "braket_local", "qiskit_aer", "qutip"],
+  "backends": ["cirq", "pennylane", "braket_local", "qiskit_aer"],
   "shots": 64,
   "repeats": 1,
   "benchmarks": [

@@ -533,7 +533,8 @@ def test_cli_import_qasm_round_trip(capsys: pytest.CaptureFixture[str], tmp_path
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert '"benchmark": "roundtrip"' in captured.out
+    assert '"schema_version": "0.1"' in captured.out
+    assert '"benchmark"' not in captured.out
     assert '"gate": "CNOT"' in captured.out
 
 
@@ -1173,29 +1174,6 @@ def test_cli_exact_top_k_amplitudes_and_observable(capsys: pytest.CaptureFixture
     assert len(payload["probabilities"]) == 1
     assert "amplitudes" in payload
     assert payload["expectation"]["ZZ"] == pytest.approx(1.0)
-
-
-def test_cli_hardware_provider_artifacts(capsys: pytest.CaptureFixture[str], tmp_path) -> None:
-    exit_code = main(
-        [
-            "hardware",
-            "ghz",
-            "--n-qubits",
-            "2",
-            "--output",
-            str(tmp_path),
-            "--provider",
-            "ibm",
-            "--qasm-version",
-            "openqasm3",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "Created hardware artifacts" in captured.out
-    assert (tmp_path / "ghz.qasm3").exists()
-    assert "provider: `ibm`" in (tmp_path / "README.md").read_text(encoding="utf-8")
 
 
 def test_cli_run_sweep_uses_all_cases(

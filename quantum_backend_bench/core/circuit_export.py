@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
 from quantum_backend_bench.backends import get_backend
-from quantum_backend_bench.core.neutral_schema import NEUTRAL_SCHEMA_VERSION
 from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
     CircuitOperation,
     InternalCircuit,
 )
+
+from quantum_backend_bench.core.neutral_circuit import internal_circuit_to_json
 
 EXPORT_FORMATS = ("internal-json", "openqasm", "openqasm2", "openqasm3", "native")
 
@@ -45,35 +45,7 @@ def export_benchmark_circuit(
 
 
 def _internal_json(benchmark: BenchmarkSpec) -> str:
-    circuit = _internal_circuit(benchmark)
-    payload: dict[str, Any] = {
-        "schema_version": NEUTRAL_SCHEMA_VERSION,
-        "benchmark": benchmark.name,
-        "n_qubits": benchmark.n_qubits,
-        "parameters": benchmark.parameters,
-        "operations": [
-            {"gate": op.gate, "qubits": list(op.qubits), "params": op.params}
-            for op in circuit.operations
-        ],
-        "measurements": circuit.measurements,
-        "quantum_registers": circuit.quantum_registers,
-        "classical_registers": circuit.classical_registers,
-        "measurement_keys": circuit.measurement_keys,
-        "bit_order": circuit.bit_order,
-        "global_phase": circuit.global_phase,
-        "noise": [
-            {
-                "channel": item.channel,
-                "targets": list(item.targets),
-                "probability": item.probability,
-            }
-            for item in circuit.noise
-        ],
-        "metadata": {
-            key: value for key, value in (benchmark.metadata or {}).items() if key != "base_circuit"
-        },
-    }
-    return json.dumps(payload, indent=2, sort_keys=True)
+    return internal_circuit_to_json(_internal_circuit(benchmark))
 
 
 def _openqasm2(benchmark: BenchmarkSpec) -> str:

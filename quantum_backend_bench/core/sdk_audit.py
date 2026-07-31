@@ -48,7 +48,6 @@ FREE_LOCAL_EXECUTION_BACKENDS = (
     "pennylane",
     "braket_local",
     "qiskit_aer",
-    "qutip",
 )
 
 NOISE_MODELS = (
@@ -82,7 +81,6 @@ _NOISE_SUPPORT: dict[str, dict[str, str]] = {
         "readout_error": "implemented",
     },
     "braket_local": {model: "not injected" for model in NOISE_MODELS},
-    "qutip": {model: "not injected" for model in NOISE_MODELS},
     "cudaq": {model: "not injected" for model in NOISE_MODELS},
     "pyquil_qvm": {model: "not injected" for model in NOISE_MODELS},
 }

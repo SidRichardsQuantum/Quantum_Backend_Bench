@@ -1,15 +1,13 @@
-"""Build docs/SDK_AUDITS.md and site assets from committed audit artifacts."""
+"""Build docs/SDK_AUDITS.md from committed audit artifacts."""
 
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_DIR = ROOT / "examples" / "reference_results" / "sdk_audits_2026-06-05"
-DOC_ASSETS = ROOT / "docs" / "pages" / "assets" / "sdk_audits"
 AUDITS_DOC = ROOT / "docs" / "SDK_AUDITS.md"
 
 AUDIT_FILES = {
@@ -25,18 +23,12 @@ def main() -> int:
         joined = ", ".join(missing)
         raise SystemExit(f"Missing SDK audit reference artifacts under {REFERENCE_DIR}: {joined}")
 
-    DOC_ASSETS.mkdir(parents=True, exist_ok=True)
-    for source in sorted(REFERENCE_DIR.glob("*")):
-        if source.is_file() and source.suffix in {".json", ".csv", ".md"}:
-            shutil.copyfile(source, DOC_ASSETS / source.name)
-
     audits = {
         key: json.loads((REFERENCE_DIR / file_name).read_text(encoding="utf-8"))
         for key, file_name in AUDIT_FILES.items()
     }
     AUDITS_DOC.write_text(_render_doc(audits), encoding="utf-8")
     print(f"Wrote {AUDITS_DOC.relative_to(ROOT)}")
-    print(f"Wrote SDK audit assets under {DOC_ASSETS.relative_to(ROOT)}")
     return 0
 
 
@@ -58,19 +50,19 @@ def _render_doc(audits: dict[str, list[dict[str, Any]]]) -> str:
                 "",
                 "## SDK Parity Scorecard",
                 "",
-                "*Raw assets:* [`sdk_parity.json`](pages/assets/sdk_audits/sdk_parity.json), [`sdk_parity.csv`](pages/assets/sdk_audits/sdk_parity.csv), [`sdk_parity.md`](pages/assets/sdk_audits/sdk_parity.md).",
+                "*Raw assets:* [`sdk_parity.json`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.json), [`sdk_parity.csv`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.csv), [`sdk_parity.md`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.md).",
                 "",
                 *_parity_table(audits["parity"]),
                 "",
                 "## Noise Model Matrix",
                 "",
-                "*Raw assets:* [`noise_matrix.json`](pages/assets/sdk_audits/noise_matrix.json), [`noise_matrix.csv`](pages/assets/sdk_audits/noise_matrix.csv), [`noise_matrix.md`](pages/assets/sdk_audits/noise_matrix.md).*",
+                "*Raw assets:* [`noise_matrix.json`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.json), [`noise_matrix.csv`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.csv), [`noise_matrix.md`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.md).*",
                 "",
                 *_noise_table(audits["noise"]),
                 "",
                 "## Round-Trip Translation Audit",
                 "",
-                "*Raw assets:* [`roundtrip_audit.json`](pages/assets/sdk_audits/roundtrip_audit.json), [`roundtrip_audit.csv`](pages/assets/sdk_audits/roundtrip_audit.csv), [`roundtrip_audit.md`](pages/assets/sdk_audits/roundtrip_audit.md).*",
+                "*Raw assets:* [`roundtrip_audit.json`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.json), [`roundtrip_audit.csv`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.csv), [`roundtrip_audit.md`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.md).*",
                 "",
                 *_roundtrip_table(audits["roundtrip"]),
                 "",

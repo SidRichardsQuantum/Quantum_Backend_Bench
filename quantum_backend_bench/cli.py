@@ -49,7 +49,6 @@ from quantum_backend_bench.core.exact import (
     pauli_z_expectation,
 )
 from quantum_backend_bench.core.factory import BENCHMARK_BUILDERS, build_benchmark_from_config
-from quantum_backend_bench.core.hardware import PROVIDERS, write_hardware_artifacts
 from quantum_backend_bench.core.observable_translate import (
     HAMILTONIAN_INPUT_FORMATS,
     HAMILTONIAN_OUTPUT_FORMATS,
@@ -376,13 +375,6 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_hamiltonian_translation_arguments(translate_hamiltonian_parser)
     translate_hamiltonian_parser.set_defaults(func=_translate_hamiltonian_command)
 
-    translate_observable_parser = subparsers.add_parser(
-        "translate-observable",
-        help="Translate a supported single- or multi-term Pauli observable across local SDKs.",
-    )
-    _add_hamiltonian_translation_arguments(translate_observable_parser)
-    translate_observable_parser.set_defaults(func=_translate_hamiltonian_command)
-
     workflow_parser = subparsers.add_parser(
         "translate-workflow",
         help="Translate parameterized workflow JSON into local SDK execution code.",
@@ -588,19 +580,6 @@ def _build_parser() -> argparse.ArgumentParser:
     exact_parser.add_argument("--amplitudes", action="store_true")
     exact_parser.add_argument("--observable", help="Pauli I/Z observable, e.g. ZZI.")
     exact_parser.set_defaults(func=_exact_command)
-
-    hardware_parser = subparsers.add_parser(
-        "hardware", help="Write hardware-preparation artifacts without submitting cloud jobs."
-    )
-    _add_benchmark_arguments(hardware_parser)
-    hardware_parser.add_argument("--output", "-o", required=True)
-    hardware_parser.add_argument("--backend-hint")
-    hardware_parser.add_argument("--provider", choices=PROVIDERS, default="generic")
-    hardware_parser.add_argument(
-        "--qasm-version", choices=["openqasm", "openqasm2", "openqasm3"], default="openqasm"
-    )
-    hardware_parser.add_argument("--shots", type=_positive_int, default=1024)
-    hardware_parser.set_defaults(func=_hardware_command)
 
     experiment_parser = subparsers.add_parser(
         "experiment", help="Run benchmark cases from a JSON or YAML manifest."
@@ -1547,22 +1526,6 @@ def _exact_command(args: argparse.Namespace) -> int:
     if args.save_json:
         save_json(payload, args.save_json)
         print(f"Saved exact results to {args.save_json}")
-    return 0
-
-
-def _hardware_command(args: argparse.Namespace) -> int:
-    benchmark = _build_benchmark_from_args(args)
-    paths = write_hardware_artifacts(
-        benchmark,
-        args.output,
-        backend_hint=args.backend_hint,
-        shots=args.shots,
-        provider=args.provider,
-        qasm_version=args.qasm_version,
-    )
-    print(f"Created hardware artifacts at {args.output}")
-    for key, path in sorted(paths.items()):
-        print(f"  {key}: {path}")
     return 0
 
 

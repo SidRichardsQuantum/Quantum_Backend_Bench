@@ -15,7 +15,7 @@ def test_sdk_parity_scorecard_has_free_local_sdks():
     rows = sdk_parity_scorecard()
     sdks = {row["sdk"] for row in rows}
 
-    assert {"cirq", "pennylane", "braket_local", "qiskit_aer", "qutip"} <= sdks
+    assert {"cirq", "pennylane", "braket_local", "qiskit_aer"} <= sdks
     assert all("circuit_translation" in row for row in rows)
     assert "SDK Parity Scorecard" in format_scorecard(rows)
 

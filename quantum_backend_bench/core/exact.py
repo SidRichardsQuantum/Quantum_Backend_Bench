@@ -5,16 +5,18 @@ from __future__ import annotations
 from typing import Any
 
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec, InternalCircuit
+from quantum_backend_bench.core.neutral_simulator import (
+    simulate_probabilities,
+    simulate_statevector,
+)
 
 
 def exact_probabilities(benchmark: BenchmarkSpec, *, top_k: int | None = None) -> dict[str, float]:
     """Return exact measurement probabilities for a benchmark."""
 
-    from quantum_backend_bench.backends.qutip_backend import _simulate_probabilities
-
     circuit_data = _internal_circuit(benchmark)
     measurements = circuit_data.measurements or list(range(circuit_data.n_qubits))
-    probabilities = _simulate_probabilities(
+    probabilities = simulate_probabilities(
         circuit_data.n_qubits, circuit_data.operations, measurements
     )
     return _top_k(probabilities, top_k)
@@ -63,17 +65,12 @@ def pauli_z_expectation(benchmark: BenchmarkSpec, observable: str) -> float:
 
 
 def _statevector(benchmark: BenchmarkSpec) -> Any:
-    from quantum_backend_bench.backends.qutip_backend import _apply_operation, _numpy
-
     circuit_data = _internal_circuit(benchmark)
-    np = _numpy()
-    state = np.zeros(2**circuit_data.n_qubits, dtype=complex)
-    state[0] = 1.0
-    for operation in circuit_data.operations:
-        state = _apply_operation(state, circuit_data.n_qubits, operation)
-    if circuit_data.global_phase:
-        state = state * np.exp(1j * circuit_data.global_phase)
-    return state
+    return simulate_statevector(
+        circuit_data.n_qubits,
+        circuit_data.operations,
+        global_phase=circuit_data.global_phase,
+    )
 
 
 def _internal_circuit(benchmark: BenchmarkSpec) -> InternalCircuit:

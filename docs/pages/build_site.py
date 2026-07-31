@@ -86,7 +86,6 @@ BACKENDS = [
     ("Qiskit Aer", "AerSimulator execution and noise-injection coverage."),
     ("CUDA-Q", "Optional local CUDA-Q simulator adapter."),
     ("pyQuil", "Local QVM and quilc integration when runtimes are available."),
-    ("QuTiP", "Statevector simulation for physics-oriented local coverage."),
     ("pytket", "Analysis-only circuit depth and gate metric support."),
 ]
 
@@ -118,6 +117,10 @@ def rewrite_links(fragment: str) -> str:
 
     fragment = re.sub(
         r'href="(?:\.\./|\./)?(?:docs/)?([A-Z0-9_-]+\.md)(#[^"]*)?"', replace, fragment
+    )
+    fragment = fragment.replace(
+        'href="../examples/reference_results/sdk_audits_2026-06-05/',
+        'href="pages/assets/sdk_audits/',
     )
     return fragment.replace('href="http', 'target="_blank" rel="noopener noreferrer" href="http')
 
@@ -170,7 +173,7 @@ def page(title: str, body: str, current: str | None = None) -> str:
     <meta property="og:title" content="{html.escape(title)} | Quantum Backend Bench">
     <meta
       property="og:description"
-      content="Benchmark local quantum SDK simulators across Cirq, PennyLane, Braket, Qiskit Aer, CUDA-Q, pyQuil, and QuTiP."
+      content="Benchmark local quantum SDK simulators across Cirq, PennyLane, Braket, Qiskit Aer, CUDA-Q, and pyQuil."
     >
     <meta property="og:url" content="{SITE_URL}">
     <meta name="theme-color" content="#0f5364">
@@ -385,6 +388,12 @@ def main() -> None:
     assets = ROOT / "docs/pages/assets"
     if assets.exists():
         shutil.copytree(assets, OUT / "pages/assets")
+    sdk_audit_assets = ROOT / "examples/reference_results/sdk_audits_2026-06-05"
+    if sdk_audit_assets.exists():
+        destination = OUT / "pages/assets/sdk_audits"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(sdk_audit_assets, destination, dirs_exist_ok=True)
+
     for docs_asset in ("schemas", "schema_examples"):
         directory = ROOT / "docs" / docs_asset
         if directory.exists():

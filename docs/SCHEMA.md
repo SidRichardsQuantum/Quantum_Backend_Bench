@@ -34,6 +34,8 @@ local schema registry, so relative cross-schema references are exercised without
 
 Translation reports include `schema_metadata` with the neutral schema version and the
 input/output schema identifiers when the selected CLI formats are neutral formats.
+`export --format internal-json` and `translate --to-format internal-json` use the same
+canonical serializer, so both commands emit exactly this schema surface.
 
 ### `internal-circuit`
 

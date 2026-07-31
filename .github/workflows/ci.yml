@@ -76,7 +76,7 @@ jobs:
       - name: Check generated SDK audit docs are current
         run: |
           python docs/pages/build_sdk_audits.py
-          git diff --exit-code -- docs/SDK_AUDITS.md docs/pages/assets/sdk_audits
+          git diff --exit-code -- docs/SDK_AUDITS.md
 
       - name: Run Cirq smoke regression gate
         run: |
@@ -145,12 +145,6 @@ jobs:
             python-version: "3.11"
           - extra: pyquil
             filter: pyquil
-            python-version: "3.12"
-          - extra: qutip
-            filter: qutip
-            python-version: "3.11"
-          - extra: qutip
-            filter: qutip
             python-version: "3.12"
 
     steps:

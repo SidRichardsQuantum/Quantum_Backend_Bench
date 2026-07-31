@@ -12,7 +12,7 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 
 ## SDK Parity Scorecard
 
-*Raw assets:* [`sdk_parity.json`](pages/assets/sdk_audits/sdk_parity.json), [`sdk_parity.csv`](pages/assets/sdk_audits/sdk_parity.csv), [`sdk_parity.md`](pages/assets/sdk_audits/sdk_parity.md).
+*Raw assets:* [`sdk_parity.json`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.json), [`sdk_parity.csv`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.csv), [`sdk_parity.md`](../examples/reference_results/sdk_audits_2026-06-05/sdk_parity.md).
 
 | SDK | circuits | workflows | Pauli terms | result objects | grouping | noise models |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -20,11 +20,10 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 | cirq | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
 | pennylane | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
 | qiskit_aer | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
-| qutip | no | no | no | no | no | none |
 
 ## Noise Model Matrix
 
-*Raw assets:* [`noise_matrix.json`](pages/assets/sdk_audits/noise_matrix.json), [`noise_matrix.csv`](pages/assets/sdk_audits/noise_matrix.csv), [`noise_matrix.md`](pages/assets/sdk_audits/noise_matrix.md).*
+*Raw assets:* [`noise_matrix.json`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.json), [`noise_matrix.csv`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.csv), [`noise_matrix.md`](../examples/reference_results/sdk_audits_2026-06-05/noise_matrix.md).*
 
 | backend | depolarizing | bit_flip | phase_flip | amplitude_damping | readout_error | scope |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -34,11 +33,10 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 | pennylane | implemented | implemented | implemented | implemented | implemented | project-injected local model |
 | pyquil_qvm | not injected | not injected | not injected | not injected | not injected | reported only; noise is not injected by this project |
 | qiskit_aer | implemented | implemented | implemented | implemented | implemented | project-injected local model |
-| qutip | not injected | not injected | not injected | not injected | not injected | reported only; noise is not injected by this project |
 
 ## Round-Trip Translation Audit
 
-*Raw assets:* [`roundtrip_audit.json`](pages/assets/sdk_audits/roundtrip_audit.json), [`roundtrip_audit.csv`](pages/assets/sdk_audits/roundtrip_audit.csv), [`roundtrip_audit.md`](pages/assets/sdk_audits/roundtrip_audit.md).*
+*Raw assets:* [`roundtrip_audit.json`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.json), [`roundtrip_audit.csv`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.csv), [`roundtrip_audit.md`](../examples/reference_results/sdk_audits_2026-06-05/roundtrip_audit.md).*
 
 | audit | target | rows | passed |
 | --- | --- | ---: | --- |

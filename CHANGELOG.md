@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.2.14] - 2026-07-31
+
+### Added
+
+- Added a package-owned NumPy statevector simulator for exact, sampled, and statevector translation verification without relying on an SDK adapter.
+- Added canonical neutral-circuit serialization helpers shared by `export --format internal-json` and `translate --to-format internal-json`.
+
+### Changed
+
+- Refocused the package on local quantum SDK comparison, translation, and semantic verification, and updated the project description, documentation, CI matrix, compatibility metadata, tests, and generated results accordingly.
+- Consolidated five near-duplicate per-SDK notebooks into `04_compare_sdk_workflows.ipynb`, then renumbered the translation notebooks as `05` through `08`.
+- Made committed reference results the single source for generated SDK audit documentation instead of tracking a second copy of the audit assets.
+- Made NumPy a base dependency because neutral exact verification is part of the core package.
+- Reduced `quantum_backend_bench.core` to foundational internal types; the package root remains the supported public API.
+
+### Removed
+
+- Removed the QuTiP execution adapter and extra; neutral verification retains the useful simulator functionality.
+- Removed discovery-only qBraid and Q# / QDK integrations and their optional dependency extras.
+- Removed the hardware-preparation command and API, which were outside the local comparison and translation scope.
+- Removed the `amplitude-estimation`, `phase-estimation`, `quantum-kernel`, and `vqe-ansatz` workloads because they did not strengthen SDK parity or translation coverage.
+- Removed the redundant `translate-observable` CLI alias; use `translate-hamiltonian` for both single-term observables and multi-term Pauli Hamiltonians.
+- Removed the empty `examples/translation/roadmap/` placeholder and its stale notebook and test scaffolding after the formerly planned fixtures moved into supported coverage.
+
 ## [0.2.13] - 2026-07-21
 
 ### Added

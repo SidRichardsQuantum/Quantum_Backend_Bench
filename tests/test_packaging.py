@@ -31,7 +31,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     project = metadata["project"]
     extras = project["optional-dependencies"]
 
-    assert "dependencies" not in project
+    assert project["dependencies"] == ["numpy>=1.26"]
     assert extras["cirq"] == ["cirq"]
     assert extras["pennylane"] == ["pennylane"]
     assert extras["braket"] == ["amazon-braket-sdk"]
@@ -44,12 +44,8 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["docs"] == ["markdown", "matplotlib", "pymdown-extensions"]
     assert extras["pyquil"] == ["pyquil"]
     assert extras["notebooks"] == ["ipykernel", "matplotlib", "pandas"]
-    assert extras["qutip"] == ["qutip"]
-    assert extras["qbraid"] == ["qbraid"]
-    assert extras["qsharp"] == ["qsharp"]
     assert extras["yaml"] == ["PyYAML"]
     assert "cirq" in extras["all"]
-    assert "qbraid" in extras["all"]
     assert "qiskit-aer" in extras["all"]
     assert "pytket" in extras["all"]
     assert "PyYAML" in extras["all"]

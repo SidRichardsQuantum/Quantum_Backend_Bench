@@ -44,11 +44,8 @@
           "pennylane": "0.45.0",
           "pyquil": null,
           "pytket": "2.18.0",
-          "qbraid": "0.12.1",
           "qiskit": "2.4.1",
-          "qiskit-aer": "0.17.2",
-          "qsharp": "1.11.1",
-          "qutip": "5.3.0"
+          "qiskit-aer": "0.17.2"
         },
         "platform": {
           "machine": "x86_64",

@@ -15,7 +15,6 @@ from quantum_backend_bench.backends.cirq_backend import CirqBackend
 from quantum_backend_bench.backends.cudaq_backend import CudaQBackend
 from quantum_backend_bench.backends.pyquil_backend import PyQuilQVMBackend
 from quantum_backend_bench.backends.qiskit_backend import QiskitAerBackend
-from quantum_backend_bench.backends.qutip_backend import QuTiPBackend
 from quantum_backend_bench.benchmarks.bernstein_vazirani import (
     build_benchmark as build_bernstein_vazirani,
 )
@@ -191,14 +190,6 @@ def test_pyquil_backend_builds_native_circuit_without_qvm_runtime() -> None:
     assert "MEASURE" in program.out()
 
 
-@pytest.mark.optional_sdk
-@pytest.mark.skipif(not _has_module("qutip"), reason="QuTiP not installed")
-def test_qutip_ghz_counts_use_expected_bitstrings() -> None:
-    result = get_backend("qutip").run(build_benchmark(n_qubits=3), shots=32)
-    assert sum(result["counts"].values()) == 32
-    assert set(result["counts"]).issubset({"000", "111"})
-
-
 def test_backend_structural_metrics_are_available() -> None:
     metrics = get_backend("cirq").structural_metrics(build_benchmark(n_qubits=3))
     assert "depth" in metrics
@@ -242,7 +233,7 @@ def test_new_backend_missing_dependency_errors_mention_extras(
     real_import = builtins.__import__
 
     def block_new_sdks(name, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
-        blocked = {"qiskit", "cudaq", "pyquil", "qutip"}
+        blocked = {"qiskit", "cudaq", "pyquil"}
         if name in blocked:
             raise ImportError("blocked")
         return real_import(name, globals, locals, fromlist, level)
@@ -253,7 +244,6 @@ def test_new_backend_missing_dependency_errors_mention_extras(
         (QiskitAerBackend(), r"quantum-backend-bench\[qiskit\]"),
         (CudaQBackend(), r"quantum-backend-bench\[cudaq\]"),
         (PyQuilQVMBackend(), r"quantum-backend-bench\[pyquil\]"),
-        (QuTiPBackend(), r"quantum-backend-bench\[qutip\]"),
     ]
     for backend, pattern in cases:
         with pytest.raises(RuntimeError, match=pattern):

@@ -38,7 +38,6 @@ from quantum_backend_bench.core.exact import (
     exact_probabilities,
     pauli_z_expectation,
 )
-from quantum_backend_bench.core.hardware import write_hardware_artifacts
 from quantum_backend_bench.core.observable_translate import (
     HAMILTONIAN_INPUT_FORMATS,
     HAMILTONIAN_OUTPUT_FORMATS,
@@ -177,7 +176,6 @@ __all__ = [
     "verify_hamiltonian_translation",
     "verify_workflow_translation",
     "workflow_translation_report",
-    "write_hardware_artifacts",
     "parse_sweep_specs",
     "export_benchmark_circuit",
     "expand_benchmark_sweep",

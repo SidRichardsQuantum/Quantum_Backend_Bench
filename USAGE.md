@@ -5,7 +5,7 @@
 - CLI-driven benchmarking with `quantum-bench`
 - Python-driven benchmarking with `build_benchmark(...)` and `run_benchmark(...)`
 
-The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, pyQuil QVM, and QuTiP are supported as execution backends, while `pytket` is used for structural analysis.
+The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, and pyQuil QVM are supported as execution backends, while `pytket` is used for structural analysis.
 
 For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./docs/THEORY.md). For planned SDK interop and translation work, see [ROADMAP.md](./ROADMAP.md).
 
@@ -72,9 +72,6 @@ python -m pip install "quantum-backend-bench[plot]"
 python -m pip install "quantum-backend-bench[qiskit]"
 python -m pip install "quantum-backend-bench[cudaq]"
 python -m pip install "quantum-backend-bench[pyquil]"
-python -m pip install "quantum-backend-bench[qutip]"
-python -m pip install "quantum-backend-bench[qbraid]"
-python -m pip install "quantum-backend-bench[qsharp]"
 python -m pip install "quantum-backend-bench[all]"
 python -m pip install "quantum-backend-bench[full]"
 ```
@@ -116,7 +113,7 @@ Even with `full`, the pyQuil execution test requires non-Python local runtime to
 
 The core workflows are SDK comparison, SDK translation, and semantic verification on free local simulator stacks. Benchmark commands exist to exercise comparable local workloads; translation commands move supported circuits, Pauli Hamiltonians, workflows, and result shapes through neutral schemas; audit commands check parity, semantics, compilation metadata, round trips, noise support, and artifact drift.
 
-Peripheral workflows remain available but should be read as support material: plotting, diagram drawing, tutorial notebooks, generated documentation assets, reference-result bundles, hardware-preparation exports, and discovery-only ecosystem checks. They help users inspect and reproduce SDK behavior, but they are not cloud execution or hardware benchmarking features.
+Peripheral workflows remain available but should be read as support material: plotting, diagram drawing, tutorial notebooks, generated documentation assets, and reference-result bundles. They help users inspect and reproduce SDK behavior, but they are not cloud execution or hardware benchmarking features.
 
 The default workflow intentionally excludes cloud job submission, provider credentials, queue timing, billing workflows, arbitrary Python migration, and new benchmark families that do not strengthen SDK comparison or translation validation.
 
@@ -138,7 +135,7 @@ Core comparison and execution commands:
 Translation and SDK interop commands:
 
 - `export`, `import-qasm`, `translate`, `translate-all`, `translate-check`
-- `translate-hamiltonian`, `translate-observable`, `translate-workflow`, `translate-result`
+- `translate-hamiltonian`, `translate-workflow`, `translate-result`
 - `group-pauli-terms`, `translation-audit`, `exact`
 
 Verification and audit commands:
@@ -149,7 +146,6 @@ Verification and audit commands:
 Peripheral inspection and preparation commands:
 
 - `draw` for local SDK/pytket circuit diagrams
-- `hardware` for hardware-preparation exports only; it does not submit cloud jobs, benchmark QPUs, or manage credentials
 
 ### Discover Benchmarks and Integrations
 
@@ -193,10 +189,8 @@ Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` 
 - Use Cirq, PennyLane, or Qiskit Aer for noise-sweep studies because this project injects depolarizing noise for those adapters.
 - Use Qiskit Aer when you want a common transpilation-inclusive local simulator workflow.
 - Use Braket LocalSimulator when you want offline Braket circuit coverage without AWS credentials.
-- Use QuTiP when statevector-style local simulation is useful for small physics-oriented cases.
 - Use pyQuil only when local `qvm` and `quilc` runtime support is available.
 - Treat CUDA-Q availability as platform-sensitive and check it with `doctor` in CI or fresh environments.
-- Treat `qbraid` and `qsharp` as discovery-only ecosystem checks; they are not execution backends, translation targets, or verification engines.
 
 ### Compatibility Matrix
 
@@ -244,7 +238,6 @@ Execution backend names are:
 - `qiskit_aer`
 - `cudaq`
 - `pyquil_qvm`
-- `qutip`
 
 ### Run Presets, Reports, and Bundles
 
@@ -269,7 +262,6 @@ quantum-bench bundle artifacts/runtime.json --output artifacts/runtime_bundle
 quantum-bench bundle artifacts/runtime.csv --output artifacts/runtime_bundle --no-plots
 ```
 
-`qbraid` and `qsharp` are reported by `quantum-bench info` as optional ecosystem integrations only. They are not execution backends, translation targets, or verification engines in this package.
 
 ### Run One Benchmark on One Backend
 
@@ -328,7 +320,7 @@ quantum-bench run quantum-volume --backend cirq --n-qubits 4 --depth 4 --seed 42
 Compare QFT across all execution backends:
 
 ```bash
-quantum-bench compare qft --backends cirq pennylane braket_local qiskit_aer qutip --n-qubits 5
+quantum-bench compare qft --backends cirq pennylane braket_local qiskit_aer --n-qubits 5
 ```
 
 Compare GHZ and save artifacts:
@@ -706,7 +698,6 @@ quantum-bench translate-check examples/translation/qiskit_registers.py --from-fo
 quantum-bench translate examples/translation/ghz.qasm --from-format openqasm --to-format cirq --verify exact --save-report artifacts/translation_report.json
 quantum-bench translate-all examples/translation/qiskit_registers.py --from-format qiskit --output-dir artifacts/qiskit_registers_all
 quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json --from-format pauli-json --to-format pennylane --output artifacts/ising_pennylane.py
-quantum-bench translate-observable examples/translation/ising_hamiltonian.json --from-format pauli-json --to-format qiskit_aer
 quantum-bench translate-workflow examples/translation/parameterized_workflow.json --to-format qiskit_aer --verify semantic
 quantum-bench translate-result examples/translation/qiskit_counts_result.json --from-format qiskit-counts-json
 quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json --from-format pauli-json
@@ -716,15 +707,14 @@ quantum-bench exact ghz --n-qubits 3 --top-k 4 --amplitudes --observable ZZI
 quantum-bench run random-circuit --backend cirq --sweep n-qubits=2:5 --sweep depth=4,8
 quantum-bench noise-sweep ghz --backend cirq --noise-type bit_flip
 quantum-bench diagnose artifacts/ghz.json
-quantum-bench hardware qaoa-maxcut --n-qubits 4 --output artifacts/hardware_qaoa --provider ibm --qasm-version openqasm3 --backend-hint provider-device
 quantum-bench recommend --needs-noise --no-external-runtime
 ```
 
-`translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. `translate-hamiltonian` and `translate-observable` convert weighted Pauli terms through the neutral Pauli Hamiltonian model with canonical or small dense-matrix verification. `translate-workflow`, `translate-result`, and `group-pauli-terms` extend that into parameterized workflow JSON, first-pass static SDK workflow imports, parameter bindings, measurement/expectation requests, local execution wrappers, neutral result objects, and qubit-wise Pauli grouping. Generated workflow scripts print schema-versioned runtime results and embed a `workflow_spec` for canonical or semantic verification. SDK output is limited to free local Python SDK APIs for now: Cirq, Qiskit, PennyLane, and Braket LocalSimulator. Unsupported dynamic Python constructs are rejected instead of rewritten approximately. Circuit verification supports exact, sampled, canonical, and small noiseless statevector checks, and neutral `internal-json` now carries preservable reset/barrier/delay annotations. Neutral `internal-json`, `pauli-json`, `workflow-json`, and `result-json` payloads are versioned with `schema_version: "0.1"`; saved translation reports include `schema_metadata` and `semantic_contract`, `translate-check` can emit target-aware `migration_audit` guidance with `--to-format`, `--explain`, and `--save-markdown`, `translate-all` writes all selected target sources plus neutral JSON and reports, `roundtrip-audit --verify canonical` checks stricter neutral circuit structure preservation, `roundtrip-audit --workflow-verify semantic` checks workflow results, and `translation-audit --json` emits the current SDK coverage matrix. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) and [Schema](./docs/SCHEMA.md) for supported gates, static Python patterns, diagnostics, runnable-script output, report artifacts, JSON Schema files, examples, caveats, and verification modes.
+`translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. `translate-hamiltonian` converts weighted Pauli terms through the neutral Pauli Hamiltonian model with canonical or small dense-matrix verification. `translate-workflow`, `translate-result`, and `group-pauli-terms` extend that into parameterized workflow JSON, first-pass static SDK workflow imports, parameter bindings, measurement/expectation requests, local execution wrappers, neutral result objects, and qubit-wise Pauli grouping. Generated workflow scripts print schema-versioned runtime results and embed a `workflow_spec` for canonical or semantic verification. SDK output is limited to free local Python SDK APIs for now: Cirq, Qiskit, PennyLane, and Braket LocalSimulator. Unsupported dynamic Python constructs are rejected instead of rewritten approximately. Circuit verification supports exact, sampled, canonical, and small noiseless statevector checks, and neutral `internal-json` now carries preservable reset/barrier/delay annotations. Neutral `internal-json`, `pauli-json`, `workflow-json`, and `result-json` payloads are versioned with `schema_version: "0.1"`; saved translation reports include `schema_metadata` and `semantic_contract`, `translate-check` can emit target-aware `migration_audit` guidance with `--to-format`, `--explain`, and `--save-markdown`, `translate-all` writes all selected target sources plus neutral JSON and reports, `roundtrip-audit --verify canonical` checks stricter neutral circuit structure preservation, `roundtrip-audit --workflow-verify semantic` checks workflow results, and `translation-audit --json` emits the current SDK coverage matrix. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) and [Schema](./docs/SCHEMA.md) for supported gates, static Python patterns, diagnostics, runnable-script output, report artifacts, JSON Schema files, examples, caveats, and verification modes.
 
 Workflow outputs now include schema-versioned runtime counts, probabilities, and Pauli expectations. Use `translate-workflow --verify semantic` for neutral distribution-TVD, expectation-error, and result-schema checks, or `roundtrip-audit --include-workflow --workflow-verify semantic` to record those metrics across targets.
 
-Result tables, CSV records, and Markdown reports include compile/transpile metadata when a backend provides it, such as Qiskit Aer `compile_seconds`, compiled depth, compiled gate counts, and compile toolchain. New applied workloads include `vqe-ansatz`, `phase-estimation`, `amplitude-estimation`, and `quantum-kernel`. The `hardware` command is a hardware-preparation export helper: it writes OpenQASM and provider-specific caveats for IBM, Braket, Rigetti, or generic submission workflows, but it does not submit cloud jobs, benchmark QPUs, or handle credentials. SDK tutorial notebooks live in `notebooks/04_sdk_cirq_workflow.ipynb` through `notebooks/08_sdk_qutip_workflow.ipynb` and include readable result summaries, top-state plots, saved artifacts, and verification checks. `notebooks/09_circuit_translation_workflow.ipynb` covers all-target local SDK circuit translation, SDK-native diagram comparison, reports, runner output, and diagnostics. `notebooks/10_observable_hamiltonian_translation_workflow.ipynb` covers Pauli observable and Hamiltonian translation with canonical verification. `notebooks/11_parameterized_workflow_translation.ipynb` covers parameterized workflow translation, result normalization, and Pauli grouping.
+Result tables and reports retain compile/transpile metadata where an SDK provides it. The consolidated `04_compare_sdk_workflows.ipynb` notebook applies one workflow across Cirq, Qiskit Aer, PennyLane, and Braket LocalSimulator.
 
 ---
 

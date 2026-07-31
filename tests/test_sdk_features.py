@@ -32,7 +32,6 @@ from quantum_backend_bench.core.exact import (
     pauli_z_expectation,
 )
 from quantum_backend_bench.core.factory import build_benchmark_from_config
-from quantum_backend_bench.core.hardware import write_hardware_artifacts
 from quantum_backend_bench.core.dataframe import results_to_records
 from quantum_backend_bench.core.report import format_markdown_report
 from quantum_backend_bench.core.sweeps import expand_benchmark_sweep, parse_sweep_specs
@@ -53,14 +52,30 @@ def test_openqasm_export_contains_measurements() -> None:
 
 
 def test_internal_json_export_is_parseable() -> None:
-    benchmark = build_benchmark_from_config({"benchmark": "vqe-ansatz", "n_qubits": 3})
+    benchmark = build_benchmark_from_config({"benchmark": "ghz", "n_qubits": 3})
 
     payload = json.loads(export_benchmark_circuit(benchmark, "internal-json"))
 
     assert payload["schema_version"] == "0.1"
-    assert payload["benchmark"] == "vqe_ansatz"
     assert payload["n_qubits"] == 3
     assert payload["operations"]
+    assert set(payload) == {
+        "schema_version",
+        "n_qubits",
+        "operations",
+        "measurements",
+        "quantum_registers",
+        "classical_registers",
+        "measurement_keys",
+        "bit_order",
+        "global_phase",
+        "noise",
+    }
+    imported, detected = import_circuit_source(
+        json.dumps(payload), from_format="internal-json", name="roundtrip"
+    )
+    assert detected == "internal-json"
+    assert imported.n_qubits == benchmark.n_qubits
 
 
 def test_exact_probabilities_for_ghz() -> None:
@@ -92,27 +107,6 @@ def test_diagnostics_flags_reversed_bitstrings() -> None:
     )
 
     assert any("endian" in finding for finding in findings)
-
-
-def test_hardware_artifacts_include_qasm(tmp_path) -> None:
-    benchmark = build_benchmark_from_config({"benchmark": "ghz", "n_qubits": 2})
-
-    paths = write_hardware_artifacts(benchmark, tmp_path, backend_hint="ibm", shots=128)
-
-    assert paths["qasm"].read_text().startswith("OPENQASM 2.0;")
-    assert "suggested_shots: `128`" in paths["readme"].read_text()
-
-
-def test_applied_benchmarks_build_internal_circuits() -> None:
-    for name in (
-        "amplitude-estimation",
-        "phase-estimation",
-        "quantum-kernel",
-        "vqe-ansatz",
-    ):
-        benchmark = build_benchmark_from_config({"benchmark": name, "n_qubits": 3})
-        assert benchmark.n_qubits == 3
-        assert benchmark.circuit_data.operations
 
 
 def test_openqasm3_export_and_import_round_trip() -> None:
@@ -693,21 +687,6 @@ def test_roundtrip_audit_expected_artifacts_regenerate_cleanly(tmp_path: Path) -
     ) == (expected_dir / "qiskit_static_bell_to_cirq_roundtrip.md").read_text(encoding="utf-8")
 
 
-def test_roadmap_translation_examples_are_documented_but_not_verified() -> None:
-    verifier = (TRANSLATION_EXAMPLES / "verify_examples.py").read_text(encoding="utf-8")
-    examples_readme = (TRANSLATION_EXAMPLES / "README.md").read_text(encoding="utf-8")
-    roadmap_readme = (TRANSLATION_EXAMPLES / "roadmap" / "README.md").read_text(encoding="utf-8")
-    roadmap_files = sorted((TRANSLATION_EXAMPLES / "roadmap").glob("*.py"))
-
-    assert "intentionally excluded from `verify_examples.py`" in roadmap_readme
-    assert "roadmap/" not in verifier
-    assert "accepted/braket_expectation_result_type.py" in examples_readme
-    for path in roadmap_files:
-        relative = f"roadmap/{path.name}"
-        assert relative in examples_readme
-        assert relative not in verifier
-
-
 def test_translation_example_corpus_verifies() -> None:
     cases = [
         ("qiskit_registers.py", "qiskit", "cirq"),
@@ -781,19 +760,6 @@ def test_exact_amplitudes_and_pauli_expectation() -> None:
 
     assert len(amplitudes) == 1
     assert pauli_z_expectation(benchmark, "ZZ") == pytest.approx(1.0)
-
-
-def test_hardware_artifacts_are_provider_aware(tmp_path) -> None:
-    benchmark = build_benchmark_from_config({"benchmark": "ghz", "n_qubits": 2})
-
-    paths = write_hardware_artifacts(
-        benchmark, tmp_path, provider="ibm", qasm_version="openqasm3", shots=256
-    )
-
-    assert paths["qasm"].suffix == ".qasm3"
-    readme = paths["readme"].read_text(encoding="utf-8")
-    assert "provider: `ibm`" in readme
-    assert "QuantumCircuit.from_qasm_file" in readme
 
 
 def test_compile_metrics_flatten_and_report() -> None:

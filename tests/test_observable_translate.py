@@ -139,7 +139,7 @@ def test_cli_translate_hamiltonian_writes_output_and_report(tmp_path, capsys) ->
     assert payload["schema_metadata"]["input_schema"] == "pauli-json"
 
 
-def test_cli_translate_observable_stdout_and_audit(capsys, tmp_path) -> None:
+def test_cli_translate_hamiltonian_stdout_and_audit(capsys, tmp_path) -> None:
     source = tmp_path / "observable.json"
     source.write_text(
         json.dumps({"n_qubits": 1, "terms": [{"coefficient": 1.0, "paulis": {"0": "Z"}}]}),
@@ -148,7 +148,7 @@ def test_cli_translate_observable_stdout_and_audit(capsys, tmp_path) -> None:
 
     exit_code = main(
         [
-            "translate-observable",
+            "translate-hamiltonian",
             str(source),
             "--from-format",
             "pauli-json",
