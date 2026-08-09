@@ -45,7 +45,7 @@ def _render_doc(audits: dict[str, list[dict[str, Any]]]) -> str:
                 "```bash",
                 "quantum-bench sdk-parity --save-json artifacts/sdk_parity.json --save-csv artifacts/sdk_parity.csv --save-report artifacts/sdk_parity.md",
                 "quantum-bench noise-audit --save-json artifacts/noise_matrix.json --save-csv artifacts/noise_matrix.csv --save-report artifacts/noise_matrix.md",
-                "quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local --include-hamiltonian --include-workflow --save-json artifacts/roundtrip_audit.json --save-csv artifacts/roundtrip_audit.csv --save-report artifacts/roundtrip_audit.md",
+                "quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local qibo_numpy --include-hamiltonian --include-workflow --save-json artifacts/roundtrip_audit.json --save-csv artifacts/roundtrip_audit.csv --save-report artifacts/roundtrip_audit.md",
                 "```",
                 "",
                 "## SDK Parity Scorecard",

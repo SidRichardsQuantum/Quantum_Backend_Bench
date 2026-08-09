@@ -75,6 +75,12 @@ def test_translate_workflow_to_all_local_sdk_execution_snippets() -> None:
             'inputs = {"theta":',
             "expectation",
         ],
+        "qibo_numpy": [
+            "qibo.construct_backend",
+            "gates.RX(1, theta)",
+            "SymbolicHamiltonian",
+            "frequencies",
+        ],
     }
     for target, markers in expected_markers.items():
         result = translate_workflow_source(WORKFLOW_JSON, to_format=target)
@@ -111,7 +117,7 @@ def test_workflow_parameter_expressions_round_trip() -> None:
     workflow, _ = import_workflow_source(source)
     assert workflow.operations[0].parameter == "theta / 2"
 
-    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local", "qibo_numpy"):
         result = translate_workflow_source(source, to_format=target)
         assert "theta / 2" in result.source
         assert result.verification is not None
@@ -152,6 +158,26 @@ def test_braket_expectation_result_type_fixture_imports_as_expectation() -> None
     assert result.verification.passed
 
 
+def test_static_qibo_workflow_import_preserves_partial_measurements() -> None:
+    source = """from qibo import Circuit, gates
+
+circuit = Circuit(3)
+circuit.add(gates.H(0))
+circuit.add(gates.CNOT(0, 2))
+circuit.add(gates.M(2, 0, register_name="result"))
+shots = 64
+"""
+
+    workflow, detected = import_workflow_source(source, from_format="qibo")
+
+    assert detected == "qibo"
+    assert [operation.gate for operation in workflow.operations] == ["H", "CNOT"]
+    assert len(workflow.measurements) == 1
+    assert workflow.measurements[0].kind == "counts"
+    assert workflow.measurements[0].targets == (2, 0)
+    assert workflow.shots == 64
+
+
 def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     qiskit_result = normalize_result_source(
         json.dumps({"counts": {"0 0": 3, "1 1": 1}, "shots": 4, "backend": "qiskit_aer"}),
@@ -164,6 +190,10 @@ def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     braket_result = import_result_source(
         json.dumps({"measurement_counts": {"01": 5, "10": 5}, "shots": 10}),
         from_format="braket-counts-json",
+    )
+    qibo_result = import_result_source(
+        json.dumps({"frequencies": {"00": 6, "11": 2}, "shots": 8}),
+        from_format="qibo-counts-json",
     )
     pennylane_result = import_result_source(
         json.dumps({"samples": [[0, 0], [1, 1], [1, 1]], "shots": 3}),
@@ -179,6 +209,8 @@ def test_result_normalization_from_sdk_count_and_sample_shapes() -> None:
     assert cirq_result.probabilities == {"00": 0.5, "10": 0.5}
     assert braket_result.counts == {"01": 5, "10": 5}
     assert braket_result.probabilities == {"01": 0.5, "10": 0.5}
+    assert qibo_result.counts == {"00": 6, "11": 2}
+    assert qibo_result.probabilities == {"00": 0.75, "11": 0.25}
     assert pennylane_result.counts == {"00": 1, "11": 2}
     assert pennylane_result.probabilities == {"00": 1 / 3, "11": 2 / 3}
 
@@ -274,6 +306,7 @@ def test_workflow_expected_outputs_are_stable_and_verifiable() -> None:
         ("cirq", "expected/parameterized_workflow_to_cirq.py"),
         ("pennylane", "expected/parameterized_workflow_to_pennylane.py"),
         ("braket_local", "expected/parameterized_workflow_to_braket.py"),
+        ("qibo_numpy", "expected/parameterized_workflow_to_qibo.py"),
     ]
     workflow_source = (root / "parameterized_workflow.json").read_text(encoding="utf-8")
     workflow, _ = import_workflow_source(workflow_source)
@@ -358,6 +391,7 @@ def test_result_normalization_example_fixtures() -> None:
         ("cirq_counts_result.json", "cirq-counts-json"),
         ("pennylane_samples_result.json", "pennylane-samples-json"),
         ("braket_counts_result.json", "braket-counts-json"),
+        ("qibo_counts_result.json", "qibo-counts-json"),
     ]
 
     for filename, from_format in cases:

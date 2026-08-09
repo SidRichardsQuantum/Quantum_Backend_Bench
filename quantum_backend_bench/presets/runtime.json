@@ -1,6 +1,6 @@
 {
   "description": "Runtime and structure comparison across portable benchmark families.",
-  "backends": ["cirq", "pennylane", "qiskit_aer"],
+  "backends": ["cirq", "pennylane", "qiskit_aer", "qibo_numpy"],
   "shots": 256,
   "repeats": 3,
   "benchmarks": [

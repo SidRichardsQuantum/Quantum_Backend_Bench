@@ -458,9 +458,16 @@ def test_translation_check_report_includes_gate_inventory() -> None:
 def test_circuit_translation_adapters_expose_expected_hooks() -> None:
     capabilities = {row["sdk"]: row for row in circuit_adapter_capabilities()}
 
-    assert set(capabilities) == {"braket_local", "cirq", "pennylane", "qiskit_aer"}
+    assert set(capabilities) == {
+        "braket_local",
+        "cirq",
+        "pennylane",
+        "qibo_numpy",
+        "qiskit_aer",
+    }
     assert circuit_adapter_for_input("qiskit").output_format == "qiskit_aer"
     assert circuit_adapter_for_output("braket_local").input_format == "braket"
+    assert circuit_adapter_for_input("qibo").output_format == "qibo_numpy"
     assert capabilities["cirq"]["import_hook"] == "static cirq.Circuit AST"
     assert capabilities["qiskit_aer"]["emit_hook"] == "QuantumCircuit source"
     assert "diagnostic_hooks" in capabilities["pennylane"]
@@ -524,6 +531,7 @@ circuit.measure(1, 1)
         "braket_local": "braket",
         "cirq": "cirq",
         "pennylane": "pennylane",
+        "qibo_numpy": "qibo",
         "qiskit_aer": "qiskit",
     }
 
@@ -606,6 +614,12 @@ def test_translation_example_expected_outputs_are_stable() -> None:
         ("qiskit_registers.py", "qiskit", "cirq", "expected/qiskit_registers_to_cirq.py"),
         ("cirq_nested.py", "cirq", "qiskit_aer", "expected/cirq_nested_to_qiskit.py"),
         ("ghz.qasm", "openqasm", "pennylane", "expected/ghz_qasm_to_pennylane.py"),
+        (
+            "qiskit_registers.py",
+            "qiskit",
+            "qibo_numpy",
+            "expected/qiskit_registers_to_qibo.py",
+        ),
         (
             "accepted/qiskit_timing_annotations.py",
             "qiskit",

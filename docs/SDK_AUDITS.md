@@ -7,7 +7,7 @@ This page is generated from committed reference artifacts under `../examples/ref
 ```bash
 quantum-bench sdk-parity --save-json artifacts/sdk_parity.json --save-csv artifacts/sdk_parity.csv --save-report artifacts/sdk_parity.md
 quantum-bench noise-audit --save-json artifacts/noise_matrix.json --save-csv artifacts/noise_matrix.csv --save-report artifacts/noise_matrix.md
-quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local --include-hamiltonian --include-workflow --save-json artifacts/roundtrip_audit.json --save-csv artifacts/roundtrip_audit.csv --save-report artifacts/roundtrip_audit.md
+quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local qibo_numpy --include-hamiltonian --include-workflow --save-json artifacts/roundtrip_audit.json --save-csv artifacts/roundtrip_audit.csv --save-report artifacts/roundtrip_audit.md
 ```
 
 ## SDK Parity Scorecard
@@ -19,6 +19,7 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 | braket_local | yes | yes | yes | yes | yes | none |
 | cirq | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
 | pennylane | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
+| qibo_numpy | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
 | qiskit_aer | yes | yes | yes | yes | yes | amplitude_damping, bit_flip, depolarizing, phase_flip, readout_error |
 
 ## Noise Model Matrix
@@ -32,6 +33,7 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 | cudaq | not injected | not injected | not injected | not injected | not injected | reported only; noise is not injected by this project |
 | pennylane | implemented | implemented | implemented | implemented | implemented | project-injected local model |
 | pyquil_qvm | not injected | not injected | not injected | not injected | not injected | reported only; noise is not injected by this project |
+| qibo_numpy | implemented | implemented | implemented | implemented | implemented | project-injected local model |
 | qiskit_aer | implemented | implemented | implemented | implemented | implemented | project-injected local model |
 
 ## Round-Trip Translation Audit
@@ -43,14 +45,17 @@ quantum-bench roundtrip-audit --targets cirq qiskit_aer pennylane braket_local -
 | circuit_roundtrip | braket_local | 4 | yes |
 | circuit_roundtrip | cirq | 4 | yes |
 | circuit_roundtrip | pennylane | 4 | yes |
+| circuit_roundtrip | qibo_numpy | 4 | yes |
 | circuit_roundtrip | qiskit_aer | 4 | yes |
 | hamiltonian_roundtrip | braket_local | 1 | yes |
 | hamiltonian_roundtrip | cirq | 1 | yes |
 | hamiltonian_roundtrip | pennylane | 1 | yes |
+| hamiltonian_roundtrip | qibo_numpy | 1 | yes |
 | hamiltonian_roundtrip | qiskit_aer | 1 | yes |
 | workflow_roundtrip | braket_local | 1 | yes |
 | workflow_roundtrip | cirq | 1 | yes |
 | workflow_roundtrip | pennylane | 1 | yes |
+| workflow_roundtrip | qibo_numpy | 1 | yes |
 | workflow_roundtrip | qiskit_aer | 1 | yes |
 
 ## Interpretation

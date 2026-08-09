@@ -6,6 +6,7 @@ from typing import Any
 
 from quantum_backend_bench.core.benchmark_spec import BenchmarkSpec, InternalCircuit
 from quantum_backend_bench.core.neutral_simulator import (
+    simulate_density_probabilities,
     simulate_probabilities,
     simulate_statevector,
 )
@@ -16,9 +17,17 @@ def exact_probabilities(benchmark: BenchmarkSpec, *, top_k: int | None = None) -
 
     circuit_data = _internal_circuit(benchmark)
     measurements = circuit_data.measurements or list(range(circuit_data.n_qubits))
-    probabilities = simulate_probabilities(
-        circuit_data.n_qubits, circuit_data.operations, measurements
-    )
+    if circuit_data.noise or any(op.gate == "RESET" for op in circuit_data.operations):
+        probabilities = simulate_density_probabilities(
+            circuit_data.n_qubits,
+            circuit_data.operations,
+            measurements,
+            circuit_data.noise,
+        )
+    else:
+        probabilities = simulate_probabilities(
+            circuit_data.n_qubits, circuit_data.operations, measurements
+        )
     return _top_k(probabilities, top_k)
 
 

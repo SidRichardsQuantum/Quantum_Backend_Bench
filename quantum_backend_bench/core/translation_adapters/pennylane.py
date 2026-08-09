@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import ast
 
-from quantum_backend_bench.core.benchmark_spec import CircuitOperation, InternalCircuit
+from quantum_backend_bench.core.benchmark_spec import (
+    CircuitOperation,
+    InternalCircuit,
+    NoiseInstruction,
+)
 from quantum_backend_bench.core.circuit_translate import TranslationDiagnostic
+from quantum_backend_bench.core.noise import noise_after_circuit, noise_after_operation
 
 
 class PennyLaneCircuitAdapter:
@@ -35,10 +40,14 @@ class PennyLaneCircuitAdapter:
             "@qml.qnode(dev)",
             "def circuit():",
         ]
-        for operation in circuit.operations:
+        for operation_index, operation in enumerate(circuit.operations):
             for line in _pennylane_lines(operation):
                 lines.append(f"    {line}")
-        for line in _pennylane_noise_lines(circuit):
+            for line in _pennylane_noise_lines(
+                noise_after_operation(circuit.noise, operation_index, operation)
+            ):
+                lines.append(f"    {line}")
+        for line in _pennylane_noise_lines(noise_after_circuit(circuit.noise)):
             lines.append(f"    {line}")
         measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
         lines.append(f"    return qml.sample(wires=[{measurements}])")
@@ -116,7 +125,7 @@ def _pennylane_lines(operation: CircuitOperation) -> list[str]:
     raise ValueError(f"Unsupported PennyLane emit gate: {gate}")
 
 
-def _pennylane_noise_lines(circuit: InternalCircuit) -> list[str]:
+def _pennylane_noise_lines(noise: list[NoiseInstruction]) -> list[str]:
     channel_map = {
         "depolarizing": "DepolarizingChannel",
         "bit_flip": "BitFlip",
@@ -124,7 +133,7 @@ def _pennylane_noise_lines(circuit: InternalCircuit) -> list[str]:
         "amplitude_damping": "AmplitudeDamping",
     }
     lines = []
-    for item in circuit.noise:
+    for item in noise:
         channel = channel_map.get(item.channel)
         if channel is None:
             lines.append(

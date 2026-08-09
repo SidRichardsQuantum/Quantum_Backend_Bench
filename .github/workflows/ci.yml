@@ -132,6 +132,12 @@ jobs:
           - extra: qiskit
             filter: qiskit
             python-version: "3.12"
+          - extra: qibo
+            filter: qibo
+            python-version: "3.11"
+          - extra: qibo
+            filter: qibo
+            python-version: "3.12"
           - extra: cudaq
             filter: cudaq
             python-version: "3.11"

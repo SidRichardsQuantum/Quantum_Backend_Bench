@@ -60,6 +60,18 @@
     }
   },
   {
+    "backend": "qibo_numpy",
+    "comparison_scope": "project-injected local model",
+    "installed": true,
+    "models": {
+      "amplitude_damping": "implemented",
+      "bit_flip": "implemented",
+      "depolarizing": "implemented",
+      "phase_flip": "implemented",
+      "readout_error": "implemented"
+    }
+  },
+  {
     "backend": "qiskit_aer",
     "comparison_scope": "project-injected local model",
     "installed": true,

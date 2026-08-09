@@ -10,6 +10,7 @@ from quantum_backend_bench.core.benchmark_spec import (
     BenchmarkSpec,
     CircuitOperation,
     InternalCircuit,
+    NoiseInstruction,
 )
 from quantum_backend_bench.core.circuit_export import import_openqasm_circuit
 from quantum_backend_bench.core.exact import exact_probabilities
@@ -21,8 +22,15 @@ from quantum_backend_bench.core.neutral_circuit import (
 from quantum_backend_bench.core.neutral_schema import (
     report_schema_metadata,
 )
+from quantum_backend_bench.core.noise import validate_noise
 
-FREE_LOCAL_TRANSLATION_SDKS = ("braket_local", "cirq", "pennylane", "qiskit_aer")
+FREE_LOCAL_TRANSLATION_SDKS = (
+    "braket_local",
+    "cirq",
+    "pennylane",
+    "qibo_numpy",
+    "qiskit_aer",
+)
 TRANSLATION_INPUT_FORMATS = (
     "auto",
     "internal-json",
@@ -30,15 +38,24 @@ TRANSLATION_INPUT_FORMATS = (
     "braket",
     "cirq",
     "pennylane",
+    "qibo",
     "qiskit",
 )
 TRANSLATION_OUTPUT_FORMATS = (*FREE_LOCAL_TRANSLATION_SDKS, "internal-json", "openqasm")
-TRANSLATION_VERIFY_MODES = ("none", "exact", "samples", "canonical", "statevector")
+TRANSLATION_VERIFY_MODES = (
+    "none",
+    "exact",
+    "samples",
+    "canonical",
+    "statevector",
+    "density-matrix",
+)
 
 _OUTPUT_IMPORT_FORMAT = {
     "braket_local": "braket",
     "cirq": "cirq",
     "pennylane": "pennylane",
+    "qibo_numpy": "qibo",
     "qiskit_aer": "qiskit",
     "internal-json": "internal-json",
     "openqasm": "openqasm",
@@ -65,6 +82,7 @@ class TranslationVerification:
     details: str
     canonical_match: bool | None = None
     statevector_distance: float | None = None
+    density_matrix_trace_distance: float | None = None
     expectation_max_abs_error: float | None = None
     expectation_tolerance: float | None = None
     result_schema_valid: bool | None = None
@@ -146,6 +164,7 @@ def translation_semantic_contract(
                     "exact probabilities",
                     "sampled distributions",
                     "statevector comparison up to global phase for small noiseless circuits",
+                    "density-matrix trace distance and exact measured TVD for noisy circuits",
                 ],
             }
         )
@@ -248,6 +267,7 @@ def circuit_migration_audit(
         available = ", ".join(TRANSLATION_OUTPUT_FORMATS)
         raise ValueError(f"Unknown output format '{to_format}'. Available: {available}")
     circuit = _internal_circuit(benchmark)
+    validate_noise(circuit.noise, circuit.n_qubits, len(circuit.operations))
     gate_counts: dict[str, int] = {}
     for operation in circuit.operations:
         gate_counts[operation.gate] = gate_counts.get(operation.gate, 0) + 1
@@ -288,7 +308,7 @@ def circuit_migration_audit(
             "provider-calibrated noise semantics",
             "full Python program state",
         ],
-        "verification_recommendation": "Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows.",
+        "verification_recommendation": "Run translate with --verify density-matrix for noisy circuits, --verify exact for deterministic probabilities, or --verify samples for sampled workflows.",
     }
 
 
@@ -387,6 +407,7 @@ def _verification_payload(verification: TranslationVerification | None) -> dict[
         "details": verification.details,
         "canonical_match": verification.canonical_match,
         "statevector_distance": verification.statevector_distance,
+        "density_matrix_trace_distance": verification.density_matrix_trace_distance,
         "expectation_max_abs_error": verification.expectation_max_abs_error,
         "expectation_tolerance": verification.expectation_tolerance,
         "result_schema_valid": verification.result_schema_valid,
@@ -435,6 +456,7 @@ def translate_circuit_source(
             f"Unknown verification mode '{verify}'. Available: {', '.join(TRANSLATION_VERIFY_MODES)}"
         )
     benchmark, detected_format = import_circuit_source(source, from_format=from_format, name=name)
+    _validate_noise_verification_target(_internal_circuit(benchmark), to_format, verify)
     output = emit_circuit_source(
         benchmark, to_format, include_runner=include_runner, runner_shots=runner_shots
     )
@@ -485,7 +507,7 @@ def import_circuit_source(
             return _import_internal_json(source, name=name), selected_format
         if selected_format == "openqasm":
             return import_openqasm_circuit(source, name=name), selected_format
-        if selected_format in {"braket", "cirq", "pennylane", "qiskit"}:
+        if selected_format in {"braket", "cirq", "pennylane", "qibo", "qiskit"}:
             return _import_python_sdk(source, selected_format, name=name), selected_format
     except TranslationError:
         raise
@@ -509,6 +531,7 @@ def emit_circuit_source(
         available = ", ".join(TRANSLATION_OUTPUT_FORMATS)
         raise ValueError(f"Unknown output format '{to_format}'. Available: {available}")
     circuit = _internal_circuit(benchmark)
+    validate_noise(circuit.noise, circuit.n_qubits, len(circuit.operations))
     if to_format == "internal-json":
         return _emit_internal_json(circuit)
     if to_format == "openqasm":
@@ -535,10 +558,11 @@ def verify_translation(
 ) -> TranslationVerification:
     """Verify translated circuit semantics via the neutral internal simulator."""
 
-    if mode not in {"exact", "samples", "canonical", "statevector"}:
+    if mode not in {"exact", "samples", "canonical", "statevector", "density-matrix"}:
         raise ValueError(
-            "Verification mode must be 'exact', 'samples', 'canonical', or 'statevector'."
+            "Verification mode must be 'exact', 'samples', 'canonical', 'statevector', or 'density-matrix'."
         )
+    _validate_noise_verification_target(_internal_circuit(original), to_format, mode)
     imported, _ = import_circuit_source(
         translated_source,
         from_format=_OUTPUT_IMPORT_FORMAT[to_format],
@@ -571,6 +595,44 @@ def verify_translation(
                 f"with tolerance={tolerance}."
             ),
             statevector_distance=distance,
+        )
+    if mode == "density-matrix":
+        from quantum_backend_bench.core.neutral_simulator import (
+            density_matrix_trace_distance,
+            simulate_density_matrix,
+        )
+
+        original_circuit = _internal_circuit(original)
+        translated_circuit = _internal_circuit(imported)
+        if original_circuit.n_qubits != translated_circuit.n_qubits:
+            trace_distance = float("inf")
+        else:
+            left = simulate_density_matrix(
+                original_circuit.n_qubits,
+                original_circuit.operations,
+                original_circuit.noise,
+            )
+            right = simulate_density_matrix(
+                translated_circuit.n_qubits,
+                translated_circuit.operations,
+                translated_circuit.noise,
+            )
+            trace_distance = density_matrix_trace_distance(left, right)
+        original_probs = exact_probabilities(original)
+        translated_probs = exact_probabilities(imported)
+        tvd = total_variation_distance(translated_probs, original_probs)
+        passed = trace_distance <= tolerance and tvd is not None and tvd <= tolerance
+        status = "passed" if passed else "failed"
+        return TranslationVerification(
+            mode=mode,
+            passed=passed,
+            total_variation_distance=tvd,
+            tolerance=tolerance,
+            details=(
+                f"Density-matrix verification {status}: trace_distance={trace_distance}, "
+                f"measured_TVD={tvd} with tolerance={tolerance}."
+            ),
+            density_matrix_trace_distance=trace_distance,
         )
     original_probs = exact_probabilities(original)
     translated_probs = exact_probabilities(imported)
@@ -621,6 +683,8 @@ def canonical_circuit_signature(benchmark: BenchmarkSpec) -> dict[str, object]:
                 "channel": item.channel,
                 "targets": list(item.targets),
                 "probability": round(item.probability, 12),
+                "placement": item.placement,
+                "operation_index": item.operation_index,
             }
             for item in circuit.noise
         ],
@@ -678,6 +742,7 @@ def _annotation_diagnostics(
         "qiskit_aer": {"RESET", "BARRIER", "DELAY"},
         "cirq": {"RESET"},
         "pennylane": {"BARRIER"},
+        "qibo_numpy": {"RESET", "DELAY"},
         "braket_local": set(),
     }
     unsupported = annotation_gates - native_support.get(to_format, set())
@@ -696,6 +761,36 @@ def _annotation_diagnostics(
     ]
 
 
+def _validate_noise_verification_target(
+    circuit: InternalCircuit, to_format: str, verify: str
+) -> None:
+    if verify != "density-matrix" or not circuit.noise:
+        return
+    if to_format in {"qiskit_aer", "openqasm"}:
+        raise TranslationError(
+            [
+                TranslationDiagnostic(
+                    "error",
+                    "translation.noise.target_unrepresentable",
+                    f"{to_format} circuit output cannot reimport neutral noise channels; choose a native noisy target or disable density-matrix verification.",
+                )
+            ]
+        )
+    if any(item.channel == "readout_error" for item in circuit.noise) and to_format not in {
+        "internal-json",
+        "qibo_numpy",
+    }:
+        raise TranslationError(
+            [
+                TranslationDiagnostic(
+                    "error",
+                    "translation.noise.readout_unrepresentable",
+                    f"{to_format} cannot round-trip neutral readout_error placement for density-matrix verification.",
+                )
+            ]
+        )
+
+
 def _detect_format(source: str) -> str:
     stripped = source.lstrip()
     if stripped.startswith("{"):
@@ -708,6 +803,8 @@ def _detect_format(source: str) -> str:
         return "cirq"
     if "pennylane" in source or "qml." in source:
         return "pennylane"
+    if "from qibo" in source or "import qibo" in source or "qibo." in source:
+        return "qibo"
     if "braket." in source or "Circuit()" in source:
         return "braket"
     raise TranslationError(
@@ -743,6 +840,7 @@ def _import_python_sdk(source: str, sdk: str, *, name: str) -> BenchmarkSpec:
     from quantum_backend_bench.core.translation_adapters import circuit_adapter_for_input
 
     circuit = circuit_adapter_for_input(sdk).parse_ast(tree)
+    validate_noise(circuit.noise, circuit.n_qubits, len(circuit.operations))
     return BenchmarkSpec(
         name=name,
         n_qubits=circuit.n_qubits,
@@ -859,7 +957,15 @@ def _is_provider_or_runtime_call(call_name: str) -> bool:
         "localsimulator",
         "device.run",
     )
-    provider_tokens = ("ibm", "provider", "awsbraket", "azure", "rigetti")
+    provider_tokens = (
+        "ibm",
+        "provider",
+        "awsbraket",
+        "azure",
+        "rigetti",
+        "qibolab",
+        "qibo-cloud",
+    )
     return any(token in lowered for token in (*runtime_tokens, *provider_tokens))
 
 
@@ -1125,6 +1231,7 @@ def _parse_cirq_ast(tree: ast.AST) -> InternalCircuit:
     circuit_vars: set[str] = set()
     operations: list[CircuitOperation] = []
     measurements: list[int] = []
+    noise: list[NoiseInstruction] = []
 
     for node, constants in _iter_static_statements(tree):
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
@@ -1144,7 +1251,7 @@ def _parse_cirq_ast(tree: ast.AST) -> InternalCircuit:
                         circuit_vars.add(target.id)
                 for arg in node.value.args:
                     _collect_cirq_operation(
-                        arg, qubit_ranges, qubit_vars, operations, measurements, constants
+                        arg, qubit_ranges, qubit_vars, operations, measurements, noise, constants
                     )
 
         if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
@@ -1156,14 +1263,17 @@ def _parse_cirq_ast(tree: ast.AST) -> InternalCircuit:
             continue
         for arg in call.args:
             _collect_cirq_operation(
-                arg, qubit_ranges, qubit_vars, operations, measurements, constants
+                arg, qubit_ranges, qubit_vars, operations, measurements, noise, constants
             )
 
     inferred_n_qubits = _inferred_n_qubits(operations, measurements, qubit_ranges, qubit_vars)
     if inferred_n_qubits is None:
         raise _unsupported("cirq.no_circuit", "No supported Cirq circuit construction found.")
     return InternalCircuit(
-        inferred_n_qubits, operations, measurements or list(range(inferred_n_qubits))
+        inferred_n_qubits,
+        operations,
+        measurements or list(range(inferred_n_qubits)),
+        noise=noise,
     )
 
 
@@ -1173,17 +1283,24 @@ def _collect_cirq_operation(
     qubit_vars: dict[str, int],
     operations: list[CircuitOperation],
     measurements: list[int],
+    noise: list[NoiseInstruction],
     constants: dict[str, object],
 ) -> None:
     if isinstance(node, (ast.List, ast.Tuple)):
         for item in node.elts:
             _collect_cirq_operation(
-                item, qubit_ranges, qubit_vars, operations, measurements, constants
+                item, qubit_ranges, qubit_vars, operations, measurements, noise, constants
             )
         return
     if not isinstance(node, ast.Call):
         return
     if isinstance(node.func, ast.Call):
+        instruction = _cirq_noise_instruction(
+            node.func, node, qubit_ranges, qubit_vars, constants, len(operations) - 1
+        )
+        if instruction is not None:
+            noise.append(instruction)
+            return
         rotation = _cirq_rotation_operation(node.func, node, qubit_ranges, qubit_vars, constants)
         if rotation is not None:
             operations.append(rotation)
@@ -1207,6 +1324,33 @@ def _collect_cirq_operation(
     operation = _cirq_operation(gate_name, node, qubit_ranges, qubit_vars, constants)
     if operation is not None:
         operations.append(operation)
+
+
+def _cirq_noise_instruction(
+    gate_call: ast.Call,
+    op_call: ast.Call,
+    qubit_ranges: dict[str, int],
+    qubit_vars: dict[str, int],
+    constants: dict[str, object],
+    operation_index: int,
+) -> NoiseInstruction | None:
+    channel_map = {
+        "depolarize": "depolarizing",
+        "bit_flip": "bit_flip",
+        "phase_flip": "phase_flip",
+        "amplitude_damp": "amplitude_damping",
+    }
+    gate_name = _call_name(gate_call.func).rsplit(".", 1)[-1]
+    if gate_name not in channel_map or not gate_call.args or not op_call.args:
+        return None
+    target = _cirq_qubit_index(op_call.args[0], qubit_ranges, qubit_vars, constants)
+    return NoiseInstruction(
+        channel_map[gate_name],
+        (target,),
+        _number_expr(gate_call.args[0], constants),
+        "after_operation",
+        operation_index,
+    )
 
 
 def _cirq_operation(
@@ -1326,6 +1470,7 @@ def _parse_pennylane_ast(tree: ast.AST) -> InternalCircuit:
     n_qubits: int | None = None
     operations: list[CircuitOperation] = []
     measurements: list[int] = []
+    noise: list[NoiseInstruction] = []
 
     for node, constants in _iter_static_statements(tree):
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
@@ -1333,6 +1478,10 @@ def _parse_pennylane_ast(tree: ast.AST) -> InternalCircuit:
                 wires_kw = _keyword(node.value, "wires")
                 if wires_kw is not None:
                     n_qubits = _int_expr(wires_kw, constants)
+                continue
+            instruction = _pennylane_noise_instruction(node.value, constants, len(operations) - 1)
+            if instruction is not None:
+                noise.append(instruction)
                 continue
             operation = _pennylane_operation(node.value, constants)
             if operation is not None:
@@ -1354,7 +1503,32 @@ def _parse_pennylane_ast(tree: ast.AST) -> InternalCircuit:
         raise _unsupported(
             "pennylane.no_circuit", "No supported PennyLane circuit operations found."
         )
-    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)))
+    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)), noise=noise)
+
+
+def _pennylane_noise_instruction(
+    call: ast.Call, constants: dict[str, object], operation_index: int
+) -> NoiseInstruction | None:
+    channel_map = {
+        "DepolarizingChannel": "depolarizing",
+        "BitFlip": "bit_flip",
+        "PhaseFlip": "phase_flip",
+        "AmplitudeDamping": "amplitude_damping",
+    }
+    gate_name = _call_name(call.func).rsplit(".", 1)[-1]
+    if gate_name not in channel_map or not call.args:
+        return None
+    wires = _keyword(call, "wires")
+    if wires is None:
+        return None
+    targets = tuple(_wire_list(wires, constants))
+    return NoiseInstruction(
+        channel_map[gate_name],
+        targets,
+        _number_expr(call.args[0], constants),
+        "after_operation",
+        operation_index,
+    )
 
 
 def _pennylane_operation(call: ast.Call, constants: dict[str, object]) -> CircuitOperation | None:
@@ -1440,6 +1614,7 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
     circuit_vars: set[str] = set()
     operations: list[CircuitOperation] = []
     measurements: list[int] = []
+    noise: list[NoiseInstruction] = []
 
     for node, constants in _iter_static_statements(tree):
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
@@ -1464,6 +1639,12 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
             targets = _wire_list(call.args[0], constants) if call.args else []
             operations.append(CircuitOperation("BARRIER", tuple(targets)))
             continue
+        instruction = _braket_noise_instruction(
+            call.func.attr, call, constants, len(operations) - 1
+        )
+        if instruction is not None:
+            noise.append(instruction)
+            continue
         operation = _braket_operation(call.func.attr, call, constants)
         if operation is not None:
             operations.append(operation)
@@ -1471,7 +1652,31 @@ def _parse_braket_ast(tree: ast.AST) -> InternalCircuit:
     n_qubits = _inferred_n_qubits(operations, measurements)
     if n_qubits is None:
         raise _unsupported("braket.no_circuit", "No supported Braket Circuit construction found.")
-    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)))
+    return InternalCircuit(n_qubits, operations, measurements or list(range(n_qubits)), noise=noise)
+
+
+def _braket_noise_instruction(
+    method: str, call: ast.Call, constants: dict[str, object], operation_index: int
+) -> NoiseInstruction | None:
+    channel_map = {
+        "depolarizing": ("depolarizing", "probability"),
+        "bit_flip": ("bit_flip", "probability"),
+        "phase_flip": ("phase_flip", "probability"),
+        "amplitude_damping": ("amplitude_damping", "gamma"),
+    }
+    if method not in channel_map or not call.args:
+        return None
+    channel, parameter = channel_map[method]
+    value = _keyword(call, parameter) or (call.args[1] if len(call.args) >= 2 else None)
+    if value is None:
+        return None
+    return NoiseInstruction(
+        channel,
+        (_int_expr(call.args[0], constants),),
+        _number_expr(value, constants),
+        "after_operation",
+        operation_index,
+    )
 
 
 def _braket_operation(
@@ -1536,6 +1741,183 @@ def _braket_operation(
             {"theta": _number_expr(angle, constants)},
         )
     return None
+
+
+def _parse_qibo_ast(tree: ast.AST) -> InternalCircuit:
+    circuit_vars: dict[str, int] = {}
+    operations: list[CircuitOperation] = []
+    measurements: list[int] = []
+    noise: list[NoiseInstruction] = []
+
+    for node, constants in _iter_static_statements(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+            if _call_name(node.value.func).rsplit(".", 1)[-1] == "Circuit" and node.value.args:
+                n_qubits = _int_expr(node.value.args[0], constants)
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        circuit_vars[target.id] = n_qubits
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        add_call = node.value
+        if (
+            not isinstance(add_call.func, ast.Attribute)
+            or add_call.func.attr != "add"
+            or _name(add_call.func.value) not in circuit_vars
+            or not add_call.args
+        ):
+            continue
+        _collect_qibo_gate(add_call.args[0], constants, operations, measurements, noise)
+
+    if not circuit_vars:
+        raise _unsupported("qibo.no_circuit", "No supported Qibo Circuit construction found.")
+    n_qubits = next(iter(circuit_vars.values()))
+    return InternalCircuit(
+        n_qubits,
+        operations,
+        measurements or list(range(n_qubits)),
+        bit_order="qibo-big-endian",
+        noise=noise,
+    )
+
+
+def _collect_qibo_gate(
+    node: ast.AST,
+    constants: dict[str, object],
+    operations: list[CircuitOperation],
+    measurements: list[int],
+    noise: list[NoiseInstruction],
+) -> None:
+    if isinstance(node, (ast.List, ast.Tuple)):
+        for item in node.elts:
+            _collect_qibo_gate(item, constants, operations, measurements, noise)
+        return
+    if not isinstance(node, ast.Call):
+        return
+    gate_name = _call_name(node.func).rsplit(".", 1)[-1]
+    if gate_name == "M":
+        measurements.extend(_int_expr(arg, constants) for arg in node.args)
+        return
+    noise_instruction = _qibo_noise_instruction(gate_name, node, constants)
+    if noise_instruction is not None:
+        if noise_instruction.channel == "readout_error":
+            noise_instruction.placement = "readout"
+        else:
+            noise_instruction.placement = "after_operation"
+            noise_instruction.operation_index = len(operations) - 1
+        noise.append(noise_instruction)
+        return
+    operation = _qibo_operation(gate_name, node, constants)
+    if operation is not None:
+        operations.append(operation)
+
+
+def _qibo_operation(
+    gate_name: str, call: ast.Call, constants: dict[str, object]
+) -> CircuitOperation | None:
+    one_qubit = {name: name for name in ("H", "X", "Y", "Z", "S", "T", "SX")}
+    rotations = {"RX": "RX", "RY": "RY", "RZ": "RZ", "U1": "P"}
+    two_qubit = {"CNOT": "CNOT", "CZ": "CZ", "SWAP": "SWAP"}
+    if gate_name in one_qubit and call.args:
+        return CircuitOperation(one_qubit[gate_name], (_int_expr(call.args[0], constants),))
+    if gate_name in rotations and call.args:
+        theta = _keyword(call, "theta") or (call.args[1] if len(call.args) >= 2 else None)
+        if theta is None:
+            return None
+        return CircuitOperation(
+            rotations[gate_name],
+            (_int_expr(call.args[0], constants),),
+            {"theta": _number_expr(theta, constants)},
+        )
+    if gate_name == "U3" and call.args:
+        values = [
+            _keyword(call, "theta") or (call.args[1] if len(call.args) >= 2 else None),
+            _keyword(call, "phi") or (call.args[2] if len(call.args) >= 3 else None),
+            _keyword(call, "lam") or (call.args[3] if len(call.args) >= 4 else None),
+        ]
+        if any(value is None for value in values):
+            return None
+        return CircuitOperation(
+            "U",
+            (_int_expr(call.args[0], constants),),
+            {
+                "theta": _number_expr(values[0], constants),  # type: ignore[arg-type]
+                "phi": _number_expr(values[1], constants),  # type: ignore[arg-type]
+                "lambda": _number_expr(values[2], constants),  # type: ignore[arg-type]
+            },
+        )
+    if gate_name in two_qubit and len(call.args) >= 2:
+        return CircuitOperation(
+            two_qubit[gate_name],
+            (_int_expr(call.args[0], constants), _int_expr(call.args[1], constants)),
+        )
+    if gate_name == "TOFFOLI" and len(call.args) >= 3:
+        return CircuitOperation("CCX", tuple(_int_expr(arg, constants) for arg in call.args[:3]))
+    if gate_name in {"CRX", "CRY", "CRZ", "CU1"} and len(call.args) >= 2:
+        theta = _keyword(call, "theta") or (call.args[2] if len(call.args) >= 3 else None)
+        if theta is None:
+            return None
+        return CircuitOperation(
+            "CPHASE" if gate_name == "CU1" else gate_name,
+            (_int_expr(call.args[0], constants), _int_expr(call.args[1], constants)),
+            {"theta": _number_expr(theta, constants)},
+        )
+    if gate_name == "ResetChannel" and call.args:
+        return CircuitOperation("RESET", (_int_expr(call.args[0], constants),))
+    if gate_name == "Align" and call.args:
+        delay = _keyword(call, "delay") or (call.args[1] if len(call.args) >= 2 else None)
+        return CircuitOperation(
+            "DELAY",
+            (_int_expr(call.args[0], constants),),
+            {"duration": _number_expr(delay, constants) if delay is not None else 0.0},
+        )
+    return None
+
+
+def _qibo_noise_instruction(
+    gate_name: str, call: ast.Call, constants: dict[str, object]
+) -> NoiseInstruction | None:
+    if (
+        gate_name
+        not in {
+            "DepolarizingChannel",
+            "PauliNoiseChannel",
+            "AmplitudeDampingChannel",
+            "ReadoutErrorChannel",
+        }
+        or not call.args
+    ):
+        return None
+    target = _int_expr(call.args[0], constants)
+    if gate_name == "DepolarizingChannel":
+        value = _keyword(call, "lam") or (call.args[1] if len(call.args) >= 2 else None)
+        channel = "depolarizing"
+    elif gate_name == "AmplitudeDampingChannel":
+        value = _keyword(call, "gamma") or (call.args[1] if len(call.args) >= 2 else None)
+        channel = "amplitude_damping"
+    elif gate_name == "PauliNoiseChannel":
+        if len(call.args) < 2 or not isinstance(call.args[1], (ast.List, ast.Tuple)):
+            return None
+        entries = call.args[1].elts
+        if not entries or not isinstance(entries[0], ast.Tuple) or len(entries[0].elts) != 2:
+            return None
+        pauli_node, value = entries[0].elts
+        if not isinstance(pauli_node, ast.Constant) or pauli_node.value not in {"X", "Z"}:
+            return None
+        channel = "bit_flip" if pauli_node.value == "X" else "phase_flip"
+    else:
+        if len(call.args) < 2 or not isinstance(call.args[1], (ast.List, ast.Tuple)):
+            return None
+        rows = call.args[1].elts
+        if not rows or not isinstance(rows[0], (ast.List, ast.Tuple)) or len(rows[0].elts) < 2:
+            return None
+        value = rows[0].elts[1]
+        channel = "readout_error"
+    if value is None:
+        return None
+    probability = _number_expr(value, constants)
+    if gate_name == "DepolarizingChannel":
+        probability *= 3.0 / 4.0
+    return NoiseInstruction(channel, (target,), probability)
 
 
 def _iter_static_statements(tree: ast.AST) -> Iterator[tuple[ast.stmt, dict[str, object]]]:

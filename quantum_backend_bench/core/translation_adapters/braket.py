@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import ast
 
-from quantum_backend_bench.core.benchmark_spec import CircuitOperation, InternalCircuit
+from quantum_backend_bench.core.benchmark_spec import (
+    CircuitOperation,
+    InternalCircuit,
+    NoiseInstruction,
+)
 from quantum_backend_bench.core.circuit_translate import TranslationDiagnostic
+from quantum_backend_bench.core.noise import noise_after_circuit, noise_after_operation
 
 
 class BraketCircuitAdapter:
@@ -27,13 +32,18 @@ class BraketCircuitAdapter:
         runner_shots: int = 1024,
     ) -> str:
         lines = [
-            "from braket.circuits import Circuit, Noise",
+            "from braket.circuits import Circuit",
             "",
             "circuit = Circuit()",
         ]
-        for operation in circuit.operations:
+        for operation_index, operation in enumerate(circuit.operations):
             lines.extend(_braket_lines(operation))
-        lines.extend(_braket_noise_lines(circuit))
+            lines.extend(
+                _braket_noise_lines(
+                    noise_after_operation(circuit.noise, operation_index, operation)
+                )
+            )
+        lines.extend(_braket_noise_lines(noise_after_circuit(circuit.noise)))
         measurements = ", ".join(str(qubit) for qubit in circuit.measurements)
         lines.append(f"circuit.probability(target=[{measurements}])")
         if include_runner:
@@ -109,24 +119,25 @@ def _braket_lines(operation: CircuitOperation) -> list[str]:
     raise ValueError(f"Unsupported Braket emit gate: {gate}")
 
 
-def _braket_noise_lines(circuit: InternalCircuit) -> list[str]:
+def _braket_noise_lines(noise: list[NoiseInstruction]) -> list[str]:
     channel_map = {
-        "depolarizing": "Depolarizing",
-        "bit_flip": "BitFlip",
-        "phase_flip": "PhaseFlip",
-        "amplitude_damping": "AmplitudeDamping",
+        "depolarizing": ("depolarizing", "probability"),
+        "bit_flip": ("bit_flip", "probability"),
+        "phase_flip": ("phase_flip", "probability"),
+        "amplitude_damping": ("amplitude_damping", "gamma"),
     }
     lines = []
-    for item in circuit.noise:
-        channel = channel_map.get(item.channel)
-        if channel is None:
+    for item in noise:
+        channel_spec = channel_map.get(item.channel)
+        if channel_spec is None:
             lines.append(
                 f"# neutral_noise channel={item.channel} targets={list(item.targets)!r} probability={item.probability!r}"
             )
             continue
         for target in item.targets:
+            channel, parameter = channel_spec
             lines.append(
-                f"circuit.apply_gate_noise(Noise.{channel}({_format_number(item.probability)}), target_qubits=[{target}])"
+                f"circuit.{channel}({target}, {parameter}={_format_number(item.probability)})"
             )
     return lines
 

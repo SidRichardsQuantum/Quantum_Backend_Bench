@@ -26,7 +26,7 @@ Adapters differ in what their runtime includes. Some include compilation or tran
 
 ## Noise Models Are Adapter-Specific
 
-Cirq, PennyLane, and Qiskit Aer currently inject several local noise models in this project: depolarizing, bit flip, phase flip, and amplitude damping. Qiskit Aer also supports a readout-error model; Cirq and PennyLane map readout-error requests through bit-flip-style channel injection rather than a separate measurement-confusion matrix. Other adapters may execute noisy benchmark wrappers without injecting noise. Result metadata reports `noise_supported` and `noise_applied` where available, and `quantum-bench noise-audit` reports the current matrix.
+Cirq, PennyLane, Qiskit Aer, and Qibo currently inject several local noise models in this project: depolarizing, bit flip, phase flip, and amplitude damping. Qiskit Aer and Qibo support explicit readout-error models; Cirq and PennyLane map readout-error requests through bit-flip-style channel injection rather than a separate measurement-confusion matrix. Other adapters may execute noisy benchmark wrappers without injecting noise. Result metadata reports `noise_supported` and `noise_applied` where available, and `quantum-bench noise-audit` reports the current matrix.
 
 ## Circuit Support Is Intentionally Small
 

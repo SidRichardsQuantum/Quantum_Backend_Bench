@@ -48,6 +48,7 @@ FREE_LOCAL_EXECUTION_BACKENDS = (
     "pennylane",
     "braket_local",
     "qiskit_aer",
+    "qibo_numpy",
 )
 
 NOISE_MODELS = (
@@ -74,6 +75,13 @@ _NOISE_SUPPORT: dict[str, dict[str, str]] = {
         "readout_error": "implemented",
     },
     "qiskit_aer": {
+        "depolarizing": "implemented",
+        "bit_flip": "implemented",
+        "phase_flip": "implemented",
+        "amplitude_damping": "implemented",
+        "readout_error": "implemented",
+    },
+    "qibo_numpy": {
         "depolarizing": "implemented",
         "bit_flip": "implemented",
         "phase_flip": "implemented",
@@ -543,6 +551,7 @@ def _circuit_roundtrip_rows(
                         "total_variation_distance": verification.total_variation_distance,
                         "canonical_match": verification.canonical_match,
                         "statevector_distance": verification.statevector_distance,
+                        "density_matrix_trace_distance": verification.density_matrix_trace_distance,
                         "tolerance": tolerance,
                     }
                 )
@@ -654,6 +663,7 @@ def _target_import_format(target: str) -> str:
         "braket_local": "braket",
         "cirq": "cirq",
         "pennylane": "pennylane",
+        "qibo_numpy": "qibo",
         "qiskit_aer": "qiskit",
         "internal-json": "internal-json",
         "openqasm": "openqasm",
@@ -665,6 +675,7 @@ def _hamiltonian_import_format(target: str) -> str:
         "braket_local": "braket",
         "cirq": "cirq",
         "pennylane": "pennylane",
+        "qibo_numpy": "qibo",
         "qiskit_aer": "qiskit",
         "pauli-json": "pauli-json",
     }[target]
@@ -675,6 +686,7 @@ def _workflow_import_format(target: str) -> str:
         "braket_local": "braket",
         "cirq": "cirq",
         "pennylane": "pennylane",
+        "qibo_numpy": "qibo",
         "qiskit_aer": "qiskit",
         "workflow-json": "workflow-json",
     }[target]
@@ -731,6 +743,7 @@ def _display_keys(rows: list[dict[str, Any]]) -> list[str]:
         "total_variation_distance",
         "canonical_match",
         "statevector_distance",
+        "density_matrix_trace_distance",
         "success_probability",
         "depth",
         "compiled_depth",

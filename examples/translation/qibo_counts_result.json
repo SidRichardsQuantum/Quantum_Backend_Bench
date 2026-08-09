@@ -1,0 +1,8 @@
+{
+  "backend": "qibo_numpy",
+  "frequencies": {
+    "00": 6,
+    "11": 2
+  },
+  "shots": 8
+}

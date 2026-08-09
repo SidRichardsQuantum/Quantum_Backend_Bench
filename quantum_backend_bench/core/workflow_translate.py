@@ -39,8 +39,22 @@ from quantum_backend_bench.core.neutral_schema import (
     report_schema_metadata,
 )
 
-WORKFLOW_INPUT_FORMATS = ("workflow-json", "qiskit", "cirq", "pennylane", "braket")
-WORKFLOW_OUTPUT_FORMATS = ("qiskit_aer", "cirq", "pennylane", "braket_local", "workflow-json")
+WORKFLOW_INPUT_FORMATS = (
+    "workflow-json",
+    "qiskit",
+    "cirq",
+    "pennylane",
+    "braket",
+    "qibo",
+)
+WORKFLOW_OUTPUT_FORMATS = (
+    "qiskit_aer",
+    "cirq",
+    "pennylane",
+    "braket_local",
+    "qibo_numpy",
+    "workflow-json",
+)
 WORKFLOW_VERIFY_MODES = ("none", "canonical", "semantic")
 RESULT_INPUT_FORMATS = (
     "result-json",
@@ -48,6 +62,7 @@ RESULT_INPUT_FORMATS = (
     "cirq-counts-json",
     "pennylane-samples-json",
     "braket-counts-json",
+    "qibo-counts-json",
 )
 RESULT_OUTPUT_FORMATS = ("result-json",)
 GROUPING_STRATEGIES = ("qubit-wise",)
@@ -536,6 +551,7 @@ def _workflow_output_import_format(to_format: str) -> str:
         "cirq": "cirq",
         "pennylane": "pennylane",
         "braket_local": "braket",
+        "qibo_numpy": "qibo",
         "workflow-json": "workflow-json",
     }[to_format]
 
@@ -557,6 +573,8 @@ def emit_workflow_source(workflow: ParameterizedWorkflow, to_format: str) -> str
         return _format_python_source(_emit_pennylane_workflow(workflow))
     if to_format == "braket_local":
         return _format_python_source(_emit_braket_workflow(workflow))
+    if to_format == "qibo_numpy":
+        return _format_python_source(_emit_qibo_workflow(workflow))
     raise ValueError(f"Unsupported workflow output format: {to_format}")
 
 
@@ -649,7 +667,12 @@ def import_result_source(source: str, *, from_format: str = "result-json") -> Ne
         if not isinstance(metadata_payload, dict):
             raise _workflow_error("result.schema.metadata", "Result metadata must be an object.")
         result = NeutralResult(counts, shots, probabilities, expectations, dict(metadata_payload))
-    elif from_format in {"qiskit-counts-json", "cirq-counts-json", "braket-counts-json"}:
+    elif from_format in {
+        "qiskit-counts-json",
+        "cirq-counts-json",
+        "braket-counts-json",
+        "qibo-counts-json",
+    }:
         counts_payload = _counts_payload_for_format(payload, from_format)
         counts = _counts_from_mapping(counts_payload)
         shots = _shots_from_payload(payload, sum(counts.values()))
@@ -745,6 +768,7 @@ def workflow_translation_report(
             "total_variation_distance": result.verification.total_variation_distance,
             "tolerance": result.verification.tolerance,
             "canonical_match": result.verification.canonical_match,
+            "density_matrix_trace_distance": result.verification.density_matrix_trace_distance,
             "expectation_max_abs_error": result.verification.expectation_max_abs_error,
             "expectation_tolerance": result.verification.expectation_tolerance,
             "result_schema_valid": result.verification.result_schema_valid,
@@ -1386,6 +1410,136 @@ def _braket_operation_line(operation: WorkflowOperation) -> str:
     raise AssertionError(operation.gate)
 
 
+def _emit_qibo_workflow(workflow: ParameterizedWorkflow) -> str:
+    distribution_targets = _workflow_distribution_targets(workflow)
+    expectation_observables = tuple(
+        request.observable
+        for request in workflow.measurements
+        if request.kind == "expectation" and request.observable is not None
+    )
+    lines = [
+        "import json",
+        "",
+        "import qibo",
+        "from qibo import Circuit, gates",
+    ]
+    if expectation_observables:
+        lines.extend(
+            [
+                "from qibo.hamiltonians import SymbolicHamiltonian",
+                f"from qibo.symbols import {_qibo_workflow_symbol_imports(expectation_observables)}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            f"parameter_bindings = {_python_dict(workflow.parameter_bindings)}",
+            *[
+                f"{parameter} = parameter_bindings[{parameter!r}]"
+                for parameter in workflow.parameters
+            ],
+            f"circuit = Circuit({workflow.n_qubits})",
+        ]
+    )
+    for operation in workflow.operations:
+        if operation.gate != "MEASURE":
+            lines.append(_qibo_workflow_operation_line(operation))
+    lines.extend(
+        [
+            f"shots = {workflow.shots}",
+            "backend = qibo.construct_backend('numpy')",
+        ]
+    )
+    if workflow.seed is not None:
+        lines.append(f"backend.set_seed({workflow.seed})")
+    lines.append("expectations = {}")
+    for index, request in enumerate(workflow.measurements):
+        if request.kind == "expectation" and request.observable is not None:
+            expression = _qibo_hamiltonian_expr(request.observable)
+            lines.extend(
+                [
+                    f"observable_{index} = SymbolicHamiltonian(",
+                    f"    {expression},",
+                    f"    nqubits={workflow.n_qubits},",
+                    "    backend=backend,",
+                    ")",
+                    f"expectations['expectation_{index}'] = float(observable_{index}.expectation(circuit).real)",
+                ]
+            )
+    if distribution_targets:
+        lines.extend(
+            [
+                "sampling_circuit = circuit.copy(deep=True)",
+                f"distribution_targets = {list(distribution_targets)!r}",
+                "sampling_circuit.add(gates.M(*distribution_targets, register_name='result'))",
+                "result = backend.execute_circuit(sampling_circuit, nshots=shots)",
+                "counts = {str(state): int(count) for state, count in result.frequencies(binary=True).items()}",
+                "probabilities = {state: count / shots for state, count in counts.items()}",
+            ]
+        )
+    else:
+        lines.extend(["counts = {}", "probabilities = {}"])
+    lines.extend(_neutral_result_lines("qibo_numpy"))
+    lines.extend(_workflow_spec_lines(workflow))
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _qibo_workflow_operation_line(operation: WorkflowOperation) -> str:
+    target = operation.targets[0]
+    if operation.gate in {"H", "X", "Y", "Z", "S", "T", "SX"}:
+        return f"circuit.add(gates.{operation.gate}({target}))"
+    if operation.gate in {"P", "PHASE"}:
+        return f"circuit.add(gates.U1({target}, {_parameter_expr(operation.parameter)}))"
+    if operation.gate in {"RX", "RY", "RZ"}:
+        return (
+            f"circuit.add(gates.{operation.gate}({target}, "
+            f"{_parameter_expr(operation.parameter)}))"
+        )
+    if operation.gate in {"CNOT", "CX"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        return f"circuit.add(gates.CNOT({control}, {operation.targets[-1]}))"
+    if operation.gate in {"CZ", "SWAP"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        return f"circuit.add(gates.{operation.gate}({control}, {operation.targets[-1]}))"
+    if operation.gate == "CCX":
+        controls = operation.controls or operation.targets[:2]
+        return f"circuit.add(gates.TOFFOLI({controls[0]}, {controls[1]}, {operation.targets[-1]}))"
+    if operation.gate in {"CRX", "CRY", "CRZ"}:
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        return (
+            f"circuit.add(gates.{operation.gate}({control}, {operation.targets[-1]}, "
+            f"{_parameter_expr(operation.parameter)}))"
+        )
+    if operation.gate == "CPHASE":
+        control = operation.controls[0] if operation.controls else operation.targets[0]
+        return (
+            f"circuit.add(gates.CU1({control}, {operation.targets[-1]}, "
+            f"{_parameter_expr(operation.parameter)}))"
+        )
+    raise AssertionError(operation.gate)
+
+
+def _qibo_hamiltonian_expr(hamiltonian: PauliHamiltonian) -> str:
+    terms = []
+    for term in hamiltonian.terms:
+        product = " * ".join(f"{pauli}({wire})" for wire, pauli in term.paulis) or "I(0)"
+        terms.append(f"{float(term.coefficient)!r} * {product}")
+    return " + ".join(terms)
+
+
+def _qibo_workflow_symbol_imports(hamiltonians: tuple[PauliHamiltonian, ...]) -> str:
+    used = {
+        pauli
+        for hamiltonian in hamiltonians
+        for term in hamiltonian.terms
+        for _, pauli in term.paulis
+    }
+    if any(not term.paulis for hamiltonian in hamiltonians for term in hamiltonian.terms):
+        used.add("I")
+    return ", ".join(symbol for symbol in "IXYZ" if symbol in used)
+
+
 def _neutral_result_lines(source_format: str) -> list[str]:
     return [
         "neutral_result = {",
@@ -1466,6 +1620,8 @@ def _braket_term_expr(term: PauliTerm) -> tuple[str, list[int]]:
 def _counts_payload_for_format(payload: dict[str, Any], from_format: str) -> object:
     if from_format == "braket-counts-json":
         return payload.get("measurement_counts", payload.get("counts", payload))
+    if from_format == "qibo-counts-json":
+        return payload.get("frequencies", payload.get("counts", payload))
     return payload.get("counts", payload)
 
 
@@ -1587,6 +1743,8 @@ def _import_static_workflow_source(source: str, from_format: str) -> Parameteriz
         return _import_pennylane_workflow_ast(tree)
     if from_format == "braket":
         return _import_braket_workflow_ast(tree)
+    if from_format == "qibo":
+        return _import_qibo_workflow_ast(tree)
     raise _workflow_error(
         "workflow.import.unsupported", f"Unsupported workflow input format '{from_format}'."
     )
@@ -1696,6 +1854,15 @@ def _import_braket_workflow_ast(tree: ast.AST) -> ParameterizedWorkflow:
     )
 
 
+def _import_qibo_workflow_ast(tree: ast.AST) -> ParameterizedWorkflow:
+    return _workflow_from_static_ast(
+        tree,
+        sdk="qibo",
+        circuit_methods={},
+        binding_names=("parameter_bindings",),
+    )
+
+
 def _workflow_from_static_ast(
     tree: ast.AST,
     *,
@@ -1717,7 +1884,8 @@ def _workflow_from_static_ast(
                 operation = _static_operation(node, sdk, circuit_methods)
             if operation is not None:
                 if operation.gate == "MEASURE":
-                    measurements.append(MeasurementRequest("counts", tuple(range(n_qubits))))
+                    targets = operation.targets if sdk == "qibo" else tuple(range(n_qubits))
+                    measurements.append(MeasurementRequest("counts", targets))
                 else:
                     operations.append(operation)
             request = _static_measurement_request(node, sdk, n_qubits)
@@ -1738,7 +1906,12 @@ def _workflow_from_static_ast(
 
 
 def _static_parameters(tree: ast.AST, sdk: str) -> list[str]:
-    factory_names = {"qiskit": "Parameter", "cirq": "Symbol", "braket": "FreeParameter"}
+    factory_names = {
+        "qiskit": "Parameter",
+        "cirq": "Symbol",
+        "braket": "FreeParameter",
+        "qibo": "Symbol",
+    }
     if sdk == "pennylane":
         return _pennylane_function_parameters(tree)
     names = []
@@ -1826,6 +1999,8 @@ def _static_n_qubits(tree: ast.AST, sdk: str) -> int:
             else func.attr if isinstance(func, ast.Attribute) else ""
         )
         if sdk == "qiskit" and name == "QuantumCircuit" and node.args:
+            return int(ast.literal_eval(node.args[0]))
+        if sdk == "qibo" and name == "Circuit" and node.args:
             return int(ast.literal_eval(node.args[0]))
         if sdk == "cirq" and name == "range" and node.args:
             return int(ast.literal_eval(node.args[0]))
@@ -1943,7 +2118,48 @@ def _static_operation(
         return _cirq_static_operation(node)
     if sdk == "pennylane":
         return _pennylane_static_operation(node)
+    if sdk == "qibo":
+        return _qibo_static_operation(node)
     return None
+
+
+def _qibo_static_operation(node: ast.Call) -> WorkflowOperation | None:
+    if not isinstance(node.func, ast.Attribute) or node.func.attr != "add" or not node.args:
+        return None
+    gate_call = node.args[0]
+    if not isinstance(gate_call, ast.Call):
+        return None
+    gate_name = gate_call.func.attr if isinstance(gate_call.func, ast.Attribute) else ""
+    mapping = {
+        "H": "H",
+        "X": "X",
+        "Y": "Y",
+        "Z": "Z",
+        "S": "S",
+        "T": "T",
+        "SX": "SX",
+        "U1": "P",
+        "RX": "RX",
+        "RY": "RY",
+        "RZ": "RZ",
+        "CNOT": "CNOT",
+        "CZ": "CZ",
+        "SWAP": "SWAP",
+        "TOFFOLI": "CCX",
+        "CRX": "CRX",
+        "CRY": "CRY",
+        "CRZ": "CRZ",
+        "CU1": "CPHASE",
+        "M": "MEASURE",
+    }
+    neutral_gate = mapping.get(gate_name)
+    if neutral_gate is None:
+        return None
+    if neutral_gate == "MEASURE":
+        return WorkflowOperation(
+            "MEASURE", tuple(_wire_index(argument) for argument in gate_call.args)
+        )
+    return _operation_from_method_call(neutral_gate, gate_call.args)
 
 
 def _operation_from_method_call(gate: str, args: list[ast.expr]) -> WorkflowOperation | None:

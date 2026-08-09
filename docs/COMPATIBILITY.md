@@ -20,6 +20,7 @@ runtime expectations for the current package line.
 | PennyLane | `pennylane` | Execution backend | No | Python package only | Optional backend smoke | `pennylane>=0.38,<1` |
 | Amazon Braket SDK | `braket` | LocalSimulator execution backend | No for `LocalSimulator` | Python package only | Optional backend smoke | `amazon-braket-sdk>=1.85,<2` |
 | Qiskit Aer | `qiskit` | Execution backend | No | Python package only | Optional backend smoke | `qiskit>=1,<3`, `qiskit-aer>=0.15,<1` |
+| Qibo NumPy | `qibo` | Execution and translation backend | No | Python package only | Optional backend smoke on Python 3.11 and 3.12 | `qibo>=0.3,<0.4` |
 | pytket | `tket` | Structural analysis and drawing | No | Python package only | Main CI install | `pytket>=1.30,<3` |
 | CUDA-Q | `cudaq` | Optional execution backend | No for local simulator use | Platform-sensitive Python package | Experimental optional smoke; outside default onboarding | `cudaq>=0.8,<1` |
 | pyQuil QVM | `pyquil` | Optional execution backend | No for local QVM use | Python package plus local `qvm` and `quilc` executables | Package smoke in CI; external QVM runtime skipped unless available; outside default onboarding | `pyquil>=4,<5` |
@@ -28,7 +29,7 @@ runtime expectations for the current package line.
 
 ## Extras Policy
 
-- The base package requires NumPy for neutral exact verification but no quantum SDK.
+- The base package requires NumPy for neutral exact, statevector, and density-matrix verification but no quantum SDK.
 - Use `quantum-backend-bench[cirq]` for the fastest public first run.
 - Use `quantum-backend-bench[all]` for the practical local Python-only comparison
   stack. This intentionally excludes CUDA-Q and pyQuil because they are heavier or

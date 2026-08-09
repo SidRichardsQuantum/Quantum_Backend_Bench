@@ -8,7 +8,13 @@ import random
 from collections import Counter
 from typing import Any
 
-from quantum_backend_bench.core.benchmark_spec import CircuitOperation
+from quantum_backend_bench.core.benchmark_spec import CircuitOperation, NoiseInstruction
+from quantum_backend_bench.core.noise import (
+    noise_after_circuit,
+    noise_after_operation,
+    readout_noise,
+    validate_noise,
+)
 
 
 def simulate_statevector(
@@ -43,6 +49,147 @@ def simulate_probabilities(
         measured = "".join(basis[qubit] for qubit in measurements)
         probabilities[measured] = probabilities.get(measured, 0.0) + float(abs(amplitude) ** 2)
     return probabilities
+
+
+def simulate_density_matrix(
+    n_qubits: int,
+    operations: list[CircuitOperation],
+    noise: list[NoiseInstruction] | None = None,
+) -> Any:
+    """Return the exact density matrix for a neutral circuit and noise schedule."""
+
+    np = _numpy()
+    scheduled_noise = noise or []
+    validate_noise(scheduled_noise, n_qubits, len(operations))
+    dimension = 2**n_qubits
+    density = np.zeros((dimension, dimension), dtype=complex)
+    density[0, 0] = 1.0
+    for operation_index, operation in enumerate(operations):
+        density = _apply_density_operation(density, n_qubits, operation)
+        for instruction in noise_after_operation(scheduled_noise, operation_index, operation):
+            density = _apply_noise_instruction(density, n_qubits, instruction)
+    for instruction in noise_after_circuit(scheduled_noise):
+        density = _apply_noise_instruction(density, n_qubits, instruction)
+    return density
+
+
+def simulate_density_probabilities(
+    n_qubits: int,
+    operations: list[CircuitOperation],
+    measurements: list[int],
+    noise: list[NoiseInstruction] | None = None,
+) -> dict[str, float]:
+    """Return exact measurement probabilities, including readout confusion."""
+
+    scheduled_noise = noise or []
+    density = simulate_density_matrix(n_qubits, operations, scheduled_noise)
+    probabilities: dict[str, float] = {}
+    for index, probability in enumerate(_numpy().real(_numpy().diag(density))):
+        basis = format(index, f"0{n_qubits}b")
+        measured = "".join(basis[qubit] for qubit in measurements)
+        probabilities[measured] = probabilities.get(measured, 0.0) + max(0.0, float(probability))
+    for instruction in readout_noise(scheduled_noise):
+        probabilities = _apply_readout_error(
+            probabilities, measurements, instruction.targets, instruction.probability
+        )
+    return probabilities
+
+
+def density_matrix_trace_distance(left: Any, right: Any) -> float:
+    """Return the quantum trace distance between two density matrices."""
+
+    np = _numpy()
+    if left.shape != right.shape:
+        return float("inf")
+    delta = left - right
+    delta = (delta + delta.conjugate().T) / 2
+    return float(0.5 * np.sum(np.abs(np.linalg.eigvalsh(delta))))
+
+
+def _apply_density_operation(density: Any, n_qubits: int, operation: CircuitOperation) -> Any:
+    if operation.gate in {"BARRIER", "DELAY"}:
+        return density
+    if operation.gate == "RESET":
+        np = _numpy()
+        zero = np.array([[1, 0], [0, 0]], dtype=complex)
+        lower = np.array([[0, 1], [0, 0]], dtype=complex)
+        return _apply_kraus(
+            density,
+            [_single_qubit_operator(n_qubits, operation.qubits[0], item) for item in (zero, lower)],
+        )
+    operator = _operation_operator(n_qubits, operation)
+    return operator @ density @ operator.conjugate().T
+
+
+def _operation_operator(n_qubits: int, operation: CircuitOperation) -> Any:
+    np = _numpy()
+    dimension = 2**n_qubits
+    operator = np.zeros((dimension, dimension), dtype=complex)
+    for column in range(dimension):
+        basis = np.zeros(dimension, dtype=complex)
+        basis[column] = 1.0
+        operator[:, column] = apply_operation(basis, n_qubits, operation)
+    return operator
+
+
+def _apply_noise_instruction(density: Any, n_qubits: int, instruction: NoiseInstruction) -> Any:
+    np = _numpy()
+    identity = np.eye(2, dtype=complex)
+    x = np.array([[0, 1], [1, 0]], dtype=complex)
+    y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+    z = np.array([[1, 0], [0, -1]], dtype=complex)
+    p = instruction.probability
+    if instruction.channel == "depolarizing":
+        local_kraus = [np.sqrt(1 - p) * identity]
+        local_kraus.extend(np.sqrt(p / 3) * pauli for pauli in (x, y, z))
+    elif instruction.channel == "bit_flip":
+        local_kraus = [np.sqrt(1 - p) * identity, np.sqrt(p) * x]
+    elif instruction.channel == "phase_flip":
+        local_kraus = [np.sqrt(1 - p) * identity, np.sqrt(p) * z]
+    elif instruction.channel == "amplitude_damping":
+        local_kraus = [
+            np.array([[1, 0], [0, np.sqrt(1 - p)]], dtype=complex),
+            np.array([[0, np.sqrt(p)], [0, 0]], dtype=complex),
+        ]
+    else:
+        raise ValueError(f"Noise channel '{instruction.channel}' is not a quantum channel.")
+    output = density
+    for target in instruction.targets:
+        output = _apply_kraus(
+            output,
+            [_single_qubit_operator(n_qubits, target, item) for item in local_kraus],
+        )
+    return output
+
+
+def _apply_kraus(density: Any, operators: list[Any]) -> Any:
+    np = _numpy()
+    output = np.zeros_like(density)
+    for operator in operators:
+        output += operator @ density @ operator.conjugate().T
+    return output
+
+
+def _apply_readout_error(
+    probabilities: dict[str, float],
+    measurements: list[int],
+    targets: tuple[int, ...],
+    probability: float,
+) -> dict[str, float]:
+    output = dict(probabilities)
+    for target in targets:
+        if target not in measurements:
+            continue
+        position = measurements.index(target)
+        updated: dict[str, float] = {}
+        for bitstring, value in output.items():
+            flipped = list(bitstring)
+            flipped[position] = "1" if flipped[position] == "0" else "0"
+            flipped_key = "".join(flipped)
+            updated[bitstring] = updated.get(bitstring, 0.0) + (1 - probability) * value
+            updated[flipped_key] = updated.get(flipped_key, 0.0) + probability * value
+        output = updated
+    return output
 
 
 def sample_counts(

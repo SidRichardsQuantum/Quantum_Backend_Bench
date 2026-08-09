@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import ast
 
-from quantum_backend_bench.core.benchmark_spec import CircuitOperation, InternalCircuit
+from quantum_backend_bench.core.benchmark_spec import (
+    CircuitOperation,
+    InternalCircuit,
+    NoiseInstruction,
+)
 from quantum_backend_bench.core.circuit_translate import TranslationDiagnostic
+from quantum_backend_bench.core.noise import noise_after_circuit, noise_after_operation
 
 
 class CirqCircuitAdapter:
@@ -32,13 +37,16 @@ class CirqCircuitAdapter:
             f"qubits = cirq.LineQubit.range({circuit.n_qubits})",
             "circuit = cirq.Circuit()",
         ]
-        for operation in circuit.operations:
+        for operation_index, operation in enumerate(circuit.operations):
             for expression in _cirq_exprs(operation):
                 if expression.startswith("#"):
                     lines.append(expression)
                 else:
                     lines.append(f"circuit.append({expression})")
-        lines.extend(_cirq_noise_lines(circuit))
+            lines.extend(
+                _cirq_noise_lines(noise_after_operation(circuit.noise, operation_index, operation))
+            )
+        lines.extend(_cirq_noise_lines(noise_after_circuit(circuit.noise)))
         if circuit.measurements:
             qubits = ", ".join(f"qubits[{qubit}]" for qubit in circuit.measurements)
             lines.append(f'circuit.append(cirq.measure({qubits}, key="m"))')
@@ -108,7 +116,7 @@ def _cirq_exprs(operation: CircuitOperation) -> list[str]:
     raise ValueError(f"Unsupported Cirq emit gate: {gate}")
 
 
-def _cirq_noise_lines(circuit: InternalCircuit) -> list[str]:
+def _cirq_noise_lines(noise: list[NoiseInstruction]) -> list[str]:
     channel_map = {
         "depolarizing": "depolarize",
         "bit_flip": "bit_flip",
@@ -116,7 +124,7 @@ def _cirq_noise_lines(circuit: InternalCircuit) -> list[str]:
         "amplitude_damping": "amplitude_damp",
     }
     lines = []
-    for item in circuit.noise:
+    for item in noise:
         channel = channel_map.get(item.channel)
         if channel is None:
             lines.append(

@@ -1,163 +1,263 @@
 [
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "ghz",
     "detected_format": "cirq",
     "operations": 3,
+    "statevector_distance": null,
     "status": "passed",
     "target": "cirq",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "qft",
     "detected_format": "cirq",
-    "operations": 4,
+    "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "cirq",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "bernstein-vazirani",
     "detected_format": "cirq",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "cirq",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "gate-coverage",
     "detected_format": "cirq",
-    "operations": 6,
+    "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "cirq",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "ghz",
     "detected_format": "qiskit",
     "operations": 3,
+    "statevector_distance": null,
     "status": "passed",
     "target": "qiskit_aer",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "qft",
     "detected_format": "qiskit",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "qiskit_aer",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "bernstein-vazirani",
     "detected_format": "qiskit",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "qiskit_aer",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "gate-coverage",
     "detected_format": "qiskit",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "qiskit_aer",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "ghz",
     "detected_format": "pennylane",
     "operations": 3,
+    "statevector_distance": null,
     "status": "passed",
     "target": "pennylane",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "qft",
     "detected_format": "pennylane",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "pennylane",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "bernstein-vazirani",
     "detected_format": "pennylane",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "pennylane",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "gate-coverage",
     "detected_format": "pennylane",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "pennylane",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "ghz",
     "detected_format": "braket",
     "operations": 3,
+    "statevector_distance": null,
     "status": "passed",
     "target": "braket_local",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "qft",
     "detected_format": "braket",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "braket_local",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "bernstein-vazirani",
     "detected_format": "braket",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "braket_local",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "circuit_roundtrip",
+    "canonical_match": null,
     "case": "gate-coverage",
     "detected_format": "braket",
     "operations": 7,
+    "statevector_distance": null,
     "status": "passed",
     "target": "braket_local",
     "tolerance": 1e-09,
-    "total_variation_distance": 0.0
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "canonical_match": null,
+    "case": "ghz",
+    "detected_format": "qibo",
+    "operations": 3,
+    "statevector_distance": null,
+    "status": "passed",
+    "target": "qibo_numpy",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "canonical_match": null,
+    "case": "qft",
+    "detected_format": "qibo",
+    "operations": 7,
+    "statevector_distance": null,
+    "status": "passed",
+    "target": "qibo_numpy",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "canonical_match": null,
+    "case": "bernstein-vazirani",
+    "detected_format": "qibo",
+    "operations": 7,
+    "statevector_distance": null,
+    "status": "passed",
+    "target": "qibo_numpy",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
+  },
+  {
+    "audit": "circuit_roundtrip",
+    "canonical_match": null,
+    "case": "gate-coverage",
+    "detected_format": "qibo",
+    "operations": 7,
+    "statevector_distance": null,
+    "status": "passed",
+    "target": "qibo_numpy",
+    "tolerance": 1e-09,
+    "total_variation_distance": 0.0,
+    "verification_mode": "exact"
   },
   {
     "audit": "hamiltonian_roundtrip",
@@ -196,43 +296,97 @@
     "terms": 3
   },
   {
+    "audit": "hamiltonian_roundtrip",
+    "case": "pauli_hamiltonian",
+    "details": "Canonical Pauli-term verification passed.",
+    "detected_format": "qibo",
+    "status": "passed",
+    "target": "qibo_numpy",
+    "terms": 3
+  },
+  {
     "audit": "workflow_roundtrip",
+    "canonical_match": true,
     "case": "parameterized_expectation_workflow",
     "details": "Canonical workflow verification passed.",
     "detected_format": "cirq",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
     "measurements": 3,
     "operations": 3,
+    "result_schema_valid": null,
     "status": "passed",
-    "target": "cirq"
+    "target": "cirq",
+    "tolerance": 0.0,
+    "total_variation_distance": null,
+    "verification_mode": "canonical"
   },
   {
     "audit": "workflow_roundtrip",
+    "canonical_match": true,
     "case": "parameterized_expectation_workflow",
     "details": "Canonical workflow verification passed.",
     "detected_format": "qiskit",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
     "measurements": 3,
     "operations": 3,
+    "result_schema_valid": null,
     "status": "passed",
-    "target": "qiskit_aer"
+    "target": "qiskit_aer",
+    "tolerance": 0.0,
+    "total_variation_distance": null,
+    "verification_mode": "canonical"
   },
   {
     "audit": "workflow_roundtrip",
+    "canonical_match": true,
     "case": "parameterized_expectation_workflow",
     "details": "Canonical workflow verification passed.",
     "detected_format": "pennylane",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
     "measurements": 3,
     "operations": 3,
+    "result_schema_valid": null,
     "status": "passed",
-    "target": "pennylane"
+    "target": "pennylane",
+    "tolerance": 0.0,
+    "total_variation_distance": null,
+    "verification_mode": "canonical"
   },
   {
     "audit": "workflow_roundtrip",
+    "canonical_match": true,
     "case": "parameterized_expectation_workflow",
     "details": "Canonical workflow verification passed.",
     "detected_format": "braket",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
     "measurements": 3,
     "operations": 3,
+    "result_schema_valid": null,
     "status": "passed",
-    "target": "braket_local"
+    "target": "braket_local",
+    "tolerance": 0.0,
+    "total_variation_distance": null,
+    "verification_mode": "canonical"
+  },
+  {
+    "audit": "workflow_roundtrip",
+    "canonical_match": true,
+    "case": "parameterized_expectation_workflow",
+    "details": "Canonical workflow verification passed.",
+    "detected_format": "qibo",
+    "expectation_max_abs_error": null,
+    "expectation_tolerance": null,
+    "measurements": 3,
+    "operations": 3,
+    "result_schema_valid": null,
+    "status": "passed",
+    "target": "qibo_numpy",
+    "tolerance": 0.0,
+    "total_variation_distance": null,
+    "verification_mode": "canonical"
   }
 ]

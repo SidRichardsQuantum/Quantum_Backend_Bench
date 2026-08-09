@@ -36,4 +36,4 @@
 - provider-calibrated noise semantics
 - full Python program state
 
-Verification: Run translate with --verify exact for deterministic circuit semantics or --verify samples for sampled workflows.
+Verification: Run translate with --verify density-matrix for noisy circuits, --verify exact for deterministic probabilities, or --verify samples for sampled workflows.

@@ -15,7 +15,7 @@ def test_sdk_parity_scorecard_has_free_local_sdks():
     rows = sdk_parity_scorecard()
     sdks = {row["sdk"] for row in rows}
 
-    assert {"cirq", "pennylane", "braket_local", "qiskit_aer"} <= sdks
+    assert {"cirq", "pennylane", "braket_local", "qibo_numpy", "qiskit_aer"} <= sdks
     assert all("circuit_translation" in row for row in rows)
     assert "SDK Parity Scorecard" in format_scorecard(rows)
 
@@ -31,7 +31,7 @@ def test_noise_model_matrix_reports_broader_local_models():
 
 def test_roundtrip_audit_passes_for_free_translation_targets():
     rows = roundtrip_audit(
-        targets=["cirq", "qiskit_aer", "pennylane", "braket_local"],
+        targets=["cirq", "qiskit_aer", "pennylane", "braket_local", "qibo_numpy"],
         include_hamiltonian=True,
         include_workflow=True,
     )
@@ -43,6 +43,7 @@ def test_roundtrip_audit_passes_for_free_translation_targets():
         "qiskit_aer",
         "pennylane",
         "braket_local",
+        "qibo_numpy",
     }
     assert "gate-coverage" in {row["case"] for row in rows}
     assert "hamiltonian_roundtrip" in {row["audit"] for row in rows}

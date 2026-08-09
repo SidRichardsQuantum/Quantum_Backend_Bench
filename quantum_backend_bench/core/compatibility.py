@@ -16,6 +16,7 @@ TESTED_VERSION_BANDS = {
     "pennylane": ">=0.38,<1",
     "pyquil": ">=4,<5",
     "pytket": ">=1.30,<3",
+    "qibo": ">=0.3,<0.4",
     "qiskit": ">=1,<3",
     "qiskit-aer": ">=0.15,<1",
 }
@@ -26,6 +27,7 @@ _INTEGRATION_TESTED_PACKAGES = {
     "pennylane": ("pennylane",),
     "pyquil_qvm": ("pyquil",),
     "pytket": ("pytket",),
+    "qibo_numpy": ("qibo",),
     "qiskit_aer": ("qiskit", "qiskit-aer"),
 }
 
@@ -124,7 +126,7 @@ def _ci_coverage(capability: BackendCapability) -> str:
         return "main CI"
     if capability.name == "pytket":
         return "main CI install"
-    if capability.name in {"pennylane", "braket_local", "qiskit_aer"}:
+    if capability.name in {"pennylane", "braket_local", "qibo_numpy", "qiskit_aer"}:
         return "optional smoke"
     if capability.name == "cudaq":
         return "experimental optional smoke"

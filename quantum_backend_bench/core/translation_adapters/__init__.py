@@ -6,6 +6,7 @@ from quantum_backend_bench.core.translation_adapters.base import CircuitTranslat
 from quantum_backend_bench.core.translation_adapters.braket import BraketCircuitAdapter
 from quantum_backend_bench.core.translation_adapters.cirq import CirqCircuitAdapter
 from quantum_backend_bench.core.translation_adapters.pennylane import PennyLaneCircuitAdapter
+from quantum_backend_bench.core.translation_adapters.qibo import QiboCircuitAdapter
 from quantum_backend_bench.core.translation_adapters.qiskit import QiskitCircuitAdapter
 
 _CIRCUIT_ADAPTERS: dict[str, CircuitTranslationAdapter] = {
@@ -14,6 +15,7 @@ _CIRCUIT_ADAPTERS: dict[str, CircuitTranslationAdapter] = {
         BraketCircuitAdapter(),
         CirqCircuitAdapter(),
         PennyLaneCircuitAdapter(),
+        QiboCircuitAdapter(),
         QiskitCircuitAdapter(),
     )
 }

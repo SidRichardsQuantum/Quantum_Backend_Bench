@@ -84,6 +84,7 @@ BACKENDS = [
     ("PennyLane", "default.qubit and default.mixed local device workflows."),
     ("Braket", "Amazon Braket LocalSimulator adapter for offline execution."),
     ("Qiskit Aer", "AerSimulator execution and noise-injection coverage."),
+    ("Qibo", "Explicit local NumPy execution and full neutral translation coverage."),
     ("CUDA-Q", "Optional local CUDA-Q simulator adapter."),
     ("pyQuil", "Local QVM and quilc integration when runtimes are available."),
     ("pytket", "Analysis-only circuit depth and gate metric support."),

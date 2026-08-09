@@ -32,7 +32,7 @@ def test_translate_pauli_json_to_all_local_sdk_hamiltonians() -> None:
     assert detected == "pauli-json"
     assert hamiltonian.n_qubits == 2
 
-    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local"):
+    for target in ("qiskit_aer", "cirq", "pennylane", "braket_local", "qibo_numpy"):
         result = translate_hamiltonian_source(
             PAULI_JSON,
             from_format="pauli-json",
@@ -74,12 +74,21 @@ hamiltonian_terms = [
     (-1.25, Observable.X(), [0]),
 ]
 """
+    qibo_source = """from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import X, Z
+
+hamiltonian = SymbolicHamiltonian(
+    0.5 * Z(0) * Z(1) + -1.25 * X(0),
+    nqubits=2,
+)
+"""
 
     expected, _ = import_hamiltonian_source(qiskit_source, from_format="qiskit")
     for source, source_format in (
         (cirq_source, "cirq"),
         (pennylane_source, "pennylane"),
         (braket_source, "braket"),
+        (qibo_source, "qibo"),
     ):
         actual, _ = import_hamiltonian_source(source, from_format=source_format)
         assert actual == expected
@@ -206,6 +215,12 @@ def test_hamiltonian_expected_outputs_are_stable() -> None:
             "braket_local",
             "expected/pennylane_hamiltonian_to_braket.py",
         ),
+        (
+            "ising_hamiltonian.json",
+            "pauli-json",
+            "qibo_numpy",
+            "expected/ising_hamiltonian_to_qibo.py",
+        ),
     ]
 
     for source_name, from_format, to_format, expected_name in cases:
@@ -254,6 +269,7 @@ def test_cli_translation_audit_filters(capsys) -> None:
         "samples",
         "canonical",
         "statevector",
+        "density-matrix",
         "matrix",
         "semantic",
         "result-schema",

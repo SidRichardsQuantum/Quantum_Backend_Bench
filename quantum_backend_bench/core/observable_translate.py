@@ -19,8 +19,23 @@ from quantum_backend_bench.core.neutral_schema import (
     report_schema_metadata,
 )
 
-HAMILTONIAN_INPUT_FORMATS = ("auto", "pauli-json", "qiskit", "cirq", "pennylane", "braket")
-HAMILTONIAN_OUTPUT_FORMATS = ("qiskit_aer", "cirq", "pennylane", "braket_local", "pauli-json")
+HAMILTONIAN_INPUT_FORMATS = (
+    "auto",
+    "pauli-json",
+    "qiskit",
+    "cirq",
+    "pennylane",
+    "braket",
+    "qibo",
+)
+HAMILTONIAN_OUTPUT_FORMATS = (
+    "qiskit_aer",
+    "cirq",
+    "pennylane",
+    "braket_local",
+    "qibo_numpy",
+    "pauli-json",
+)
 HAMILTONIAN_VERIFY_MODES = ("none", "canonical", "matrix")
 
 _OUTPUT_IMPORT_FORMAT = {
@@ -28,6 +43,7 @@ _OUTPUT_IMPORT_FORMAT = {
     "cirq": "cirq",
     "pennylane": "pennylane",
     "braket_local": "braket",
+    "qibo_numpy": "qibo",
     "pauli-json": "pauli-json",
 }
 
@@ -132,6 +148,8 @@ def import_hamiltonian_source(
             return _import_pennylane_ast(tree), selected_format
         if selected_format == "braket":
             return _import_braket_ast(tree), selected_format
+        if selected_format == "qibo":
+            return _import_qibo_ast(tree), selected_format
     except TranslationError:
         raise
     except Exception as exc:  # pragma: no cover - defensive diagnostic wrapper
@@ -157,6 +175,8 @@ def emit_hamiltonian_source(hamiltonian: PauliHamiltonian, to_format: str) -> st
         return _emit_pennylane(hamiltonian)
     if to_format == "braket_local":
         return _emit_braket(hamiltonian)
+    if to_format == "qibo_numpy":
+        return _emit_qibo(hamiltonian)
     raise ValueError(f"Unsupported Hamiltonian output format: {to_format}")
 
 
@@ -251,7 +271,7 @@ def translation_capability_rows() -> list[dict[str, object]]:
 
     from quantum_backend_bench.core.translation_adapters import circuit_adapter_capabilities
 
-    sdks = ["qiskit_aer", "cirq", "pennylane", "braket_local"]
+    sdks = ["qiskit_aer", "cirq", "pennylane", "braket_local", "qibo_numpy"]
     adapter_capabilities = {str(row["sdk"]): row for row in circuit_adapter_capabilities()}
     rows = []
     for sdk in sdks:
@@ -317,6 +337,7 @@ def translation_capability_rows() -> list[dict[str, object]]:
                     "samples",
                     "canonical",
                     "statevector",
+                    "density-matrix",
                     "matrix",
                     "semantic",
                     "result-schema",
@@ -363,6 +384,7 @@ def _sdk_input_formats(sdk: str) -> list[str]:
         "cirq": ["cirq", "pauli-json"],
         "pennylane": ["pennylane", "pauli-json"],
         "braket_local": ["braket", "pauli-json"],
+        "qibo_numpy": ["qibo", "pauli-json"],
     }[sdk]
 
 
@@ -441,6 +463,8 @@ def _detect_format(source: str) -> str:
         return "pennylane"
     if "observable." in source.lower():
         return "braket"
+    if "symbolichamiltonian" in lowered or "qibo.symbols" in lowered:
+        return "qibo"
     raise _unsupported("hamiltonian.detect", "Could not detect Hamiltonian format.")
 
 
@@ -528,6 +552,41 @@ def _import_cirq_ast(tree: ast.AST) -> PauliHamiltonian:
                     terms = [_parse_cirq_term(term) for term in _flatten_add(node.value)]
                     return _hamiltonian(max(qubits, _infer_n_qubits(terms)), terms)
     raise _unsupported("cirq.no_hamiltonian", "No hamiltonian assignment found.")
+
+
+def _import_qibo_ast(tree: ast.AST) -> PauliHamiltonian:
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not _call_name(node.func).endswith(
+            "SymbolicHamiltonian"
+        ):
+            continue
+        if not node.args:
+            raise _unsupported(
+                "qibo.no_terms", "SymbolicHamiltonian requires a static Pauli expression."
+            )
+        terms = [_parse_qibo_term(term) for term in _flatten_add(node.args[0])]
+        nqubits = _keyword(node, "nqubits")
+        n_qubits = int(_literal_number(nqubits)) if nqubits is not None else _infer_n_qubits(terms)
+        return _hamiltonian(n_qubits, terms)
+    raise _unsupported("qibo.no_hamiltonian", "No Qibo SymbolicHamiltonian construction found.")
+
+
+def _parse_qibo_term(node: ast.AST) -> PauliTerm:
+    factors = _flatten_mult(node)
+    coefficient = 1.0
+    paulis: dict[int, str] = {}
+    for factor in factors:
+        if _is_number_node(factor):
+            coefficient *= _literal_number(factor)
+            continue
+        if not isinstance(factor, ast.Call):
+            raise _unsupported("qibo.term", "Unsupported Qibo Hamiltonian term.")
+        symbol = _call_name(factor.func).rsplit(".", 1)[-1]
+        if symbol not in {"I", "X", "Y", "Z"} or not factor.args:
+            raise _unsupported("qibo.observable", f"Unsupported Qibo observable {symbol}.")
+        if symbol != "I":
+            paulis[int(_literal_number(factor.args[0]))] = symbol
+    return _term(coefficient, paulis)
 
 
 def _cirq_qubit_count(tree: ast.AST) -> int:
@@ -661,6 +720,21 @@ def _emit_braket(hamiltonian: PauliHamiltonian) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _emit_qibo(hamiltonian: PauliHamiltonian) -> str:
+    terms = [
+        f"{_format_number(term.coefficient)} * {_qibo_product(term)}" for term in hamiltonian.terms
+    ]
+    symbols = _qibo_symbol_imports((hamiltonian,))
+    return (
+        "from qibo.hamiltonians import SymbolicHamiltonian\n"
+        f"from qibo.symbols import {symbols}\n\n"
+        "hamiltonian = SymbolicHamiltonian(\n"
+        f"    {' + '.join(terms)},\n"
+        f"    nqubits={hamiltonian.n_qubits},\n"
+        ")\n"
+    )
+
+
 def _label(term: PauliTerm, n_qubits: int) -> str:
     lookup = dict(term.paulis)
     return "".join(lookup.get(index, "I") for index in range(n_qubits))
@@ -683,6 +757,24 @@ def _braket_product(term: PauliTerm) -> str:
     if not term.paulis:
         return "Observable.I()"
     return " @ ".join(f"Observable.{pauli}()" for _, pauli in term.paulis)
+
+
+def _qibo_product(term: PauliTerm) -> str:
+    if not term.paulis:
+        return "I(0)"
+    return " * ".join(f"{pauli}({wire})" for wire, pauli in term.paulis)
+
+
+def _qibo_symbol_imports(hamiltonians: tuple[PauliHamiltonian, ...]) -> str:
+    used = {
+        pauli
+        for hamiltonian in hamiltonians
+        for term in hamiltonian.terms
+        for _, pauli in term.paulis
+    }
+    if any(not term.paulis for hamiltonian in hamiltonians for term in hamiltonian.terms):
+        used.add("I")
+    return ", ".join(symbol for symbol in "IXYZ" if symbol in used)
 
 
 def _hamiltonian(n_qubits: int, terms: list[PauliTerm]) -> PauliHamiltonian:
@@ -733,6 +825,13 @@ def _call_name(node: ast.AST) -> str:
         prefix = _call_name(node.value)
         return f"{prefix}.{node.attr}" if prefix else node.attr
     return ""
+
+
+def _keyword(node: ast.Call, name: str) -> ast.AST | None:
+    for keyword in node.keywords:
+        if keyword.arg == name:
+            return keyword.value
+    return None
 
 
 def _literal_list(node: ast.AST) -> list[ast.AST]:

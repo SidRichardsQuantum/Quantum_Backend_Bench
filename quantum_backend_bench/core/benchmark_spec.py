@@ -22,6 +22,13 @@ class NoiseInstruction:
     channel: str
     targets: tuple[int, ...]
     probability: float
+    placement: str = "after_circuit"
+    operation_index: int | None = None
+
+    def __post_init__(self) -> None:
+        self.channel = self.channel.lower()
+        if self.channel == "readout_error" and self.placement == "after_circuit":
+            self.placement = "readout"
 
 
 @dataclass(slots=True)

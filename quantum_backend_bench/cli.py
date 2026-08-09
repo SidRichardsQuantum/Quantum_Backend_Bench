@@ -277,7 +277,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--verify-tolerance",
         type=float,
         default=1e-9,
-        help="Maximum allowed total variation distance for semantic verification.",
+        help="Maximum allowed verification distance (TVD and, when selected, density-matrix trace distance).",
     )
     translate_parser.add_argument(
         "--sample-shots",
@@ -302,7 +302,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--targets",
         nargs="+",
         choices=TRANSLATION_OUTPUT_FORMATS,
-        default=["qiskit_aer", "cirq", "pennylane", "braket_local"],
+        default=["qiskit_aer", "cirq", "pennylane", "braket_local", "qibo_numpy"],
         help="Output targets. Defaults to all free local SDK source targets.",
     )
     translate_all_parser.add_argument(
@@ -322,7 +322,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--verify-tolerance",
         type=float,
         default=1e-9,
-        help="Maximum allowed total variation distance for semantic verification.",
+        help="Maximum allowed verification distance (TVD and, when selected, density-matrix trace distance).",
     )
     translate_all_parser.add_argument(
         "--sample-shots",

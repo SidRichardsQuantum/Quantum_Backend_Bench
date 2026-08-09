@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+## [0.2.15] - 2026-08-09
+
+### Added
+
+- Added Qibo as a full free-local SDK role through the explicit `qibo_numpy` backend, including deterministic seed handling, normalized big-endian counts, structural and compile-style metadata, partial measurements, the supported neutral gate set, and reset/delay mappings.
+- Added static Qibo circuit import and emission, weighted-Pauli `SymbolicHamiltonian` translation, parameterized workflow generation and reimport, `qibo-counts-json` result normalization, golden translation fixtures, and canonical, matrix, semantic, and exact round-trip coverage.
+- Added Qibo implementations for depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error noise, including density-matrix execution where required.
+- Added the `qibo` optional dependency extra, included it in the practical `all` and exhaustive `full` stacks, and added constrained optional-SDK smoke jobs for Python 3.11 and 3.12.
+- Added neutral density-matrix simulation for reset and depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error channels, with explicit `after_circuit`, `after_operation`, `after_each_operation`, and `readout` placement.
+- Added `translate --verify density-matrix`, reporting quantum trace distance and measured-distribution TVD for noisy circuit round trips.
+- Added native noise-channel reimport for Cirq, PennyLane, Braket, and Qibo, plus explicit diagnostics when a target cannot faithfully reimport noise for density-matrix verification.
+
+### Changed
+
+- Expanded backend discovery, compatibility reporting, bundled presets, SDK parity and noise matrices, generated audit documentation, and reference audit artifacts to include Qibo.
+- Promoted Qibo from a roadmap candidate to a supported SDK while keeping Qibolab, cloud execution, provider credentials, hardware control, and provider-specific noise models outside project scope.
+- Exact neutral probabilities now include reset, scheduled quantum noise, and readout confusion instead of ignoring noisy annotations.
+- Aligned neutral depolarizing semantics across SDKs, including conversion to and from Qibo's depolarizing parameter convention.
+
 ## [0.2.14] - 2026-07-31
 
 ### Added

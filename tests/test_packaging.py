@@ -36,6 +36,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["pennylane"] == ["pennylane"]
     assert extras["braket"] == ["amazon-braket-sdk"]
     assert extras["qiskit"] == ["qiskit", "qiskit-aer"]
+    assert extras["qibo"] == ["qibo"]
     assert extras["cudaq"] == ["cudaq"]
     assert "cirq" in extras["dev"]
     assert "jsonschema" in extras["dev"]
@@ -47,6 +48,7 @@ def test_backend_dependencies_are_optional_extras() -> None:
     assert extras["yaml"] == ["PyYAML"]
     assert "cirq" in extras["all"]
     assert "qiskit-aer" in extras["all"]
+    assert "qibo" in extras["all"]
     assert "pytket" in extras["all"]
     assert "PyYAML" in extras["all"]
     assert "cudaq" not in extras["all"]
@@ -76,12 +78,14 @@ def test_ci_constraints_exist_for_reproducible_validation() -> None:
         "cirq",
         "qiskit-aer",
         "pennylane",
+        "qibo",
     ):
         assert package in constraints
     assert "cirq>=1.4,<2" in constraints
     assert "matplotlib==3.11.1" in constraints
     assert "pillow==12.3.0" in constraints
     assert "qiskit-aer>=0.15,<1" in constraints
+    assert "qibo>=0.3,<0.4" in constraints
 
 
 def test_release_policy_and_constraints_are_included_in_sdist_manifest() -> None:

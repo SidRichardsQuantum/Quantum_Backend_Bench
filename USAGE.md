@@ -5,7 +5,7 @@
 - CLI-driven benchmarking with `quantum-bench`
 - Python-driven benchmarking with `build_benchmark(...)` and `run_benchmark(...)`
 
-The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, and pyQuil QVM are supported as execution backends, while `pytket` is used for structural analysis.
+The package is designed for local simulator execution only. Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, Qibo's NumPy backend, CUDA-Q, and pyQuil QVM are supported as execution backends, while `pytket` is used for structural analysis.
 
 For the theoretical background behind shots, distributions, success probability, total variation distance, noise, and the built-in benchmark families, see [THEORY.md](./docs/THEORY.md). For planned SDK interop and translation work, see [ROADMAP.md](./ROADMAP.md).
 
@@ -186,7 +186,7 @@ quantum-bench recommend --use-case noise
 
 Use `quantum-bench info`, `quantum-bench doctor`, and `quantum-bench recommend` before comparing results. In general:
 
-- Use Cirq, PennyLane, or Qiskit Aer for noise-sweep studies because this project injects depolarizing noise for those adapters.
+- Use Cirq, PennyLane, Qiskit Aer, or Qibo for noise-sweep studies because this project injects depolarizing noise for those adapters.
 - Use Qiskit Aer when you want a common transpilation-inclusive local simulator workflow.
 - Use Braket LocalSimulator when you want offline Braket circuit coverage without AWS credentials.
 - Use pyQuil only when local `qvm` and `quilc` runtime support is available.
@@ -236,6 +236,7 @@ Execution backend names are:
 - `pennylane`
 - `braket_local`
 - `qiskit_aer`
+- `qibo_numpy`
 - `cudaq`
 - `pyquil_qvm`
 
@@ -582,7 +583,7 @@ Use when you want an optimization-flavored workload. The benchmark builds a sing
 
 ### Noise Sensitivity
 
-Use when you want to compare how output quality changes under injected depolarizing noise. Cirq, PennyLane, and Qiskit Aer support noisy execution in this project; other adapters may execute the base circuit without injecting noise and report that in result metadata.
+Use when you want to compare how output quality changes under injected depolarizing noise. Cirq, PennyLane, Qiskit Aer, and Qibo support noisy execution in this project; other adapters may execute the base circuit without injecting noise and report that in result metadata.
 
 ## Result Schema
 
@@ -696,6 +697,7 @@ quantum-bench translate-check examples/translation/qiskit_registers.py --from-fo
 quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit --to-format cirq --explain
 quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit --to-format cirq --save-markdown artifacts/translation_check.md
 quantum-bench translate examples/translation/ghz.qasm --from-format openqasm --to-format cirq --verify exact --save-report artifacts/translation_report.json
+quantum-bench translate docs/schema_examples/internal-circuit.example.json --from-format internal-json --to-format qibo_numpy --verify density-matrix
 quantum-bench translate-all examples/translation/qiskit_registers.py --from-format qiskit --output-dir artifacts/qiskit_registers_all
 quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json --from-format pauli-json --to-format pennylane --output artifacts/ising_pennylane.py
 quantum-bench translate-workflow examples/translation/parameterized_workflow.json --to-format qiskit_aer --verify semantic
@@ -710,7 +712,11 @@ quantum-bench diagnose artifacts/ghz.json
 quantum-bench recommend --needs-noise --no-external-runtime
 ```
 
-`translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. `translate-hamiltonian` converts weighted Pauli terms through the neutral Pauli Hamiltonian model with canonical or small dense-matrix verification. `translate-workflow`, `translate-result`, and `group-pauli-terms` extend that into parameterized workflow JSON, first-pass static SDK workflow imports, parameter bindings, measurement/expectation requests, local execution wrappers, neutral result objects, and qubit-wise Pauli grouping. Generated workflow scripts print schema-versioned runtime results and embed a `workflow_spec` for canonical or semantic verification. SDK output is limited to free local Python SDK APIs for now: Cirq, Qiskit, PennyLane, and Braket LocalSimulator. Unsupported dynamic Python constructs are rejected instead of rewritten approximately. Circuit verification supports exact, sampled, canonical, and small noiseless statevector checks, and neutral `internal-json` now carries preservable reset/barrier/delay annotations. Neutral `internal-json`, `pauli-json`, `workflow-json`, and `result-json` payloads are versioned with `schema_version: "0.1"`; saved translation reports include `schema_metadata` and `semantic_contract`, `translate-check` can emit target-aware `migration_audit` guidance with `--to-format`, `--explain`, and `--save-markdown`, `translate-all` writes all selected target sources plus neutral JSON and reports, `roundtrip-audit --verify canonical` checks stricter neutral circuit structure preservation, `roundtrip-audit --workflow-verify semantic` checks workflow results, and `translation-audit --json` emits the current SDK coverage matrix. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) and [Schema](./docs/SCHEMA.md) for supported gates, static Python patterns, diagnostics, runnable-script output, report artifacts, JSON Schema files, examples, caveats, and verification modes.
+`translate` converts supported OpenQASM, internal JSON, or static SDK circuit snippets through the package's neutral circuit model. `translate-hamiltonian` converts weighted Pauli terms through the neutral Pauli Hamiltonian model with canonical or small dense-matrix verification. `translate-workflow`, `translate-result`, and `group-pauli-terms` extend that into parameterized workflows, local execution wrappers, neutral result objects, and qubit-wise Pauli grouping.
+
+SDK output targets the free local APIs for Cirq, Qiskit Aer, PennyLane, Braket LocalSimulator, and Qibo's NumPy backend. Circuit verification supports exact, sampled, canonical, small noiseless statevector, and noisy density-matrix checks. Neutral `internal-json` preserves reset/barrier/delay annotations and explicit noise placement. Unsupported dynamic Python constructs and unrepresentable noisy verification targets fail with structured diagnostics.
+
+Neutral `internal-json`, `pauli-json`, `workflow-json`, and `result-json` payloads use `schema_version: "0.1"`. Saved reports include schema metadata and the semantic contract; `translate-check`, `translate-all`, `roundtrip-audit`, and `translation-audit` provide migration and CI-oriented artifacts. See [Circuit Translation](./docs/CIRCUIT_TRANSLATION.md) and [Schema](./docs/SCHEMA.md) for the supported subset and verification details.
 
 Workflow outputs now include schema-versioned runtime counts, probabilities, and Pauli expectations. Use `translate-workflow --verify semantic` for neutral distribution-TVD, expectation-error, and result-schema checks, or `roundtrip-audit --include-workflow --workflow-verify semantic` to record those metrics across targets.
 

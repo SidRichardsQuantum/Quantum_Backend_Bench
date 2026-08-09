@@ -42,7 +42,11 @@ canonical serializer, so both commands emit exactly this schema surface.
 An internal circuit has `n_qubits`, ordered `operations`, and `measurements`. Operations
 contain a `gate`, integer `qubits`, and optional `params`; numeric values cover angles/durations and string values cover small labels such as delay units. Optional metadata
 fields preserve named quantum/classical register offsets, measurement keys, bit-order
-labels, global phase, and neutral local noise-channel annotations. The v0.1 circuit gate
+labels, global phase, and neutral local noise-channel annotations. Noise entries identify a
+channel, targets, probability, and optional placement: `after_circuit`, `after_operation`
+with a zero-based `operation_index`, `after_each_operation`, or `readout`. Older v0.1
+payloads without placement retain their previous after-circuit behavior; `readout_error`
+defaults to readout placement. The v0.1 circuit gate
 set is `H`, `X`, `Y`, `Z`, `S`, `T`, `SX`, `P`, `RX`, `RY`, `RZ`, `U`, `CNOT`,
 `CZ`, `SWAP`, `CCX`, `CRX`, `CRY`, `CRZ`, `CPHASE`, plus preservable `RESET`,
 `BARRIER`, and `DELAY` annotations.

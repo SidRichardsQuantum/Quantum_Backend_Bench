@@ -38,7 +38,7 @@ For background on qubits, circuits, shots, distributions, noise, benchmark famil
 Adapters differ in what their runtime includes:
 
 - Qiskit Aer and pyQuil include compilation/transpilation work in the adapter runtime.
-- Cirq, PennyLane, Braket LocalSimulator, and CUDA-Q primarily measure local sample/simulation execution inside the adapter.
+- Cirq, PennyLane, Braket LocalSimulator, Qibo NumPy, and CUDA-Q primarily measure local sample/simulation execution inside the adapter.
 - pyQuil may start or connect to local QVM/quilc processes through its local Forest runtime helper.
 
 These differences are reported by `quantum-bench info` and should be disclosed when comparing backends.
@@ -60,7 +60,7 @@ Every result captures package versions, Python version, platform metadata, and g
 
 ## Noise Benchmarks
 
-Noise injection is currently implemented for Cirq, PennyLane, and Qiskit Aer adapters for depolarizing, bit flip, phase flip, and amplitude damping models. Qiskit Aer also uses an explicit readout-error model; Cirq and PennyLane treat readout-error requests as bit-flip-style local channel injection. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available, and `quantum-bench noise-audit` reports the current support matrix.
+Noise injection is currently implemented for Cirq, PennyLane, Qiskit Aer, and Qibo adapters for depolarizing, bit flip, phase flip, and amplitude damping models. Qiskit Aer and Qibo use explicit readout-error models; Cirq and PennyLane treat readout-error requests as bit-flip-style local channel injection. Other execution adapters may run noisy benchmark wrappers without injecting noise; result metadata reports `noise_supported` and `noise_applied` where available, and `quantum-bench noise-audit` reports the current support matrix.
 
 Noise comparisons should be treated as adapter-specific behavior, not a claim that two SDKs model identical physical channels.
 

@@ -19,6 +19,7 @@
   "noise": [
     {
       "channel": "depolarizing",
+      "placement": "after_each_operation",
       "probability": 0.01,
       "targets": [
         0,

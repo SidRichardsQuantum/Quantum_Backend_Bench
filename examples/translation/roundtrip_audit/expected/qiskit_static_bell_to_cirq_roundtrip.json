@@ -21,6 +21,11 @@
       "severity": "warning"
     },
     {
+      "code": "translation.caveat.qibo_numpy",
+      "message": "Qibo runner output explicitly constructs the bundled local NumPy backend.",
+      "severity": "info"
+    },
+    {
       "code": "translation.caveat.controlled_phase",
       "message": "Controlled-phase operations are mapped through each SDK's closest native phase convention and should be verified for nontrivial angles.",
       "severity": "warning"
@@ -49,6 +54,7 @@
       "braket_local",
       "cirq",
       "pennylane",
+      "qibo_numpy",
       "qiskit_aer"
     ],
     "guarantee": "Lossless only within the declared neutral semantic subset.",
@@ -91,13 +97,15 @@
       "canonical neutral structure",
       "exact probabilities",
       "sampled distributions",
-      "statevector comparison up to global phase for small noiseless circuits"
+      "statevector comparison up to global phase for small noiseless circuits",
+      "density-matrix trace distance and exact measured TVD for noisy circuits"
     ]
   },
   "source_path": "/workspaces/Quantum_Backend_Bench/examples/translation/migration_audit/qiskit_static_bell.py",
   "to_format": "cirq",
   "verification": {
     "canonical_match": null,
+    "density_matrix_trace_distance": null,
     "details": "Semantic verification passed: exact probabilities TVD=0.0 with tolerance=1e-09.",
     "expectation_max_abs_error": null,
     "expectation_tolerance": null,

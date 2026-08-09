@@ -39,6 +39,42 @@
     "noise": {
       "items": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "operation_index"
+              ]
+            },
+            "then": {
+              "properties": {
+                "placement": {
+                  "const": "after_operation"
+                }
+              },
+              "required": [
+                "placement"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "placement": {
+                  "const": "after_operation"
+                }
+              },
+              "required": [
+                "placement"
+              ]
+            },
+            "then": {
+              "required": [
+                "operation_index"
+              ]
+            }
+          }
+        ],
         "properties": {
           "channel": {
             "enum": [
@@ -51,14 +87,29 @@
             "type": "string"
           },
           "probability": {
+            "maximum": 1,
             "minimum": 0,
             "type": "number"
+          },
+          "placement": {
+            "enum": [
+              "after_circuit",
+              "after_operation",
+              "after_each_operation",
+              "readout"
+            ],
+            "type": "string"
+          },
+          "operation_index": {
+            "minimum": 0,
+            "type": "integer"
           },
           "targets": {
             "items": {
               "minimum": 0,
               "type": "integer"
             },
+            "minItems": 1,
             "type": "array"
           }
         },

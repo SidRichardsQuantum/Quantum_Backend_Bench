@@ -14,6 +14,7 @@ from quantum_backend_bench.backends.base_backend import BaseBackend
 from quantum_backend_bench.backends.cirq_backend import CirqBackend
 from quantum_backend_bench.backends.cudaq_backend import CudaQBackend
 from quantum_backend_bench.backends.pyquil_backend import PyQuilQVMBackend
+from quantum_backend_bench.backends.qibo_backend import QiboNumpyBackend
 from quantum_backend_bench.backends.qiskit_backend import QiskitAerBackend
 from quantum_backend_bench.benchmarks.bernstein_vazirani import (
     build_benchmark as build_bernstein_vazirani,
@@ -121,6 +122,12 @@ def test_qiskit_generated_workflow_emits_valid_neutral_result() -> None:
 
 
 @pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("qibo"), reason="Qibo not installed")
+def test_qibo_generated_workflow_emits_valid_neutral_result() -> None:
+    _assert_generated_workflow_result(_execute_generated_workflow("qibo_numpy"))
+
+
+@pytest.mark.optional_sdk
 @pytest.mark.skipif(not _has_module("cirq"), reason="Cirq not installed")
 def test_cirq_ghz_counts_use_expected_bitstrings() -> None:
     result = get_backend("cirq").run(build_benchmark(n_qubits=3), shots=32)
@@ -162,6 +169,23 @@ def test_qiskit_ghz_counts_use_expected_bitstrings() -> None:
     result = get_backend("qiskit_aer").run(build_benchmark(n_qubits=3), shots=32)
     assert sum(result["counts"].values()) == 32
     assert set(result["counts"]).issubset({"000", "111"})
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("qibo"), reason="Qibo not installed")
+def test_qibo_ghz_counts_use_expected_bitstrings() -> None:
+    result = get_backend("qibo_numpy").run(build_benchmark(n_qubits=3), shots=32)
+    assert sum(result["counts"].values()) == 32
+    assert set(result["counts"]).issubset({"000", "111"})
+
+
+@pytest.mark.optional_sdk
+@pytest.mark.skipif(not _has_module("qibo"), reason="Qibo not installed")
+def test_qibo_bernstein_vazirani_finds_secret_string() -> None:
+    result = get_backend("qibo_numpy").run(
+        build_bernstein_vazirani(n_qubits=4, secret_string="101"), shots=32
+    )
+    assert result["counts"] == {"101": 32}
 
 
 @pytest.mark.heavy_sdk
@@ -233,7 +257,7 @@ def test_new_backend_missing_dependency_errors_mention_extras(
     real_import = builtins.__import__
 
     def block_new_sdks(name, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
-        blocked = {"qiskit", "cudaq", "pyquil"}
+        blocked = {"qiskit", "qibo", "cudaq", "pyquil"}
         if name in blocked:
             raise ImportError("blocked")
         return real_import(name, globals, locals, fromlist, level)
@@ -242,6 +266,7 @@ def test_new_backend_missing_dependency_errors_mention_extras(
     benchmark = build_benchmark(n_qubits=2)
     cases = [
         (QiskitAerBackend(), r"quantum-backend-bench\[qiskit\]"),
+        (QiboNumpyBackend(), r"quantum-backend-bench\[qibo\]"),
         (CudaQBackend(), r"quantum-backend-bench\[cudaq\]"),
         (PyQuilQVMBackend(), r"quantum-backend-bench\[pyquil\]"),
     ]

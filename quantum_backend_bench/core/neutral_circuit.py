@@ -11,6 +11,7 @@ from quantum_backend_bench.core.benchmark_spec import (
     NoiseInstruction,
 )
 from quantum_backend_bench.core.neutral_schema import NEUTRAL_SCHEMA_VERSION
+from quantum_backend_bench.core.noise import validate_noise
 
 
 def internal_circuit_to_payload(circuit: InternalCircuit) -> dict[str, object]:
@@ -29,15 +30,20 @@ def internal_circuit_to_payload(circuit: InternalCircuit) -> dict[str, object]:
         "measurement_keys": circuit.measurement_keys,
         "bit_order": circuit.bit_order,
         "global_phase": circuit.global_phase,
-        "noise": [
-            {
-                "channel": instruction.channel,
-                "targets": list(instruction.targets),
-                "probability": instruction.probability,
-            }
-            for instruction in circuit.noise
-        ],
+        "noise": [_noise_payload(instruction) for instruction in circuit.noise],
     }
+
+
+def _noise_payload(instruction: NoiseInstruction) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "channel": instruction.channel,
+        "targets": list(instruction.targets),
+        "probability": instruction.probability,
+        "placement": instruction.placement,
+    }
+    if instruction.operation_index is not None:
+        payload["operation_index"] = instruction.operation_index
+    return payload
 
 
 def internal_circuit_to_json(circuit: InternalCircuit) -> str:
@@ -65,10 +71,21 @@ def internal_circuit_from_json(source: str) -> InternalCircuit:
             str(item["channel"]).lower(),
             tuple(int(target) for target in item.get("targets", range(n_qubits))),
             float(item.get("probability", item.get("p", 0.0))),
+            str(
+                item.get(
+                    "placement",
+                    (
+                        "readout"
+                        if str(item["channel"]).lower() == "readout_error"
+                        else "after_circuit"
+                    ),
+                )
+            ),
+            int(item["operation_index"]) if item.get("operation_index") is not None else None,
         )
         for item in payload.get("noise", [])
     ]
-    return InternalCircuit(
+    circuit = InternalCircuit(
         n_qubits,
         operations,
         measurements or list(range(n_qubits)),
@@ -81,6 +98,8 @@ def internal_circuit_from_json(source: str) -> InternalCircuit:
         global_phase=float(payload.get("global_phase", 0.0)),
         noise=noise,
     )
+    validate_noise(circuit.noise, circuit.n_qubits, len(circuit.operations))
+    return circuit
 
 
 def _register_payload(payload: Any) -> dict[str, list[int]]:

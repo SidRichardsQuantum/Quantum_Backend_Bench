@@ -112,7 +112,7 @@ Bundled manifests:
 
 ## Circuit Translation Examples
 
-Translation fixtures live in [`examples/translation/`](./translation/). They cover OpenQASM, internal JSON, static snippets for Qiskit, Cirq, PennyLane, and Braket LocalSimulator, migration-audit reports, purpose-level workflow JSON, portable rewrites, round-trip audit artifacts, and result-normalization edge cases. Run the supported corpus with exact, canonical, and semantic verification:
+Translation fixtures live in [`examples/translation/`](./translation/). They cover OpenQASM, internal JSON, static snippets for Qiskit, Cirq, PennyLane, Braket LocalSimulator, and Qibo NumPy, migration-audit reports, purpose-level workflow JSON, portable rewrites, round-trip audit artifacts, and result-normalization edge cases. Run the supported corpus with exact, canonical, and semantic verification:
 
 ```bash
 python examples/translation/verify_examples.py
@@ -140,5 +140,5 @@ JSON manifests do not need extra parser dependencies.
 - `translation/ising_hamiltonian.json`: neutral weighted Pauli Hamiltonian fixture for observable/Hamiltonian SDK translation.
 - `translation/parameterized_workflow.json`: neutral parameterized workflow fixture covering parameter bindings, measurement requests, execution wrappers, result extraction, and Pauli expectations.
 - `translation/*_result.json`: SDK-shaped result fixtures for `translate-result` normalization examples.
-- `translation/expected/parameterized_workflow_to_*.py`: golden workflow outputs for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator.
+- `translation/expected/parameterized_workflow_to_*.py`: golden workflow outputs for Qiskit Aer, Cirq, PennyLane, Braket LocalSimulator, and Qibo NumPy.
 - `translation/qiskit_hamiltonian.py`, `translation/cirq_hamiltonian.py`, `translation/pennylane_hamiltonian.py`, and `translation/braket_hamiltonian.py`: SDK-format weighted Pauli Hamiltonian fixtures for translation verification.

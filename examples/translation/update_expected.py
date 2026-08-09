@@ -21,6 +21,7 @@ CIRCUIT_CASES = [
     ("qiskit_registers.py", "qiskit", "cirq", "expected/qiskit_registers_to_cirq.py"),
     ("cirq_nested.py", "cirq", "qiskit_aer", "expected/cirq_nested_to_qiskit.py"),
     ("ghz.qasm", "openqasm", "pennylane", "expected/ghz_qasm_to_pennylane.py"),
+    ("qiskit_registers.py", "qiskit", "qibo_numpy", "expected/qiskit_registers_to_qibo.py"),
     (
         "accepted/qiskit_timing_annotations.py",
         "qiskit",
@@ -53,6 +54,12 @@ WORKFLOW_CASES = [
         "braket_local",
         "expected/parameterized_workflow_to_braket.py",
     ),
+    (
+        "parameterized_workflow.json",
+        "workflow-json",
+        "qibo_numpy",
+        "expected/parameterized_workflow_to_qibo.py",
+    ),
 ]
 HAMILTONIAN_CASES = [
     (
@@ -68,6 +75,12 @@ HAMILTONIAN_CASES = [
         "pennylane",
         "braket_local",
         "expected/pennylane_hamiltonian_to_braket.py",
+    ),
+    (
+        "ising_hamiltonian.json",
+        "pauli-json",
+        "qibo_numpy",
+        "expected/ising_hamiltonian_to_qibo.py",
     ),
 ]
 

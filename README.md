@@ -11,7 +11,7 @@ PyPI: [https://pypi.org/project/quantum-backend-bench/](https://pypi.org/project
 
 Website: [https://sidrichardsquantum.github.io/Quantum_Backend_Bench/](https://sidrichardsquantum.github.io/Quantum_Backend_Bench/)
 
-Compare local quantum SDKs and translate supported circuits and workflows between them through versioned neutral schemas. The package runs shared benchmark definitions across Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, CUDA-Q, and pyQuil QVM, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
+Compare local quantum SDKs and translate supported circuits and workflows between them through versioned neutral schemas. The package runs shared benchmark definitions across Cirq, PennyLane, Amazon Braket `LocalSimulator`, Qiskit Aer, Qibo's NumPy backend, CUDA-Q, and pyQuil QVM, then reports standardized runtime, structural, and distribution metrics. `pytket` is used for circuit analysis and compilation-style metrics, not as an execution backend.
 
 See [USAGE.md](./USAGE.md) for a task-oriented guide to the CLI and Python API, [ROADMAP.md](./ROADMAP.md) for planned interop and translation work, and [CHANGELOG.md](./CHANGELOG.md) for release notes.
 For research workflows and interpretation, see [PROBLEM.md](./docs/PROBLEM.md), [THEORY.md](./docs/THEORY.md), [METHODOLOGY.md](./docs/METHODOLOGY.md), [RESULTS.md](./docs/RESULTS.md), [SCHEMA.md](./docs/SCHEMA.md), [COMPATIBILITY.md](./docs/COMPATIBILITY.md), and [LIMITATIONS.md](./docs/LIMITATIONS.md).
@@ -84,6 +84,7 @@ Non-goals for the default workflow are cloud job submission, QPU performance cla
 | PennyLane | `default.qubit` / `default.mixed` | Uses local devices only |
 | Amazon Braket | `LocalSimulator` only | Offline execution, no AWS credentials required |
 | Qiskit Aer | `AerSimulator` | Local Aer simulation with depolarizing noise injection support |
+| Qibo | explicit NumPy backend | Local execution plus neutral circuit, Hamiltonian, workflow, result, and noise support |
 | NVIDIA CUDA-Q | local simulator target | Optional, platform-sensitive adapter outside default onboarding |
 | pyQuil QVM | local QVM/quilc runtime | Optional adapter requiring local Forest runtime support; outside default onboarding |
 | pytket | Analysis only | Used for depth and gate metrics, not execution |
@@ -119,6 +120,7 @@ python -m pip install "quantum-backend-bench[cirq]"
 python -m pip install "quantum-backend-bench[pennylane]"
 python -m pip install "quantum-backend-bench[braket]"
 python -m pip install "quantum-backend-bench[qiskit]"
+python -m pip install "quantum-backend-bench[qibo]"
 python -m pip install "quantum-backend-bench[cudaq]"
 python -m pip install "quantum-backend-bench[pyquil]"
 python -m pip install "quantum-backend-bench[yaml]"
@@ -496,6 +498,7 @@ quantum-bench translate-check examples/translation/qiskit_registers.py --from-fo
 quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit --to-format cirq --explain
 quantum-bench translate-check examples/translation/qiskit_registers.py --from-format qiskit --to-format cirq --save-markdown artifacts/translation_check.md
 quantum-bench translate examples/translation/ghz.qasm --from-format openqasm --to-format cirq --verify exact --save-report artifacts/translation_report.json
+quantum-bench translate docs/schema_examples/internal-circuit.example.json --from-format internal-json --to-format qibo_numpy --verify density-matrix
 quantum-bench translate-all examples/translation/qiskit_registers.py --from-format qiskit --output-dir artifacts/qiskit_registers_all
 quantum-bench translate-hamiltonian examples/translation/ising_hamiltonian.json --from-format pauli-json --to-format pennylane --output artifacts/ising_pennylane.py
 quantum-bench translate-workflow examples/translation/parameterized_workflow.json --to-format qiskit_aer --verify semantic

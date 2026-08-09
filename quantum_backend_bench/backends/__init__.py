@@ -8,6 +8,7 @@ from quantum_backend_bench.backends.cirq_backend import CirqBackend
 from quantum_backend_bench.backends.cudaq_backend import CudaQBackend
 from quantum_backend_bench.backends.pennylane_backend import PennyLaneBackend
 from quantum_backend_bench.backends.pyquil_backend import PyQuilQVMBackend
+from quantum_backend_bench.backends.qibo_backend import QiboNumpyBackend
 from quantum_backend_bench.backends.qiskit_backend import QiskitAerBackend
 
 BACKEND_REGISTRY: dict[str, type[BaseBackend]] = {
@@ -16,6 +17,7 @@ BACKEND_REGISTRY: dict[str, type[BaseBackend]] = {
     "cudaq": CudaQBackend,
     "pennylane": PennyLaneBackend,
     "pyquil_qvm": PyQuilQVMBackend,
+    "qibo_numpy": QiboNumpyBackend,
     "qiskit_aer": QiskitAerBackend,
 }
 

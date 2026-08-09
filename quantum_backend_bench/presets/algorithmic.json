@@ -1,6 +1,6 @@
 {
   "description": "Algorithm-flavored workloads with oracle, search, simulation, and optimization cases.",
-  "backends": ["cirq", "pennylane", "qiskit_aer"],
+  "backends": ["cirq", "pennylane", "qiskit_aer", "qibo_numpy"],
   "shots": 256,
   "repeats": 3,
   "benchmarks": [

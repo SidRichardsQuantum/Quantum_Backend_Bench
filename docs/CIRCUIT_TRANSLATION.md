@@ -10,6 +10,7 @@
 - `cirq`: static `cirq.Circuit` snippets using line qubits
 - `pennylane`: static QNode-style operation snippets
 - `braket`: static `braket.circuits.Circuit` snippets
+- `qibo`: static `qibo.Circuit` and `qibo.gates` snippets
 
 Use `--from-format auto` for basic detection, or set `--from-format` explicitly for predictable CI behavior.
 
@@ -21,6 +22,7 @@ SDK outputs are limited to free local Python SDK APIs for now:
 - `qiskit_aer` circuit source using Qiskit `QuantumCircuit`
 - `pennylane`
 - `braket_local`
+- `qibo_numpy` using an explicitly constructed local NumPy backend
 
 Neutral outputs are also available:
 
@@ -48,6 +50,16 @@ quantum-bench translate examples/qiskit_circuit.py \
   --to-format pennylane \
   --verify exact \
   --output artifacts/circuit_pennylane.py
+```
+
+Verify a noisy neutral circuit through a native SDK channel round trip:
+
+```bash
+quantum-bench translate docs/schema_examples/internal-circuit.example.json \
+  --from-format internal-json \
+  --to-format qibo_numpy \
+  --verify density-matrix \
+  --save-report artifacts/noisy_translation_report.json
 ```
 
 Use sample-based verification when an exact comparison is too strict for the workflow:
@@ -126,7 +138,7 @@ quantum-bench translate examples/translation/ghz.qasm \
 
 ## Tutorial Notebook
 
-`notebooks/05_circuit_translation_workflow.ipynb` provides the end-to-end local workflow: import one static Qiskit circuit, preflight it, draw SDK-native diagrams for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, translate to all four local SDK targets, verify exact probabilities, save per-target source artifacts and a combined report, emit a runnable Cirq script, and inspect unsupported diagnostics.
+`notebooks/05_circuit_translation_workflow.ipynb` provides an end-to-end local workflow: import one static Qiskit circuit, preflight it, draw SDK-native diagrams for Qiskit Aer, Cirq, PennyLane, and Braket LocalSimulator, translate to the four SDK targets exercised by that notebook, verify exact probabilities, save per-target source artifacts and a combined report, emit a runnable Cirq script, and inspect unsupported diagnostics. Qibo is covered by the same CLI translation contract, golden fixtures, and round-trip audits even though it is not yet rendered in that notebook.
 
 ## Observable and Hamiltonian Translation
 
@@ -139,6 +151,7 @@ Supported inputs:
 - `cirq`: static sums of `cirq.X/Y/Z(qubits[i])` products
 - `pennylane`: static `qml.Hamiltonian([...], [...])` snippets
 - `braket`: static `hamiltonian_terms = [(coefficient, Observable..., targets)]` snippets
+- `qibo`: static `SymbolicHamiltonian(...)` Pauli expressions
 
 Supported outputs:
 
@@ -146,6 +159,7 @@ Supported outputs:
 - `cirq`: Cirq Pauli-string expression
 - `pennylane`: PennyLane `qml.Hamiltonian`
 - `braket_local`: Braket observable terms with explicit targets
+- `qibo_numpy`: Qibo `SymbolicHamiltonian`
 - `pauli-json`: neutral JSON
 
 Examples:
@@ -169,7 +183,7 @@ Verification supports two modes. `canonical` reimports generated SDK source and 
 
 ## Workflow-Level Translation
 
-`translate-workflow` covers the next semantic layer around circuits. It accepts neutral `workflow-json` plus a first-pass static subset of Qiskit, Cirq, PennyLane, and Braket parameterized workflow snippets, then emits free local SDK Python for Qiskit Aer, Cirq, PennyLane, or Braket LocalSimulator. The workflow JSON can include:
+`translate-workflow` covers the next semantic layer around circuits. It accepts neutral `workflow-json` plus a first-pass static subset of Qiskit, Cirq, PennyLane, Braket, and Qibo parameterized workflow snippets, then emits free local SDK Python for Qiskit Aer, Cirq, PennyLane, Braket LocalSimulator, or Qibo's NumPy backend. The workflow JSON can include:
 
 - parameterized circuits using `H`, `X`, `Y`, `Z`, `RX`, `RY`, `RZ`, and `CNOT`/`CX`
 - symbolic parameter names, arithmetic parameter expressions over declared parameters, and numeric parameter bindings
@@ -210,7 +224,7 @@ quantum-bench group-pauli-terms examples/translation/ising_hamiltonian.json \
   --output artifacts/ising_measurement_groups.json
 ```
 
-This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, Braket `FreeParameter`, and Braket `circuit.expectation(...)` Pauli result types. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
+This is intentionally not arbitrary Python migration. Static SDK workflow imports currently cover generated snippets and common local patterns such as Qiskit `Parameter`, Cirq `sympy.Symbol`, PennyLane QNode arguments/device shots, PennyLane `qml.expval(...)` over static Pauli products, Braket `FreeParameter`, Braket `circuit.expectation(...)` Pauli result types, and Qibo `Circuit.add(gates...)` construction. Broader user-authored Python migration remains future work; `workflow-json` is still the most precise migration contract for parameterized execution workflows.
 
 ## Supported Gates and Annotations
 
@@ -222,7 +236,7 @@ The supported gate and annotation set matches the existing internal circuit mode
 - Three-qubit and controlled gates: `CCX`, `CRX`, `CRY`, `CRZ`, and `CPHASE`
 - Measurements over static integer wires, with measurement-key and bit-order metadata where importers can preserve it
 - Preservable neutral `RESET`, `BARRIER`, and `DELAY` annotations. Qiskit emits these with native syntax; Cirq emits reset natively; PennyLane emits barrier natively; other unsupported annotation/target pairs are represented as explicit neutral comments with structured warnings.
-- Optional neutral local noise-channel annotations for depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error requests
+- Optional neutral local noise-channel annotations for depolarizing, bit-flip, phase-flip, amplitude-damping, and readout-error requests, placed after the circuit, after one indexed operation, after each state-changing operation, or at readout
 
 ## Static Python Support
 
@@ -237,7 +251,7 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 ## Reports
 
-`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance, canonical match, statevector distance, workflow expectation error, and result-schema validity where applicable. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
+`--save-report` writes JSON for `translate`, `translate-check`, Hamiltonian, workflow, result, and grouping commands. Reports include detected formats, `schema_metadata` for neutral input/output formats, `semantic_contract` details, diagnostics, gate inventory for checks, verification total variation distance, canonical match, statevector distance, density-matrix trace distance, workflow expectation error, and result-schema validity where applicable. `translate-check` reports also include `migration_audit` guidance and can write a compact Markdown review with `--save-markdown`. `translate-all` writes per-target reports, a combined JSON report, neutral `internal-json`, selected target source files, and a Markdown summary. These reports are intended for CI and migration audits.
 
 ## Verification
 
@@ -249,13 +263,15 @@ Unsupported constructs produce structured diagnostics and fail instead of rewrit
 
 `--verify statevector` compares small noiseless final statevectors up to global phase. It rejects noisy annotations and reset because those are not unitary statevector semantics.
 
+`--verify density-matrix` compares the reimported noisy quantum state with trace distance and the measured probabilities with TVD. Cirq, PennyLane, Braket, and Qibo round-trip their supported native quantum channels; Qibo also preserves readout-error placement. Qiskit/OpenQASM circuit output and non-Qibo readout-error round trips fail with a structured unsupported-target diagnostic instead of treating comments as verified noise.
+
 For `translate-workflow`, `--verify canonical` compares the reimported workflow structure, while `--verify semantic` evaluates the original and generated workflow specs with the neutral simulator. Semantic mode reports distribution TVD, expectation-value maximum absolute error, and result-schema validity; tune its thresholds with `--verify-tolerance` and `--expectation-tolerance`.
 
 A failed verification exits with status 1. The translated source is still produced so users can inspect it, but the command reports the failed semantic check.
 
 ## Caveats
 
-Translation reports include warning diagnostics for backend-specific behavior that users should review: measurement bit ordering, Braket probability targets versus measurement counts, PennyLane QNode sampling, and controlled-phase conventions. Exact verification compares neutral measurement probabilities and is the recommended guardrail for these caveats.
+Translation reports include warning diagnostics for backend-specific behavior that users should review: measurement bit ordering, Braket probability targets versus measurement counts, PennyLane QNode sampling, and controlled-phase conventions. Use exact verification for noiseless probability semantics and density-matrix verification for representable noisy circuits.
 
 ## Golden Outputs
 

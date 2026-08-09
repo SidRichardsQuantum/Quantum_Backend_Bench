@@ -85,6 +85,30 @@
       "phase_flip": "implemented",
       "readout_error": "implemented"
     },
+    "notes": "Uses Qibo with its explicit NumPy backend.",
+    "pauli_hamiltonians": true,
+    "python_package_only": true,
+    "result_normalization": true,
+    "runtime_includes_transpilation": false,
+    "sdk": "qibo_numpy",
+    "shot_sampling": true,
+    "unsupported_noise_models": {},
+    "workflow_translation": true
+  },
+  {
+    "circuit_translation": true,
+    "exact_statevector": false,
+    "execution_backend": true,
+    "installed": true,
+    "local_only": true,
+    "measurement_grouping": true,
+    "noise_models": {
+      "amplitude_damping": "implemented",
+      "bit_flip": "implemented",
+      "depolarizing": "implemented",
+      "phase_flip": "implemented",
+      "readout_error": "implemented"
+    },
     "notes": "Uses Qiskit AerSimulator locally.",
     "pauli_hamiltonians": true,
     "python_package_only": true,
